@@ -18,7 +18,7 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=taoxee/ASRtoLLM&type=Date)](https://star-history.com/#taoxee/ASRtoLLM&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=taoxee/VibeMeet2Notes&type=Date)](https://star-history.com/#taoxee/VibeMeet2Notes&Date)
 
 ---
 

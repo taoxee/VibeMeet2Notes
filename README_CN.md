@@ -129,7 +129,7 @@ output/20260228_143052_a1b2c3/
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=taoxee/ASRtoLLM&type=Date)](https://star-history.com/#taoxee/ASRtoLLM&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=taoxee/VibeMeet2Notes&type=Date)](https://star-history.com/#taoxee/VibeMeet2Notes&Date)
 
 ---
 

@@ -32,13 +32,13 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 | Deepgram | ✅ Native | Nova-2 model |
 | ElevenLabs | ✅ Native | Scribe v1 with speaker labels |
 | Soniox | ✅ Native | Async diarization with speaker tracking |
-| 腾讯云 | ✅ Native | SpeakerDiarization via CreateRecTask |
-| 阿里云 | ✅ Native | DashScope Paraformer-v2 |
-| 微软-Global | ✅ Native | Fast Transcription API |
-| 微软-世纪互联 | ✅ Native | China endpoint |
+| Tencent Cloud | ✅ Native | SpeakerDiarization via CreateRecTask |
+| Alibaba Cloud | ✅ Native | DashScope Paraformer-v2 |
+| Microsoft Global | ✅ Native | Fast Transcription API |
+| Microsoft 21Vianet | ✅ Native | China endpoint |
 | OpenAI / Groq | ⚠️ Timestamps only | Single speaker |
-| 火山云 | ⚠️ Timestamps only | Single speaker |
-| 讯飞 | ✅ Native | raasr v2 API |
+| Volcengine | ⚠️ Timestamps only | Single speaker |
+| iFlytek | ✅ Native | raasr v2 API |
 
 ---
 
@@ -46,19 +46,19 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 
 | Vendor | ASR | LLM | TTS | Other |
 |--------|-----|-----|-----|-------|
-| 腾讯云 | ✅ | ✅ | ✅ | Voice Clone |
-| 火山云 | ✅ | | ✅ | Voice Clone |
-| 微软-世纪互联 | ✅ | | ✅ | Translation |
+| Tencent Cloud | ✅ | ✅ | ✅ | Voice Clone |
+| Volcengine | ✅ | | ✅ | Voice Clone |
+| Microsoft 21Vianet | ✅ | | ✅ | Translation |
 | Minimax-CN | | ✅ | ✅ | |
-| 阿里云 | ✅ | ✅ | ✅ | Voice Clone |
+| Alibaba Cloud | ✅ | ✅ | ✅ | Voice Clone |
 | Minimax-Global | | ✅ | ✅ | Voice Clone |
 | ElevenLabs | ✅ | | ✅ | Voice Clone |
 | Soniox | ✅ | | | Translation |
-| 微软-Global | ✅ | | ✅ | Voice Clone/Translation |
+| Microsoft Global | ✅ | | ✅ | Voice Clone/Translation |
 | Groq | | ✅ | | |
 | Deepgram | ✅ | | | |
-| 智谱 | | ✅ | | |
-| 讯飞 | ✅ | | | |
+| Zhipu AI | | ✅ | | |
+| iFlytek | ✅ | | | |
 | OpenAI | | ✅ | | |
 
 ---
@@ -129,7 +129,7 @@ output/20260228_143052_a1b2c3/
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=taoxee/ASRtoLLM&type=Date)](https://star-history.com/#taoxee/ASRtoLLM&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=taoxee/VibeMeet2Notes&type=Date)](https://star-history.com/#taoxee/VibeMeet2Notes&Date)
 
 ---
 
