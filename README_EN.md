@@ -22,6 +22,7 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 - 📋 **Multi-task Parallel** — Upload multiple files, up to 3 tasks processed in parallel with queue management
 - 🔢 **Token Usage Tracking** — Records token consumption for each LLM call (input/output/total)
 - 🔔 **Task Completion Notification** — Pop-up notification in top-right corner, click to jump to result
+- 🌍 **Multi-language UI** — Switch between Chinese/English, language preference auto-saved
 
 ---
 
