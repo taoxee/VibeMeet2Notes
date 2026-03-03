@@ -104,7 +104,7 @@ VENDORS = {
     "Minimax-CN": {
         "types": ["LLM", "TTS"],
         "fields": [
-            {"key": "api_key",  "label": "接口密钥",  "placeholder": "xxxxxxxx"},
+            {"key": "api_key",  "label": "Key",  "placeholder": "xxxxxxxx"},
             {"key": "group_id", "label": "Group ID", "placeholder": "xxxxxxxx"},
         ],
     },
