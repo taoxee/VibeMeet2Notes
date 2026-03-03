@@ -215,7 +215,7 @@
 
 ---
 
-## Conversation 7 (current)
+## Conversation 7 (completed)
 
 ### Task: i18n 收尾 + 翻译遗漏修复
 
@@ -229,4 +229,30 @@
 - `updateCredsSummary` 中已配置供应商列表改用 `getVendorDisplayName()` 显示翻译名称
 - 删除重复的 `getVendorDisplayName` 和 `getVendorTooltip` 函数定义
 - EN i18n `tipBanner` 中 `阿里云` 改为 `Alibaba Cloud`
-- 文件：`static/index.html`, `data/conversationHist.md`
+- Minimax-CN `接口密钥` 字段标签改为 `Key`（`app/config.py`）
+- 文件：`static/index.html`, `app/config.py`, `data/conversationHist.md`
+
+### Git 状态
+- 提交 `90c12ee`：`fix: i18n completeness - toggle text, task notifications, page title, vendor names`
+- 提交 `640031e`：`fix: translate Minimax-CN api_key label from 接口密钥 to Key`
+
+---
+
+## Conversation 8 (current)
+
+### Task 1: 品牌重命名 + 版权更新
+- 页面标题/h1 更新为 `🎙️ 灵感纪要 · VibeMeet2Notes`（中文）/ `🎙️ VibeMeet2Notes · 灵感纪要`（英文）
+- 浏览器标签 `<title>` 更新为 `灵感纪要 · VibeMeet2Notes`
+- 所有 README 标题更新为 `VibeMeet2Notes · 灵感纪要`
+- License 从 MIT 改为 Apache 2.0，`LICENSE` 文件补充版权人：`taoxee (https://github.com/taoxee)`
+- 所有 README License 章节更新为 `Apache License 2.0 © taoxee`
+
+### Task 2: 页面底部作者署名
+- 页面底部新增 footer：`Made by taoxee · Apache 2.0`，taoxee 链接到 `https://github.com/taoxee`
+
+### Task 3: conversationHist + README 更新
+- 更新 `data/conversationHist.md`，标记 Conversation 7 完成，追加 Conversation 8 记录
+- 所有 README 同步最新状态
+
+### Git 状态
+- 提交 `704737e`：`feat: update branding to VibeMeet2Notes/灵感纪要, fix license to Apache 2.0, add footer author link`
