@@ -66,6 +66,21 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 
 ## 🚀 Quick Start
 
+### Prerequisites: Get Your API Keys
+
+You'll need at least **one ASR vendor** and **one LLM vendor** API key before using this tool.
+
+Recommended combination (fast, cost-effective):
+
+| Purpose | Recommended Vendor | Sign Up |
+|---------|-------------------|---------|
+| ASR (Speech-to-Text) | **Deepgram** | https://console.deepgram.com |
+| LLM (Meeting Minutes) | **Alibaba Cloud** | https://bailian.console.aliyun.com |
+
+> See the vendor table below for all supported providers. API keys are stored locally in your browser only — never sent to the server.
+
+### Install & Run
+
 ```bash
 pip install -r requirements.txt
 python run.py

@@ -66,6 +66,21 @@
 
 ## 🚀 快速开始
 
+### 前提条件：准备 API Key
+
+使用本工具前，你需要至少准备 **一个 ASR 供应商** 和 **一个 LLM 供应商** 的 API Key。
+
+推荐组合（速度快、性价比高）：
+
+| 用途 | 推荐供应商 | 注册地址 |
+|------|-----------|---------|
+| ASR（语音转文字） | **Deepgram** | https://console.deepgram.com |
+| LLM（会议纪要） | **阿里云百炼** | https://bailian.console.aliyun.com |
+
+> 其他支持的供应商见下方「供应商支持」表。API Key 仅存储在你的浏览器本地，不会上传到服务器。
+
+### 安装与启动
+
 ```bash
 pip install -r requirements.txt
 python run.py
