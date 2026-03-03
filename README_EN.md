@@ -1,4 +1,4 @@
-# [VibeMeet2Notes](https://github.com/taoxee/VibeMeet2Notes)
+# [VibeMeet2Notes · 灵感纪要](https://github.com/taoxee/VibeMeet2Notes)
 
 **Media Transcription & Meeting Minutes Tool**
 
@@ -136,4 +136,4 @@ output/20260228_143052_a1b2c3/
 
 ## License
 
-MIT
+Apache License 2.0 © [taoxee](https://github.com/taoxee)

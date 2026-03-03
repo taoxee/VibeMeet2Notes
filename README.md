@@ -1,4 +1,4 @@
-# [VibeMeet2Notes](https://github.com/taoxee/VibeMeet2Notes)
+# [VibeMeet2Notes · 灵感纪要](https://github.com/taoxee/VibeMeet2Notes)
 
 **媒体文件转录与会议纪要工具 | Media Transcription & Meeting Minutes Tool**
 
@@ -22,3 +22,7 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 
 ---
 
+
+## License
+
+Apache License 2.0 © [taoxee](https://github.com/taoxee)

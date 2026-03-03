@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title id="page-title">媒体文件转录与会议纪要工具</title>
+<title id="page-title">灵感纪要 · VibeMeet2Notes</title>
 <style>
 /* Language switcher */
 .lang-switcher { text-align: right; margin-bottom: 12px; }
@@ -42,7 +42,7 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
       <option value="en">🌐 English</option>
     </select>
   </div>
-  <h1>🎙️ 媒体文件转录与会议纪要</h1>
+  <h1>🎙️ 灵感纪要 · VibeMeet2Notes</h1>
   <p class="subtitle">上传音视频文件 → ASR 语音识别（说话人分离）→ LLM 会议纪要</p>
 
   <div id="tip-banner" style="display:none;background:#fff3e0;border:1px solid #ffe0b2;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.88rem;color:#e65100;display:flex;align-items:center;justify-content:space-between;">
@@ -145,6 +145,10 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     </div>
   </div>
 </div>
+
+<footer style="text-align:center;padding:24px 0 16px;font-size:0.82rem;color:#aaa;">
+  Made by <a href="https://github.com/taoxee" target="_blank" rel="noopener" style="color:#4361ee;text-decoration:none;">taoxee</a> · Apache 2.0
+</footer>
 
 <style>
 .vendor-section { border: 1px solid #e9ecef; border-radius: 8px; padding: 16px; margin-bottom: 12px; transition: border-color 0.2s; }
@@ -253,7 +257,7 @@ function getVendorTooltip(vendor) {
 
 const i18n = {
   zh: {
-    title: "🎙️ 媒体文件转录与会议纪要",
+    title: "🎙️ 灵感纪要 · VibeMeet2Notes",
     subtitle: "上传音视频文件 → ASR 语音识别（说话人分离）→ LLM 会议纪要",
     tipBanner: "💡 推荐组合：ASR 选 <strong>Deepgram</strong>，LLM 选 <strong>阿里云</strong>（速度快、识别准、性价比高）",
     uploadTitle: "📁 上传文件并处理",
@@ -334,7 +338,7 @@ const i18n = {
     expandText: "▼ 展开"
   },
   en: {
-    title: "🎙️ Media Transcription & Meeting Minutes",
+    title: "🎙️ VibeMeet2Notes · 灵感纪要",
     subtitle: "Upload audio/video → ASR transcription (speaker diarization) → LLM meeting minutes",
     tipBanner: "💡 Recommended: ASR use <strong>Deepgram</strong>, LLM use <strong>Alibaba Cloud</strong> (fast, accurate, cost-effective)",
     uploadTitle: "📁 Upload & Process",
@@ -1299,7 +1303,7 @@ function applyLanguage() {
   document.getElementById("save-toast").textContent = t("saved");
   
   // Update page title
-  document.getElementById("page-title").textContent = currentLang === "en" ? "Media Transcription & Meeting Minutes" : "媒体文件转录与会议纪要工具";
+  document.getElementById("page-title").textContent = currentLang === "en" ? "VibeMeet2Notes · 灵感纪要" : "灵感纪要 · VibeMeet2Notes";
   
   // Update credentials summary
   updateCredsSummary();
