@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>媒体文件转录与会议纪要工具</title>
+<title id="page-title">媒体文件转录与会议纪要工具</title>
 <style>
 /* Language switcher */
 .lang-switcher { text-align: right; margin-bottom: 12px; }
@@ -304,12 +304,39 @@ const i18n = {
     selectLlmAlert: "请选择 LLM 供应商",
     missingCreds: "缺少必填凭证",
     loadTaskFailed: "加载任务失败",
-    requestFailed: "请求失败"
+    requestFailed: "请求失败",
+    statusWaiting: "⏳ 等待中",
+    statusRunning: "🔄 处理中",
+    statusDone: "✅ 完成",
+    statusError: "❌ 失败",
+    success: "✅ 成功",
+    queueRunning: "进行中",
+    queueDone: "已完成",
+    queueTotal: "共",
+    speakersDetected: "🗣️ 识别到",
+    speakersUnit: "位说话人",
+    langLabel: "语言",
+    modelLabel: "模型",
+    inputLabel: "输入",
+    outputLabel: "输出",
+    totalLabel: "合计",
+    tokensUnit: "tokens",
+    taskIdLabel: "任务ID",
+    processing: "处理中",
+    voiceClone: "声音复刻",
+    translation: "翻译",
+    langParam: "语言参数",
+    taskDone: "✅ 任务完成",
+    taskFailed: "❌ 任务失败",
+    queuing: "排队中...",
+    uploading: "正在上传...",
+    collapseText: "▲ 收起",
+    expandText: "▼ 展开"
   },
   en: {
     title: "🎙️ Media Transcription & Meeting Minutes",
     subtitle: "Upload audio/video → ASR transcription (speaker diarization) → LLM meeting minutes",
-    tipBanner: "💡 Recommended: ASR use <strong>Deepgram</strong>, LLM use <strong>阿里云</strong> (fast, accurate, cost-effective)",
+    tipBanner: "💡 Recommended: ASR use <strong>Deepgram</strong>, LLM use <strong>Alibaba Cloud</strong> (fast, accurate, cost-effective)",
     uploadTitle: "📁 Upload & Process",
     selectFile: "Select audio/video files (multiple allowed)",
     asrVendor: "ASR Vendor (Speech-to-Text + Speaker Diarization)",
@@ -358,26 +385,39 @@ const i18n = {
     selectLlmAlert: "Please select an LLM vendor",
     missingCreds: "Missing required credentials",
     loadTaskFailed: "Failed to load task",
-    requestFailed: "Request failed"
+    requestFailed: "Request failed",
+    statusWaiting: "⏳ Waiting",
+    statusRunning: "🔄 Processing",
+    statusDone: "✅ Done",
+    statusError: "❌ Failed",
+    success: "✅ Success",
+    queueRunning: "running",
+    queueDone: "done",
+    queueTotal: "total",
+    speakersDetected: "🗣️ Detected",
+    speakersUnit: "speakers",
+    langLabel: "Language",
+    modelLabel: "Model",
+    inputLabel: "Input",
+    outputLabel: "Output",
+    totalLabel: "Total",
+    tokensUnit: "tokens",
+    taskIdLabel: "Task ID",
+    processing: "Processing",
+    voiceClone: "Voice Clone",
+    translation: "Translation",
+    langParam: "Language",
+    taskDone: "✅ Task Complete",
+    taskFailed: "❌ Task Failed",
+    queuing: "Queuing...",
+    uploading: "Uploading...",
+    collapseText: "▲ Collapse",
+    expandText: "▼ Expand"
   }
 };
 
 function t(key) {
   return i18n[currentLang]?.[key] || i18n.zh[key] || key;
-}
-
-function getVendorDisplayName(vendor) {
-  const info = vendorNames[vendor];
-  if (!info) return vendor;
-  if (currentLang === "zh") return vendor;
-  return info.en || vendor;
-}
-
-function getVendorTooltip(vendor) {
-  const info = vendorNames[vendor];
-  if (!info || !info.chinaOnly) return "";
-  if (currentLang === "en") return "China only";
-  return "";
 }
 
 async function init() {
@@ -436,7 +476,7 @@ function updateCredsSummary() {
 function toggleCreds() {
   credsExpanded = !credsExpanded;
   document.getElementById("vendor-keys").style.display = credsExpanded ? "block" : "none";
-  document.getElementById("creds-toggle").textContent = credsExpanded ? "▲ 收起" : "▼ 展开";
+  document.getElementById("creds-toggle").textContent = credsExpanded ? t("collapseText") : t("expandText");
 }
 
 function updateFilledIndicator(vendor) {
@@ -444,8 +484,26 @@ function updateFilledIndicator(vendor) {
   if (dot) {
     const ready = isVendorReady(vendor);
     dot.className = "filled-indicator " + (ready ? "filled-yes" : "filled-no");
-    dot.title = ready ? "凭证已填写完整" : "还有必填项未填写";
+    dot.title = ready ? (currentLang === "en" ? "Credentials complete" : "凭证已填写完整") : (currentLang === "en" ? "Missing required fields" : "还有必填项未填写");
   }
+}
+
+function translateType(type) {
+  const map = { "声音复刻": t("voiceClone"), "翻译": t("translation") };
+  return map[type] || type;
+}
+
+function translateNote(note) {
+  if (currentLang === "zh") return note;
+  return note
+    .replace("方言自由说ASR，语言参数：autodialect（自动识别中英及中文方言）",
+      "Dialect ASR. Language param: autodialect (auto-detect Chinese/English/dialects)");
+}
+
+function translateFieldLabel(label) {
+  if (currentLang === "zh") return label;
+  const map = { "语言参数": "Language" };
+  return map[label] || label;
 }
 
 function renderVendorKeys() {
@@ -460,17 +518,17 @@ function renderVendorKeys() {
       const inputType = "text";
       const maskStyle = (f.secret !== false) ? ' style="-webkit-text-security: disc;"' : '';
       return `<div class="field-item">
-        <label>${f.label}${optTag}</label>
+        <label>${translateFieldLabel(f.label)}${optTag}</label>
         <input type="${inputType}"${maskStyle} placeholder="${f.placeholder || ''}" value="${val}"
           oninput="saveCred('${vendor}', '${f.key}', this.value)">
       </div>`;
     }).join("");
-    const noteHtml = info.note ? `<div style="font-size:0.78rem;color:#e65100;margin-top:6px;">📌 ${info.note}</div>` : "";
+    const noteHtml = info.note ? `<div style="font-size:0.78rem;color:#e65100;margin-top:6px;">📌 ${translateNote(info.note)}</div>` : "";
     const displayName = getVendorDisplayName(vendor);
     return `<div class="vendor-section">
       <div class="vendor-name">
         ${displayName}
-        <span style="font-size:0.75rem;color:#999;">${info.types.join(" / ")}</span>
+        <span style="font-size:0.75rem;color:#999;">${info.types.map(translateType).join(" / ")}</span>
         <span class="filled-indicator filled-no" id="indicator-${CSS.escape(vendor)}"></span>
       </div>
       <div class="vendor-fields">${fieldsHtml}</div>
@@ -517,11 +575,11 @@ function renderVendorTable() {
     const displayName = getVendorDisplayName(name);
     return `<tr style="border-bottom:1px solid #f0f0f0;">
       <td style="padding:10px;font-weight:500;">${displayName}</td>
-      <td style="padding:10px;">${info.types.map(t => {
-        const cls = t === "ASR" ? "badge-asr" : t === "LLM" ? "badge-llm" : t === "TTS" ? "badge-tts" : "badge-other";
-        return `<span class="vendor-badge ${cls}">${t}</span>`;
+      <td style="padding:10px;">${info.types.map(type => {
+        const cls = type === "ASR" ? "badge-asr" : type === "LLM" ? "badge-llm" : type === "TTS" ? "badge-tts" : "badge-other";
+        return `<span class="vendor-badge ${cls}">${translateType(type)}</span>`;
       }).join(" ")}</td>
-      <td style="padding:10px;font-size:0.82rem;color:#666;">${info.fields.map(f => f.label + (f.optional ? optionalText : '')).join(", ")}</td>
+      <td style="padding:10px;font-size:0.82rem;color:#666;">${info.fields.map(f => translateFieldLabel(f.label) + (f.optional ? optionalText : '')).join(", ")}</td>
     </tr>`;
   }).join("");
 }
@@ -538,9 +596,9 @@ function renderTranscript(text) {
     if (data.segments && Array.isArray(data.segments)) {
       // Show metadata
       if (data.metadata) {
-        const lang = data.metadata.language || "未知";
+        const lang = data.metadata.language || "—";
         const speakers = data.metadata.total_speakers || "?";
-        meta.innerHTML = `🗣️ 识别到 <strong>${speakers}</strong> 位说话人 · 语言: ${lang}`;
+        meta.innerHTML = `${t("speakersDetected")} <strong>${speakers}</strong> ${t("speakersUnit")} · ${t("langLabel")}: ${lang}`;
         meta.style.display = "block";
       }
       // Render diarized segments
@@ -621,7 +679,7 @@ function setStep(stepId, status) {
 
 function renderTokenUsage(usage) {
   if (!usage || !usage.total_tokens) return "";
-  return `<span>模型: ${usage.model || '—'} · 输入: ${usage.prompt_tokens || 0} tokens · 输出: ${usage.completion_tokens || 0} tokens · 合计: ${usage.total_tokens || 0} tokens</span>`;
+  return `<span>${t("modelLabel")}: ${usage.model || '—'} · ${t("inputLabel")}: ${usage.prompt_tokens || 0} ${t("tokensUnit")} · ${t("outputLabel")}: ${usage.completion_tokens || 0} ${t("tokensUnit")} · ${t("totalLabel")}: ${usage.total_tokens || 0} ${t("tokensUnit")}</span>`;
 }
 
 function updateQueueUI() {
@@ -632,23 +690,23 @@ function updateQueueUI() {
   card.style.display = "block";
   const running = ids.filter(id => taskQueue[id].status === "running" || taskQueue[id].status === "waiting").length;
   const done = ids.filter(id => taskQueue[id].status === "done").length;
-  document.getElementById("queue-count").textContent = `(${running} 进行中 / ${done} 已完成 / 共 ${ids.length})`;
+  document.getElementById("queue-count").textContent = `(${running} ${t("queueRunning")} / ${done} ${t("queueDone")} / ${t("queueTotal")} ${ids.length})`;
   container.innerHTML = ids.map(tid => {
-    const t = taskQueue[tid];
-    const statusMap = {waiting: "⏳ 等待中", running: "🔄 处理中", done: "✅ 完成", error: "❌ 失败"};
-    const statusText = statusMap[t.status] || t.status;
-    const statusColor = {waiting: "#ff9800", running: "#4361ee", done: "#4caf50", error: "#e53935"}[t.status] || "#888";
+    const task = taskQueue[tid];
+    const statusMap = {waiting: t("statusWaiting"), running: t("statusRunning"), done: t("statusDone"), error: t("statusError")};
+    const statusText = statusMap[task.status] || task.status;
+    const statusColor = {waiting: "#ff9800", running: "#4361ee", done: "#4caf50", error: "#e53935"}[task.status] || "#888";
     let tokenHtml = "";
-    if (t.token_usage && t.token_usage.total_tokens) {
-      tokenHtml = `<div class="qi-token">🔢 ${t.token_usage.model || ''}: ${t.token_usage.prompt_tokens}+${t.token_usage.completion_tokens}=${t.token_usage.total_tokens} tokens</div>`;
+    if (task.token_usage && task.token_usage.total_tokens) {
+      tokenHtml = `<div class="qi-token">🔢 ${task.token_usage.model || ''}: ${task.token_usage.prompt_tokens}+${task.token_usage.completion_tokens}=${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`;
     }
-    return `<div class="queue-item ${t.status}" onclick="viewQueueTask('${tid}')">
+    return `<div class="queue-item ${task.status}" onclick="viewQueueTask('${tid}')">
       <div class="qi-header">
-        <span class="qi-file">${escapeHtml(t.fileName)}</span>
+        <span class="qi-file">${escapeHtml(task.fileName)}</span>
         <span class="qi-status" style="color:${statusColor};">${statusText}</span>
       </div>
-      <div class="qi-detail">${t.message || ''}</div>
-      ${t.status === 'running' ? `<div class="qi-progress"><div class="qi-progress-bar" style="width:${t.percent || 0}%"></div></div>` : ''}
+      <div class="qi-detail">${task.message || ''}</div>
+      ${task.status === 'running' ? `<div class="qi-progress"><div class="qi-progress-bar" style="width:${task.percent || 0}%"></div></div>` : ''}
       ${tokenHtml}
     </div>`;
   }).join("");
@@ -659,24 +717,23 @@ let queueExpanded = true;
 function toggleQueue() {
   queueExpanded = !queueExpanded;
   document.getElementById("task-queue-list").style.display = queueExpanded ? "block" : "none";
-  document.getElementById("queue-toggle").textContent = queueExpanded ? "▲ 收起" : "▼ 展开";
+  document.getElementById("queue-toggle").textContent = queueExpanded ? t("queueCollapse") : t("queueExpand");
 }
 
 function showTaskNotification(qid, isError) {
-  const t = taskQueue[qid];
-  if (!t) return;
+  const task = taskQueue[qid];
+  if (!task) return;
   const container = document.getElementById("task-notifications");
   const nid = "notify-" + qid;
   const el = document.createElement("div");
   el.id = nid;
   el.className = "task-notify" + (isError ? " error" : "");
   el.innerHTML = `<div class="tn-body" onclick="notifyClick('${qid}')">
-    <div class="tn-title">${isError ? "❌ 任务失败" : "✅ 任务完成"}</div>
-    <div class="tn-file">${escapeHtml(t.fileName)}</div>
+    <div class="tn-title">${isError ? t("taskFailed") : t("taskDone")}</div>
+    <div class="tn-file">${escapeHtml(task.fileName)}</div>
   </div>
   <span class="tn-close" onclick="event.stopPropagation();dismissNotify('${nid}')">✕</span>`;
   container.appendChild(el);
-  // Auto dismiss after 10s
   setTimeout(() => dismissNotify(nid), 10000);
 }
 
@@ -688,16 +745,16 @@ function dismissNotify(nid) {
 }
 
 function notifyClick(qid) {
-  const t = taskQueue[qid];
-  if (t && t.taskIdServer) {
-    loadTask(t.taskIdServer);
+  const task = taskQueue[qid];
+  if (task && task.taskIdServer) {
+    loadTask(task.taskIdServer);
   }
 }
 
 function viewQueueTask(taskId) {
-  const t = taskQueue[taskId];
-  if (!t || !t.taskIdServer) return;
-  loadTask(t.taskIdServer);
+  const task = taskQueue[taskId];
+  if (!task || !task.taskIdServer) return;
+  loadTask(task.taskIdServer);
 }
 
 async function processFiles() {
@@ -720,7 +777,7 @@ async function processFiles() {
   const queueIds = [];
   for (const f of files) {
     const qid = Date.now() + "_" + Math.random().toString(36).slice(2, 6);
-    taskQueue[qid] = { fileName: f.name, file: f, status: "waiting", percent: 0, message: "排队中...",
+    taskQueue[qid] = { fileName: f.name, file: f, status: "waiting", percent: 0, message: t("queuing"),
                         asrVendor, llmVendor, token_usage: null, taskIdServer: null };
     queueIds.push(qid);
   }
@@ -734,7 +791,7 @@ async function processFiles() {
     const qid = waiting[0];
     activeTaskCount++;
     taskQueue[qid].status = "running";
-    taskQueue[qid].message = "正在上传...";
+    taskQueue[qid].message = t("uploading");
     updateQueueUI();
     try {
       await processSingleFile(qid);
@@ -751,13 +808,13 @@ async function processFiles() {
 }
 
 async function processSingleFile(qid) {
-  const t = taskQueue[qid];
+  const task = taskQueue[qid];
   const formData = new FormData();
-  formData.append("file", t.file);
-  formData.append("asr_vendor", t.asrVendor);
-  formData.append("asr_creds", JSON.stringify(getVendorCreds(t.asrVendor)));
-  formData.append("llm_vendor", t.llmVendor);
-  formData.append("llm_creds", JSON.stringify(getVendorCreds(t.llmVendor)));
+  formData.append("file", task.file);
+  formData.append("asr_vendor", task.asrVendor);
+  formData.append("asr_creds", JSON.stringify(getVendorCreds(task.asrVendor)));
+  formData.append("llm_vendor", task.llmVendor);
+  formData.append("llm_creds", JSON.stringify(getVendorCreds(task.llmVendor)));
 
   try {
     const resp = await fetch("/api/process", { method: "POST", body: formData });
@@ -786,21 +843,20 @@ async function processSingleFile(qid) {
     }
   } catch (e) {
     taskQueue[qid].status = "error";
-    taskQueue[qid].message = "请求失败: " + e.message;
+    taskQueue[qid].message = t("requestFailed") + ": " + e.message;
     updateQueueUI();
   }
 }
 
 function handleQueueSSE(qid, event, data) {
-  const t = taskQueue[qid];
-  if (!t) return;
+  const task = taskQueue[qid];
+  if (!task) return;
 
   if (event === "progress") {
-    t.percent = data.percent;
-    t.message = data.message;
+    task.percent = data.percent;
+    task.message = data.message;
     updateQueueUI();
-    // Also update the main results card if this is the "active" viewed task
-    if (t._viewing) {
+    if (task._viewing) {
       const progressBar = document.getElementById("progress-bar");
       const progressText = document.getElementById("progress-text");
       if (progressBar) progressBar.style.width = data.percent + "%";
@@ -810,50 +866,48 @@ function handleQueueSSE(qid, event, data) {
       if (data.step === "llm_done") { setStep("step-llm", "done"); }
     }
   } else if (event === "transcript") {
-    t.transcript = data.text;
-    // Show in results if only 1 task or first task
-    showResultForTask(qid, t.asrVendor, t.llmVendor);
+    task.transcript = data.text;
+    showResultForTask(qid, task.asrVendor, task.llmVendor);
     document.getElementById("transcript-section").style.display = "block";
     renderTranscript(data.text);
-    document.getElementById("asr-vendor-tag").textContent = `(${t.asrVendor})`;
+    document.getElementById("asr-vendor-tag").textContent = `(${getVendorDisplayName(task.asrVendor)})`;
   } else if (event === "summary") {
-    t.summary = data.text;
+    task.summary = data.text;
     document.getElementById("summary-section").style.display = "block";
     document.getElementById("summary-output").innerHTML = renderMarkdown(data.text);
-    document.getElementById("llm-vendor-tag").textContent = `(${t.llmVendor})`;
+    document.getElementById("llm-vendor-tag").textContent = `(${getVendorDisplayName(task.llmVendor)})`;
   } else if (event === "done") {
-    t.status = "done";
-    t.percent = 100;
-    t.message = "✅ 完成";
-    t.taskIdServer = data.task_id;
-    if (data.token_usage) t.token_usage = data.token_usage;
+    task.status = "done";
+    task.percent = 100;
+    task.message = t("statusDone");
+    task.taskIdServer = data.task_id;
+    if (data.token_usage) task.token_usage = data.token_usage;
     updateQueueUI();
     showTaskNotification(qid, false);
-    // Show token usage in results card
     showTokenUsageInResults(data.token_usage);
-    document.getElementById("task-id-display").textContent = `任务ID: ${data.task_id}`;
+    document.getElementById("task-id-display").textContent = `${t("taskIdLabel")}: ${data.task_id}`;
     setStep("step-done", "done");
     loadTaskHistory();
   } else if (event === "error") {
-    t.status = "error";
-    t.message = "❌ " + data.message;
+    task.status = "error";
+    task.message = "❌ " + data.message;
     updateQueueUI();
     showTaskNotification(qid, true);
   }
 }
 
 function showResultForTask(qid, asrVendor, llmVendor) {
-  const t = taskQueue[qid];
-  t._viewing = true;
+  const task = taskQueue[qid];
+  task._viewing = true;
   document.getElementById("results-card").style.display = "block";
-  document.getElementById("result-filename").textContent = "📄 " + t.fileName;
+  document.getElementById("result-filename").textContent = "📄 " + task.fileName;
   document.getElementById("transcript-section").style.display = "none";
   document.getElementById("summary-section").style.display = "none";
   document.getElementById("token-usage-section").style.display = "none";
   document.getElementById("transcript-output").textContent = "";
   document.getElementById("transcript-meta").style.display = "none";
   document.getElementById("summary-output").textContent = "";
-  document.getElementById("task-id-display").textContent = `处理中: ${t.fileName}`;
+  document.getElementById("task-id-display").textContent = `${t("processing")}: ${task.fileName}`;
   document.getElementById("results-card").scrollIntoView({ behavior: "smooth" });
 }
 
@@ -870,7 +924,7 @@ let summaryExpanded = true;
 function toggleSummary() {
   summaryExpanded = !summaryExpanded;
   document.getElementById("summary-output").style.display = summaryExpanded ? "block" : "none";
-  document.getElementById("summary-toggle").textContent = summaryExpanded ? "▲ 收起" : "▼ 展开";
+  document.getElementById("summary-toggle").textContent = summaryExpanded ? t("collapseText") : t("expandText");
 }
 
 let transcriptExpanded = true;
@@ -878,7 +932,7 @@ let transcriptExpanded = true;
 function toggleTranscript() {
   transcriptExpanded = !transcriptExpanded;
   document.getElementById("transcript-output").style.display = transcriptExpanded ? "block" : "none";
-  document.getElementById("transcript-toggle").textContent = transcriptExpanded ? "▲ 收起" : "▼ 展开";
+  document.getElementById("transcript-toggle").textContent = transcriptExpanded ? t("collapseText") : t("expandText");
 }
 
 let historyExpanded = false;
@@ -886,7 +940,7 @@ let historyExpanded = false;
 function toggleHistory() {
   historyExpanded = !historyExpanded;
   document.getElementById("task-history").style.display = historyExpanded ? "block" : "none";
-  document.getElementById("history-toggle").textContent = historyExpanded ? "▲ 收起" : "▼ 展开";
+  document.getElementById("history-toggle").textContent = historyExpanded ? t("collapseText") : t("expandText");
   if (historyExpanded) loadTaskHistory();
 }
 
@@ -896,28 +950,30 @@ async function loadTaskHistory() {
     const resp = await fetch("/api/tasks");
     const tasks = await resp.json();
     if (tasks.length === 0) {
-      container.innerHTML = '<p style="color:#999;font-size:0.85rem;padding:8px 0;">暂无历史任务</p>';
+      container.innerHTML = `<p style="color:#999;font-size:0.85rem;padding:8px 0;">${t("noHistory")}</p>`;
       return;
     }
-    container.innerHTML = tasks.map(t => {
-      const status = t.error ? '❌ 失败' : '✅ 成功';
-      const statusColor = t.error ? '#e65100' : '#2e7d32';
-      const tokenHtml = t.token_usage && t.token_usage.total_tokens
-        ? `<div style="font-size:0.72rem;color:#7b1fa2;margin-top:2px;">🔢 ${t.token_usage.model || t.llm_vendor}: ${t.token_usage.total_tokens} tokens</div>`
+    container.innerHTML = tasks.map(task => {
+      const status = task.error ? t("statusError") : t("success");
+      const statusColor = task.error ? '#e65100' : '#2e7d32';
+      const asrVendorName = getVendorDisplayName(task.asr_vendor);
+      const llmVendorName = getVendorDisplayName(task.llm_vendor);
+      const tokenHtml = task.token_usage && task.token_usage.total_tokens
+        ? `<div style="font-size:0.72rem;color:#7b1fa2;margin-top:2px;">🔢 ${task.token_usage.model || llmVendorName}: ${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`
         : '';
-      return `<div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;" onclick="loadTask('${t.task_id}')">
+      return `<div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;" onclick="loadTask('${task.task_id}')">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-weight:500;font-size:0.9rem;">${t.source_file || '未知文件'}</span>
+          <span style="font-weight:500;font-size:0.9rem;">${task.source_file || '—'}</span>
           <span style="font-size:0.78rem;color:${statusColor};">${status}</span>
         </div>
         <div style="font-size:0.78rem;color:#999;margin-top:4px;">
-          ${t.task_id} · ASR: ${t.asr_vendor} · LLM: ${t.llm_vendor}
+          ${task.task_id} · ASR: ${asrVendorName} · LLM: ${llmVendorName}
         </div>
         ${tokenHtml}
       </div>`;
     }).join("");
   } catch (e) {
-    container.innerHTML = '<p style="color:#e65100;font-size:0.85rem;">加载失败</p>';
+    container.innerHTML = `<p style="color:#e65100;font-size:0.85rem;">${t("loadFailed")}</p>`;
   }
 }
 
@@ -925,12 +981,13 @@ async function loadTask(taskId) {
   try {
     const resp = await fetch(`/api/tasks/${taskId}`);
     const data = await resp.json();
-    document.getElementById("task-id-display").textContent = `任务ID: ${taskId}`;
+    document.getElementById("task-id-display").textContent = `${t("taskIdLabel")}: ${taskId}`;
     document.getElementById("result-filename").textContent = data.meta ? "📄 " + (data.meta.source_file || '') : '';
     if (data.transcript) {
       document.getElementById("transcript-section").style.display = "block";
       renderTranscript(data.transcript);
-      document.getElementById("asr-vendor-tag").textContent = data.meta ? `(${data.meta.asr_vendor})` : '';
+      const asrVendorName = data.meta ? getVendorDisplayName(data.meta.asr_vendor) : '';
+      document.getElementById("asr-vendor-tag").textContent = asrVendorName ? `(${asrVendorName})` : '';
     }
     if (data.summary) {
       document.getElementById("summary-section").style.display = "block";
@@ -961,7 +1018,7 @@ async function importKeys() {
     const resp = await fetch("/api/import-keys");
     const creds = await resp.json();
     if (!creds || Object.keys(creds).length === 0) {
-      showImportStatus("未检测到凭证。可通过环境变量、.env 文件或 vendor_keys.csv 配置。", true);
+      showImportStatus(t("noCredsDetected"), true);
       return;
     }
     const existing = getStoredCreds();
@@ -980,9 +1037,9 @@ async function importKeys() {
     populateSelects();
     updateCredsSummary();
     const vendors = Object.keys(creds).join(", ");
-    showImportStatus(`✅ 已导入 ${Object.keys(creds).length} 个供应商的 ${imported} 个凭证字段 (${vendors})`, false);
+    showImportStatus(`${t("importSuccess")} ${Object.keys(creds).length} ${t("vendors")} ${imported} ${t("fields")} (${vendors})`, false);
   } catch (e) {
-    showImportStatus("导入失败: " + e.message, true);
+    showImportStatus(t("importFailed") + ": " + e.message, true);
   }
 }
 
@@ -1001,7 +1058,7 @@ function importFromFile(event) {
         creds = JSON.parse(text);
       }
       if (!creds || typeof creds !== "object" || Object.keys(creds).length === 0) {
-        showImportStatus("未从文件中解析到有效凭证", true);
+        showImportStatus(t("noValidCreds"), true);
         return;
       }
       const existing = getStoredCreds();
@@ -1020,9 +1077,9 @@ function importFromFile(event) {
       renderVendorKeys();
       populateSelects();
       updateCredsSummary();
-      showImportStatus(`✅ 从文件导入 ${Object.keys(creds).length} 个供应商的 ${imported} 个凭证字段`, false);
+      showImportStatus(`${t("importSuccess")} ${Object.keys(creds).length} ${t("vendors")} ${imported} ${t("fields")}`, false);
     } catch (err) {
-      showImportStatus("文件解析失败: " + err.message, true);
+      showImportStatus(t("fileParseFailed") + ": " + err.message, true);
     }
   };
   reader.readAsText(file);
@@ -1093,7 +1150,7 @@ function parseCSVRow(line) {
 function exportKeys() {
   const creds = getStoredCreds();
   if (!creds || Object.keys(creds).length === 0) {
-    showImportStatus("没有可导出的凭证", true);
+    showImportStatus(t("noCredsExport"), true);
     return;
   }
   const blob = new Blob([JSON.stringify(creds, null, 2)], { type: "application/json" });
@@ -1103,7 +1160,7 @@ function exportKeys() {
   a.download = "vendor_creds.json";
   a.click();
   URL.revokeObjectURL(url);
-  showImportStatus("✅ 凭证已导出为 vendor_creds.json", false);
+  showImportStatus(t("exported"), false);
 }
 
 function clearAllKeys() {
@@ -1112,7 +1169,7 @@ function clearAllKeys() {
   renderVendorKeys();
   populateSelects();
   updateCredsSummary();
-  showImportStatus("🗑️ 所有凭证已清除", false);
+  showImportStatus(t("cleared"), false);
 }
 
 function dismissTip() {
@@ -1233,13 +1290,16 @@ function applyLanguage() {
   
   // Update toggle text
   document.getElementById("queue-toggle").textContent = queueExpanded ? t("queueCollapse") : t("queueExpand");
-  document.getElementById("history-toggle").textContent = historyExpanded ? t("queueCollapse") : t("queueExpand");
-  document.getElementById("creds-toggle").textContent = credsExpanded ? t("queueCollapse") : t("queueExpand");
-  document.getElementById("transcript-toggle").textContent = transcriptExpanded ? t("queueCollapse") : t("queueExpand");
-  document.getElementById("summary-toggle").textContent = summaryExpanded ? t("queueCollapse") : t("queueExpand");
+  document.getElementById("history-toggle").textContent = historyExpanded ? t("collapseText") : t("expandText");
+  document.getElementById("creds-toggle").textContent = credsExpanded ? t("collapseText") : t("expandText");
+  document.getElementById("transcript-toggle").textContent = transcriptExpanded ? t("collapseText") : t("expandText");
+  document.getElementById("summary-toggle").textContent = summaryExpanded ? t("collapseText") : t("expandText");
   
   // Update save toast
   document.getElementById("save-toast").textContent = t("saved");
+  
+  // Update page title
+  document.getElementById("page-title").textContent = currentLang === "en" ? "Media Transcription & Meeting Minutes" : "媒体文件转录与会议纪要工具";
   
   // Update credentials summary
   updateCredsSummary();
@@ -1253,7 +1313,7 @@ updateCredsSummary = function() {
   if (ready.length === 0) {
     el.innerHTML = `<span style="color:#e65100;">${t("noCreds")}</span>`;
   } else {
-    el.innerHTML = `${t("configured")}: ${ready.join(", ")}`;
+    el.innerHTML = `${t("configured")}: ${ready.map(getVendorDisplayName).join(", ")}`;
   }
 };
 

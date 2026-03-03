@@ -212,3 +212,21 @@
 - 密钥字段用 CSS `-webkit-text-security: disc`（非 `type="password"`）
 - 目标功能：说话人分离 + 会议纪要（非字幕生成）
 - 语言切换器不使用国旗图标，使用 🌐 + 语言名称
+
+---
+
+## Conversation 7 (current)
+
+### Task: i18n 收尾 + 翻译遗漏修复
+
+- 修复 `showTaskNotification` 嵌套函数定义 bug（导致函数体未正确关闭）
+- 新增 i18n key：`taskDone`, `taskFailed`, `queuing`, `uploading`, `collapseText`, `expandText`
+- `processFiles` 中 `"排队中..."` 改为 `t("queuing")`
+- `processSingleFile` 中 `"正在上传..."` 改为 `t("uploading")`
+- `toggleSummary`, `toggleTranscript`, `toggleHistory`, `toggleCreds` 中硬编码 `▲ 收起` / `▼ 展开` 改为 `t("collapseText")` / `t("expandText")`
+- `applyLanguage()` 中 history/creds/transcript/summary toggle 改用 `collapseText`/`expandText`（而非 `queueCollapse`/`queueExpand`）
+- `applyLanguage()` 新增 `document.getElementById("page-title").textContent` 更新浏览器标签标题
+- `updateCredsSummary` 中已配置供应商列表改用 `getVendorDisplayName()` 显示翻译名称
+- 删除重复的 `getVendorDisplayName` 和 `getVendorTooltip` 函数定义
+- EN i18n `tipBanner` 中 `阿里云` 改为 `Alibaba Cloud`
+- 文件：`static/index.html`, `data/conversationHist.md`
