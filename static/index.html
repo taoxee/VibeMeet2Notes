@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>媒体文件转录与会议纪要工具</title>
 <style>
+/* Language switcher */
+.lang-switcher { text-align: right; margin-bottom: 12px; }
+.lang-switcher select { padding: 8px 16px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 1.05rem; background: #fff; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); appearance: none; -webkit-appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+.lang-switcher select:hover { border-color: #4361ee; }
+.lang-switcher select:focus { outline: none; border-color: #4361ee; box-shadow: 0 0 0 3px rgba(67,97,238,0.15); }
+</style>
+<style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
 .container { max-width: 960px; margin: 0 auto; padding: 24px; }
@@ -29,6 +36,12 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
 </head>
 <body>
 <div class="container">
+  <div class="lang-switcher">
+    <select id="lang-select" onchange="switchLanguage(this.value)">
+      <option value="zh">🌐 中文</option>
+      <option value="en">🌐 English</option>
+    </select>
+  </div>
   <h1>🎙️ 媒体文件转录与会议纪要</h1>
   <p class="subtitle">上传音视频文件 → ASR 语音识别（说话人分离）→ LLM 会议纪要</p>
 
@@ -44,18 +57,18 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     <h2>📁 上传文件并处理</h2>
     <div class="form-row">
       <div class="form-group" style="flex:2;">
-        <label>选择音视频文件（可多选）</label>
+        <label id="file-label">选择音视频文件（可多选）</label>
         <input type="file" id="media-file" accept=".mp3,.mp4,.wav,.m4a,.webm,.ogg,.flac,.mpeg,.mpga" multiple style="padding:8px;">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>ASR 供应商（语音转文字 + 说话人分离）</label>
+        <label id="asr-label">ASR 供应商（语音转文字 + 说话人分离）</label>
         <select id="asr-vendor"><option value="">-- 请选择 --</option></select>
         <div id="asr-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">⚠️ 暂无已配置的 ASR 供应商，请先在下方配置凭证</div>
       </div>
       <div class="form-group">
-        <label>LLM 供应商（会议纪要）</label>
+        <label id="llm-label">LLM 供应商（会议纪要）</label>
         <select id="llm-vendor"><option value="">-- 请选择 --</option></select>
         <div id="llm-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">⚠️ 暂无已配置的 LLM 供应商，请先在下方配置凭证</div>
       </div>
@@ -112,10 +125,10 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     <p style="font-size:0.85rem;color:#888;margin-bottom:8px;">凭证仅保存在浏览器本地，输入即自动保存，刷新页面后自动恢复。</p>
     <div id="creds-summary" style="font-size:0.85rem;color:#4caf50;margin-bottom:8px;"></div>
     <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
-      <button onclick="importKeys()" style="padding:8px 16px;background:#4361ee;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">📥 一键导入凭证</button>
-      <label style="padding:8px 16px;background:#ff9800;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;display:inline-block;">📁 从文件导入（CSV/JSON）<input type="file" accept=".json,.csv" onchange="importFromFile(event)" style="display:none;"></label>
-      <button onclick="exportKeys()" style="padding:8px 16px;background:#2e7d32;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">📤 导出凭证</button>
-      <button onclick="clearAllKeys()" style="padding:8px 16px;background:#e53935;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">🗑️ 清除所有凭证</button>
+      <button id="btn-import" onclick="importKeys()" style="padding:8px 16px;background:#4361ee;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">📥 一键导入凭证</button>
+      <label id="btn-import-file" style="padding:8px 16px;background:#ff9800;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;display:inline-block;">📁 从文件导入（CSV/JSON）<input type="file" accept=".json,.csv" onchange="importFromFile(event)" style="display:none;"></label>
+      <button id="btn-export" onclick="exportKeys()" style="padding:8px 16px;background:#2e7d32;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">📤 导出凭证</button>
+      <button id="btn-clear" onclick="clearAllKeys()" style="padding:8px 16px;background:#e53935;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">🗑️ 清除所有凭证</button>
     </div>
     <div id="import-status" style="display:none;font-size:0.85rem;margin-bottom:8px;padding:8px 12px;border-radius:6px;"></div>
     <div id="vendor-keys" style="display:none;"></div>
@@ -206,6 +219,167 @@ let taskQueue = {}; // taskId -> {file, status, percent, message, token_usage, .
 let activeTaskCount = 0;
 const MAX_PARALLEL = 3;
 
+// i18n - Language setting (must be before init)
+let currentLang = localStorage.getItem("app_lang") || "zh";
+
+// Vendor name translations
+const vendorNames = {
+  "腾讯云": { en: "Tencent Cloud" },
+  "火山云": { en: "Volcengine" },
+  "微软-世纪互联": { en: "Microsoft 21Vianet" },
+  "Minimax-CN": { en: "Minimax-CN" },
+  "阿里云": { en: "Alibaba Cloud" },
+  "Minimax-Global": { en: "Minimax-Global" },
+  "ElevenLabs": { en: "ElevenLabs" },
+  "Soniox": { en: "Soniox" },
+  "微软-Global": { en: "Microsoft" },
+  "Groq": { en: "Groq" },
+  "Deepgram": { en: "Deepgram" },
+  "智谱": { en: "Zhipu AI" },
+  "讯飞": { en: "iFlytek" },
+  "OpenAI": { en: "OpenAI" }
+};
+
+function getVendorDisplayName(vendor) {
+  const info = vendorNames[vendor];
+  if (!info) return vendor;
+  if (currentLang === "zh") return vendor;
+  return info.en || vendor;
+}
+
+function getVendorTooltip(vendor) {
+  return "";
+}
+
+const i18n = {
+  zh: {
+    title: "🎙️ 媒体文件转录与会议纪要",
+    subtitle: "上传音视频文件 → ASR 语音识别（说话人分离）→ LLM 会议纪要",
+    tipBanner: "💡 推荐组合：ASR 选 <strong>Deepgram</strong>，LLM 选 <strong>阿里云</strong>（速度快、识别准、性价比高）",
+    uploadTitle: "📁 上传文件并处理",
+    selectFile: "选择音视频文件（可多选）",
+    asrVendor: "ASR 供应商（语音转文字 + 说话人分离）",
+    llmVendor: "LLM 供应商（会议纪要）",
+    selectPlaceholder: "-- 请选择 --",
+    noAsrVendor: "⚠️ 暂无已配置的 ASR 供应商，请先在下方配置凭证",
+    noLlmVendor: "⚠️ 暂无已配置的 LLM 供应商，请先在下方配置凭证",
+    startBtn: "🚀 开始处理",
+    queueTitle: "📋 任务队列",
+    queueCollapse: "▲ 收起",
+    queueExpand: "▼ 展开",
+    resultsTitle: "📝 处理结果",
+    transcript: "转录文本",
+    summary: "会议纪要",
+    tokenUsage: "🔢 Token 用量",
+    historyTitle: "📂 历史任务",
+    credsTitle: "🔑 供应商凭证管理",
+    credsDesc: "凭证仅保存在浏览器本地，输入即自动保存，刷新页面后自动恢复。",
+    importBtn: "📥 一键导入凭证",
+    importFileBtn: "📁 从文件导入（CSV/JSON）",
+    exportBtn: "📤 导出凭证",
+    clearBtn: "🗑️ 清除所有凭证",
+    vendorTableTitle: "📋 供应商能力一览",
+    vendorCol: "供应商",
+    typesCol: "支持的产品类型",
+    credsCol: "所需凭证",
+    optional: "(选填)",
+    noHistory: "暂无历史任务",
+    loadFailed: "加载失败",
+    saved: "✅ 已自动保存",
+    noCreds: "尚未配置任何供应商凭证",
+    configured: "已配置",
+    confirmClear: "确定要清除所有已保存的供应商凭证吗？此操作不可撤销。",
+    noCredsExport: "没有可导出的凭证",
+    exported: "✅ 凭证已导出为 vendor_creds.json",
+    cleared: "🗑️ 所有凭证已清除",
+    importSuccess: "✅ 已导入",
+    vendors: "个供应商的",
+    fields: "个凭证字段",
+    noCredsDetected: "未检测到凭证。可通过环境变量、.env 文件或 vendor_keys.csv 配置。",
+    importFailed: "导入失败",
+    fileParseFailed: "文件解析失败",
+    noValidCreds: "未从文件中解析到有效凭证",
+    selectFileAlert: "请选择一个或多个音视频文件",
+    selectAsrAlert: "请选择 ASR 供应商",
+    selectLlmAlert: "请选择 LLM 供应商",
+    missingCreds: "缺少必填凭证",
+    loadTaskFailed: "加载任务失败",
+    requestFailed: "请求失败"
+  },
+  en: {
+    title: "🎙️ Media Transcription & Meeting Minutes",
+    subtitle: "Upload audio/video → ASR transcription (speaker diarization) → LLM meeting minutes",
+    tipBanner: "💡 Recommended: ASR use <strong>Deepgram</strong>, LLM use <strong>阿里云</strong> (fast, accurate, cost-effective)",
+    uploadTitle: "📁 Upload & Process",
+    selectFile: "Select audio/video files (multiple allowed)",
+    asrVendor: "ASR Vendor (Speech-to-Text + Speaker Diarization)",
+    llmVendor: "LLM Vendor (Meeting Minutes)",
+    selectPlaceholder: "-- Select --",
+    noAsrVendor: "⚠️ No ASR vendor configured. Please add credentials below.",
+    noLlmVendor: "⚠️ No LLM vendor configured. Please add credentials below.",
+    startBtn: "🚀 Start Processing",
+    queueTitle: "📋 Task Queue",
+    queueCollapse: "▲ Collapse",
+    queueExpand: "▼ Expand",
+    resultsTitle: "📝 Results",
+    transcript: "Transcript",
+    summary: "Meeting Minutes",
+    tokenUsage: "🔢 Token Usage",
+    historyTitle: "📂 Task History",
+    credsTitle: "🔑 Vendor Credentials",
+    credsDesc: "Credentials are stored locally in your browser only. Auto-saved on input.",
+    importBtn: "📥 Auto Import",
+    importFileBtn: "📁 Import from File (CSV/JSON)",
+    exportBtn: "📤 Export",
+    clearBtn: "🗑️ Clear All",
+    vendorTableTitle: "📋 Vendor Capabilities",
+    vendorCol: "Vendor",
+    typesCol: "Supported Types",
+    credsCol: "Required Credentials",
+    optional: "(optional)",
+    noHistory: "No task history",
+    loadFailed: "Load failed",
+    saved: "✅ Auto-saved",
+    noCreds: "No vendor credentials configured",
+    configured: "Configured",
+    confirmClear: "Are you sure you want to clear all saved credentials? This cannot be undone.",
+    noCredsExport: "No credentials to export",
+    exported: "✅ Credentials exported as vendor_creds.json",
+    cleared: "🗑️ All credentials cleared",
+    importSuccess: "✅ Imported",
+    vendors: "vendors with",
+    fields: "credential fields",
+    noCredsDetected: "No credentials detected. Configure via environment variables, .env file, or vendor_keys.csv.",
+    importFailed: "Import failed",
+    fileParseFailed: "File parse failed",
+    noValidCreds: "No valid credentials found in file",
+    selectFileAlert: "Please select one or more audio/video files",
+    selectAsrAlert: "Please select an ASR vendor",
+    selectLlmAlert: "Please select an LLM vendor",
+    missingCreds: "Missing required credentials",
+    loadTaskFailed: "Failed to load task",
+    requestFailed: "Request failed"
+  }
+};
+
+function t(key) {
+  return i18n[currentLang]?.[key] || i18n.zh[key] || key;
+}
+
+function getVendorDisplayName(vendor) {
+  const info = vendorNames[vendor];
+  if (!info) return vendor;
+  if (currentLang === "zh") return vendor;
+  return info.en || vendor;
+}
+
+function getVendorTooltip(vendor) {
+  const info = vendorNames[vendor];
+  if (!info || !info.chinaOnly) return "";
+  if (currentLang === "en") return "China only";
+  return "";
+}
+
 async function init() {
   const resp = await fetch("/api/vendors");
   VENDORS = await resp.json();
@@ -279,9 +453,10 @@ function renderVendorKeys() {
   const creds = getStoredCreds();
   container.innerHTML = Object.entries(VENDORS).map(([vendor, info]) => {
     const vc = creds[vendor] || {};
+    const optionalText = currentLang === "en" ? "(optional)" : "(选填)";
     const fieldsHtml = info.fields.map(f => {
       const val = vc[f.key] || f.default || "";
-      const optTag = f.optional ? '<span class="optional-tag">(选填)</span>' : '';
+      const optTag = f.optional ? `<span class="optional-tag">${optionalText}</span>` : '';
       const inputType = "text";
       const maskStyle = (f.secret !== false) ? ' style="-webkit-text-security: disc;"' : '';
       return `<div class="field-item">
@@ -291,9 +466,10 @@ function renderVendorKeys() {
       </div>`;
     }).join("");
     const noteHtml = info.note ? `<div style="font-size:0.78rem;color:#e65100;margin-top:6px;">📌 ${info.note}</div>` : "";
+    const displayName = getVendorDisplayName(vendor);
     return `<div class="vendor-section">
       <div class="vendor-name">
-        ${vendor}
+        ${displayName}
         <span style="font-size:0.75rem;color:#999;">${info.types.join(" / ")}</span>
         <span class="filled-indicator filled-no" id="indicator-${CSS.escape(vendor)}"></span>
       </div>
@@ -310,17 +486,18 @@ function populateSelects() {
   const asrPrev = asrSel.value;
   const llmPrev = llmSel.value;
 
-  asrSel.innerHTML = '<option value="">-- 请选择 --</option>';
-  llmSel.innerHTML = '<option value="">-- 请选择 --</option>';
+  asrSel.innerHTML = `<option value="">${t("selectPlaceholder")}</option>`;
+  llmSel.innerHTML = `<option value="">${t("selectPlaceholder")}</option>`;
 
   let asrCount = 0, llmCount = 0;
   Object.entries(VENDORS).forEach(([name, info]) => {
+    const displayName = getVendorDisplayName(name);
     if (info.types.includes("ASR") && isVendorReady(name)) {
-      asrSel.innerHTML += `<option value="${name}">${name}</option>`;
+      asrSel.innerHTML += `<option value="${name}">${displayName}</option>`;
       asrCount++;
     }
     if (info.types.includes("LLM") && isVendorReady(name)) {
-      llmSel.innerHTML += `<option value="${name}">${name}</option>`;
+      llmSel.innerHTML += `<option value="${name}">${displayName}</option>`;
       llmCount++;
     }
   });
@@ -335,16 +512,18 @@ function populateSelects() {
 
 function renderVendorTable() {
   const tbody = document.querySelector("#vendor-table tbody");
-  tbody.innerHTML = Object.entries(VENDORS).map(([name, info]) => `
-    <tr style="border-bottom:1px solid #f0f0f0;">
-      <td style="padding:10px;font-weight:500;">${name}</td>
+  const optionalText = currentLang === "en" ? "(optional)" : "(选填)";
+  tbody.innerHTML = Object.entries(VENDORS).map(([name, info]) => {
+    const displayName = getVendorDisplayName(name);
+    return `<tr style="border-bottom:1px solid #f0f0f0;">
+      <td style="padding:10px;font-weight:500;">${displayName}</td>
       <td style="padding:10px;">${info.types.map(t => {
         const cls = t === "ASR" ? "badge-asr" : t === "LLM" ? "badge-llm" : t === "TTS" ? "badge-tts" : "badge-other";
         return `<span class="vendor-badge ${cls}">${t}</span>`;
       }).join(" ")}</td>
-      <td style="padding:10px;font-size:0.82rem;color:#666;">${info.fields.map(f => f.label + (f.optional ? '(选填)' : '')).join(", ")}</td>
-    </tr>
-  `).join("");
+      <td style="padding:10px;font-size:0.82rem;color:#666;">${info.fields.map(f => f.label + (f.optional ? optionalText : '')).join(", ")}</td>
+    </tr>`;
+  }).join("");
 }
 
 function getVendorCreds(vendor) {
@@ -425,7 +604,10 @@ function validateVendorCreds(vendor) {
   const info = VENDORS[vendor];
   const creds = getVendorCreds(vendor);
   const missing = info.fields.filter(f => !f.optional && (!creds[f.key] || !creds[f.key].trim()));
-  if (missing.length > 0) return `${vendor} 缺少必填凭证: ${missing.map(f => f.label).join(", ")}`;
+  if (missing.length > 0) {
+    const vendorName = getVendorDisplayName(vendor);
+    return `${vendorName} ${t("missingCreds")}: ${missing.map(f => f.label).join(", ")}`;
+  }
   return null;
 }
 
@@ -523,9 +705,9 @@ async function processFiles() {
   const asrVendor = document.getElementById("asr-vendor").value;
   const llmVendor = document.getElementById("llm-vendor").value;
 
-  if (!fileInput.files.length) return alert("请选择一个或多个音视频文件");
-  if (!asrVendor) return alert("请选择 ASR 供应商");
-  if (!llmVendor) return alert("请选择 LLM 供应商");
+  if (!fileInput.files.length) return alert(t("selectFileAlert"));
+  if (!asrVendor) return alert(t("selectAsrAlert"));
+  if (!llmVendor) return alert(t("selectLlmAlert"));
 
   const asrErr = validateVendorCreds(asrVendor);
   if (asrErr) return alert(asrErr);
@@ -761,7 +943,7 @@ async function loadTask(taskId) {
     document.getElementById("results-card").style.display = "block";
     document.getElementById("results-card").scrollIntoView({ behavior: "smooth" });
   } catch (e) {
-    alert("加载任务失败: " + e.message);
+    alert(t("loadTaskFailed") + ": " + e.message);
   }
 }
 
@@ -925,7 +1107,7 @@ function exportKeys() {
 }
 
 function clearAllKeys() {
-  if (!confirm("确定要清除所有已保存的供应商凭证吗？此操作不可撤销。\nAre you sure you want to clear all saved credentials? This cannot be undone.")) return;
+  if (!confirm(t("confirmClear"))) return;
   localStorage.removeItem("vendor_creds");
   renderVendorKeys();
   populateSelects();
@@ -938,7 +1120,145 @@ function dismissTip() {
   localStorage.setItem("tip_dismissed", "1");
 }
 
+function switchLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem("app_lang", lang);
+  applyLanguage();
+}
+
+function applyLanguage() {
+  document.getElementById("lang-select").value = currentLang;
+  
+  // Re-render vendor-related UI
+  renderVendorKeys();
+  renderVendorTable();
+  populateSelects();
+  
+  // Update static text elements
+  document.querySelector("h1").innerHTML = t("title");
+  document.querySelector(".subtitle").textContent = t("subtitle");
+  document.querySelector("#tip-banner span:first-child").innerHTML = t("tipBanner");
+  
+  // Upload section
+  document.querySelector("#process-btn").closest(".card").querySelector("h2").textContent = t("uploadTitle");
+  document.getElementById("file-label").textContent = t("selectFile");
+  
+  // ASR/LLM labels
+  document.getElementById("asr-label").textContent = t("asrVendor");
+  document.getElementById("llm-label").textContent = t("llmVendor");
+  
+  // No vendor warnings
+  document.getElementById("asr-no-vendor").textContent = t("noAsrVendor");
+  document.getElementById("llm-no-vendor").textContent = t("noLlmVendor");
+  
+  // Process button
+  document.getElementById("process-btn").textContent = t("startBtn");
+  
+  // Queue title
+  const queueH2 = document.querySelector("#queue-card h2");
+  if (queueH2) {
+    const countSpan = document.getElementById("queue-count");
+    const toggleSpan = document.getElementById("queue-toggle");
+    queueH2.innerHTML = "";
+    queueH2.textContent = t("queueTitle") + " ";
+    queueH2.appendChild(countSpan);
+    queueH2.appendChild(document.createTextNode(" "));
+    queueH2.appendChild(toggleSpan);
+  }
+  
+  // Results title
+  document.querySelector("#results-card h2").textContent = t("resultsTitle");
+  
+  // Transcript/Summary labels
+  const transcriptLabel = document.querySelector("#transcript-section > label");
+  if (transcriptLabel) {
+    const vendorTag = document.getElementById("asr-vendor-tag");
+    const toggleSpan = document.getElementById("transcript-toggle");
+    transcriptLabel.innerHTML = "";
+    transcriptLabel.textContent = t("transcript") + " ";
+    transcriptLabel.appendChild(vendorTag);
+    transcriptLabel.appendChild(document.createTextNode(" "));
+    transcriptLabel.appendChild(toggleSpan);
+  }
+  
+  const summaryLabel = document.querySelector("#summary-section > label");
+  if (summaryLabel) {
+    const vendorTag = document.getElementById("llm-vendor-tag");
+    const toggleSpan = document.getElementById("summary-toggle");
+    summaryLabel.innerHTML = "";
+    summaryLabel.textContent = t("summary") + " ";
+    summaryLabel.appendChild(vendorTag);
+    summaryLabel.appendChild(document.createTextNode(" "));
+    summaryLabel.appendChild(toggleSpan);
+  }
+  
+  // Token usage title
+  document.querySelector("#token-usage-section > div:first-child").textContent = t("tokenUsage");
+  
+  // History title
+  const historyH2 = document.querySelector("#task-history").closest(".card").querySelector("h2");
+  if (historyH2) {
+    const toggleSpan = document.getElementById("history-toggle");
+    historyH2.innerHTML = "";
+    historyH2.textContent = t("historyTitle") + " ";
+    historyH2.appendChild(toggleSpan);
+  }
+  
+  // Credentials section
+  const credsH2 = document.querySelector("#creds-card h2");
+  if (credsH2) {
+    const toggleSpan = document.getElementById("creds-toggle");
+    credsH2.innerHTML = "";
+    credsH2.textContent = t("credsTitle") + " ";
+    credsH2.appendChild(toggleSpan);
+  }
+  document.querySelector("#creds-card > p").textContent = t("credsDesc");
+  
+  // Credential buttons - use IDs for reliable targeting
+  document.getElementById("btn-import").textContent = t("importBtn");
+  document.getElementById("btn-import-file").innerHTML = t("importFileBtn") + '<input type="file" accept=".json,.csv" onchange="importFromFile(event)" style="display:none;">';
+  document.getElementById("btn-export").textContent = t("exportBtn");
+  document.getElementById("btn-clear").textContent = t("clearBtn");
+  
+  // Vendor table title
+  document.querySelector("#vendor-table").closest(".card").querySelector("h2").textContent = t("vendorTableTitle");
+  
+  // Table headers
+  const ths = document.querySelectorAll("#vendor-table thead th");
+  if (ths.length >= 3) {
+    ths[0].textContent = t("vendorCol");
+    ths[1].textContent = t("typesCol");
+    ths[2].textContent = t("credsCol");
+  }
+  
+  // Update toggle text
+  document.getElementById("queue-toggle").textContent = queueExpanded ? t("queueCollapse") : t("queueExpand");
+  document.getElementById("history-toggle").textContent = historyExpanded ? t("queueCollapse") : t("queueExpand");
+  document.getElementById("creds-toggle").textContent = credsExpanded ? t("queueCollapse") : t("queueExpand");
+  document.getElementById("transcript-toggle").textContent = transcriptExpanded ? t("queueCollapse") : t("queueExpand");
+  document.getElementById("summary-toggle").textContent = summaryExpanded ? t("queueCollapse") : t("queueExpand");
+  
+  // Update save toast
+  document.getElementById("save-toast").textContent = t("saved");
+  
+  // Update credentials summary
+  updateCredsSummary();
+}
+
+// Override updateCredsSummary to use i18n
+const _origUpdateCredsSummary = updateCredsSummary;
+updateCredsSummary = function() {
+  const ready = Object.keys(VENDORS).filter(v => isVendorReady(v));
+  const el = document.getElementById("creds-summary");
+  if (ready.length === 0) {
+    el.innerHTML = `<span style="color:#e65100;">${t("noCreds")}</span>`;
+  } else {
+    el.innerHTML = `${t("configured")}: ${ready.join(", ")}`;
+  }
+};
+
 init();
+applyLanguage();
 </script>
 </body>
 </html>

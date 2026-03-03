@@ -174,12 +174,35 @@
 
 ---
 
-## Conversation 6 (current)
+## Conversation 6 (30+ messages)
 
-### Task: 上下文迁移 + 更新 conversationHist.md
-- 对话因过长进行上下文迁移，通过 CONTEXT TRANSFER 摘要恢复项目状态
-- 读取 `app/config.py`, `app/routes.py`, `app/services.py`, `app/utils.py`, `data/conversationHist.md` 确认当前代码状态
-- 将 Conversation 5 标记为已完成（40 messages），追加 Conversation 6 记录
+### Task 1: 仓库重命名
+- GitHub 仓库从 `ASRtoLLM` 重命名为 `VibeMeet2Notes`
+- 更新本地 git remote URL：`git remote set-url origin https://github.com/taoxee/VibeMeet2Notes.git`
+- 更新所有 README 中的 Star History 徽章 URL
+
+### Task 2: README 英文版供应商名称翻译
+- `README_EN.md` 中的中文供应商名称翻译为英文：
+  - 腾讯云 → Tencent Cloud
+  - 阿里云 → Alibaba Cloud
+  - 火山云 → Volcengine
+  - 微软-世纪互联 → Microsoft 21Vianet
+  - 讯飞 → iFlytek
+  - 智谱 → Zhipu AI
+
+### Task 3: Web App 国际化 (i18n)
+- 添加语言切换器（右上角下拉框）：🌐 中文 / 🌐 English
+- 创建 `i18n` 对象，包含所有 UI 文本的中英文翻译
+- 创建 `vendorNames` 对象，供应商名称中英文映射
+- `t(key)` 函数获取当前语言的翻译文本
+- `getVendorDisplayName(vendor)` 根据当前语言返回供应商显示名称
+- `applyLanguage()` 函数切换语言时更新所有 UI 元素
+- 语言偏好保存到 `localStorage`
+- 所有 `alert()` 调用改用 `t()` 获取翻译文本
+
+### Git 状态
+- 提交 `047e271`：`docs: fix repo name in Star History badges, translate vendor names in README_EN`
+- 已推送到 origin/main
 
 ### 用户纠正与偏好（持续有效）
 - 入口：`python run.py`（非 `python app.py`）
@@ -188,3 +211,4 @@
 - 端口 8080
 - 密钥字段用 CSS `-webkit-text-security: disc`（非 `type="password"`）
 - 目标功能：说话人分离 + 会议纪要（非字幕生成）
+- 语言切换器不使用国旗图标，使用 🌐 + 语言名称
