@@ -285,11 +285,35 @@
 
 ## Conversation 9 (completed)
 
-### Task: 修复中文模式下显示英文字符串问题
+### Task 1: 修复中文模式下显示英文字符串问题
 - `applyLanguage()` 切换语言后未重新渲染动态内容（任务队列、历史任务列表）
 - 在 `applyLanguage()` 末尾新增 `updateQueueUI()` 和 `if (historyExpanded) loadTaskHistory()` 调用
 - 修复：切换语言后，任务队列卡片和历史任务列表立即以新语言重新渲染
-- 文件：`static/index.html`, `data/conversationHist.md`
+
+### Task 2: 修复失败任务不显示错误信息
+- `loadTask()` 中错误显示条件 `!data.transcript && !data.summary` 过于严格
+- ASR 成功/缓存后 LLM 失败的任务有 `transcript.txt`，导致错误被跳过
+- 新增独立 `#error-section` 元素，只要 `data.meta.error` 存在就显示，不受 transcript/summary 影响
+- 新增 i18n key `errorDetail`（中文「错误信息」/ 英文「Error Details」）
+- `applyLanguage()` 中同步更新 error label
+
+### Task 3: 修复切换语言后转录元数据仍显示中文
+- `renderTranscript` 中 `🗣️ 识别到 X 位说话人 · 语言: zh` 使用 `t()` 但切换语言后不会重新渲染
+- 新增 `_lastTranscriptMeta` 变量缓存最近一次转录的 speakers/lang
+- `applyLanguage()` 中检测并刷新 transcript-meta 行
+
+### Task 4: Markdown 表格渲染改进
+- LLM 输出的会议纪要包含 Markdown 表格，但自定义 `renderMarkdown` 无表格解析能力
+- 引入 `marked.js`（CDN: `cdn.jsdelivr.net/npm/marked/marked.min.js`）替代自定义渲染
+- 保留 fallback：若 CDN 加载失败则使用简化版正则渲染
+- 表格、代码块、嵌套列表等均可正确渲染
 
 ### Git 状态
-- 待提交
+- 提交 `271cc7b`：`fix: re-render queue and history on language switch`
+- 提交 `f330539`：`fix: always show error details for failed tasks`
+
+---
+
+## Conversation 10 (current)
+
+（待记录）

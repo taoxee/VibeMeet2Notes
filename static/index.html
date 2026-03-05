@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">灵感纪要 · VibeMeet2Notes</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 /* Language switcher */
 .lang-switcher { text-align: right; margin-bottom: 12px; }
@@ -637,35 +638,21 @@ function escapeHtml(str) {
 }
 
 function renderMarkdown(text) {
-  // Simple Markdown → HTML renderer for meeting minutes
+  // Use marked.js for full Markdown rendering (tables, code blocks, etc.)
+  if (typeof marked !== 'undefined') {
+    return marked.parse(text);
+  }
+  // Fallback: basic rendering if marked.js fails to load
   let html = escapeHtml(text);
-  // Headers
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  // Bold
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // Italic
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  // Unordered lists
   html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-  // Ordered lists
-  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-  // Horizontal rule
-  html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid #d6e0ff;margin:12px 0;">');
-  // Line breaks → paragraphs (double newline)
   html = html.replace(/\n\n/g, '</p><p>');
   html = html.replace(/\n/g, '<br>');
-  html = `<p>${html}</p>`;
-  // Clean up empty paragraphs
-  html = html.replace(/<p>\s*<\/p>/g, '');
-  html = html.replace(/<p>\s*(<h[123]>)/g, '$1');
-  html = html.replace(/(<\/h[123]>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<ul>)/g, '$1');
-  html = html.replace(/(<\/ul>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<hr[^>]*>)\s*<\/p>/g, '$1');
-  return html;
+  return `<p>${html}</p>`;
 }
 
 function validateVendorCreds(vendor) {
