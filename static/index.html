@@ -103,6 +103,10 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
       <label style="font-weight:600;color:#555;display:block;margin-bottom:8px;cursor:pointer;user-select:none;" onclick="toggleSummary()">会议纪要 <span id="llm-vendor-tag" style="font-size:0.78rem;color:#1565c0;"></span> <span id="summary-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
       <div id="summary-output" style="background:#f0f4ff;padding:16px;border-radius:8px;max-height:600px;overflow-y:auto;font-size:0.9rem;line-height:1.6;border:1px solid #d6e0ff;"></div>
     </div>
+    <div id="error-section" style="display:none;margin-bottom:12px;padding:12px 14px;background:#fff5f5;border-radius:8px;border:1px solid #ffcdd2;">
+      <div style="font-weight:600;font-size:0.85rem;color:#c62828;margin-bottom:6px;">⚠️ <span id="error-label">错误信息</span></div>
+      <pre id="error-output" style="white-space:pre-wrap;font-size:0.82rem;color:#666;margin:0;font-family:monospace;"></pre>
+    </div>
     <div id="token-usage-section" style="display:none;margin-top:12px;padding:10px 14px;background:#f3e5f5;border-radius:8px;border:1px solid #e1bee7;">
       <div style="font-weight:600;font-size:0.85rem;color:#7b1fa2;margin-bottom:6px;">🔢 Token 用量</div>
       <div id="token-usage-content" style="font-size:0.82rem;color:#555;"></div>
@@ -330,7 +334,8 @@ const i18n = {
     queuing: "排队中...",
     uploading: "正在上传...",
     collapseText: "▲ 收起",
-    expandText: "▼ 展开"
+    expandText: "▼ 展开",
+    errorDetail: "错误信息"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -411,7 +416,8 @@ const i18n = {
     queuing: "Queuing...",
     uploading: "Uploading...",
     collapseText: "▲ Collapse",
-    expandText: "▼ Expand"
+    expandText: "▼ Expand",
+    errorDetail: "Error Details"
   }
 };
 
@@ -993,6 +999,7 @@ async function loadTask(taskId) {
     document.getElementById("transcript-section").style.display = "none";
     document.getElementById("summary-section").style.display = "none";
     document.getElementById("token-usage-section").style.display = "none";
+    document.getElementById("error-section").style.display = "none";
 
     if (data.transcript) {
       document.getElementById("transcript-section").style.display = "block";
@@ -1006,12 +1013,11 @@ async function loadTask(taskId) {
       document.getElementById("llm-vendor-tag").textContent = data.meta ? `(${getVendorDisplayName(data.meta.llm_vendor)})` : '';
     }
 
-    // Show error if task failed
-    if (data.meta && data.meta.error && !data.transcript && !data.summary) {
-      document.getElementById("transcript-section").style.display = "block";
-      document.getElementById("transcript-output").innerHTML = `<div style="color:#e53935;padding:12px;">${t("statusError")}<br><pre style="white-space:pre-wrap;margin-top:8px;font-size:0.82rem;color:#666;">${escapeHtml(data.meta.error)}</pre></div>`;
-      document.getElementById("transcript-meta").style.display = "none";
-      document.getElementById("asr-vendor-tag").textContent = '';
+    // Show error section whenever meta.error exists (even with partial results)
+    if (data.meta && data.meta.error) {
+      document.getElementById("error-section").style.display = "block";
+      document.getElementById("error-label").textContent = t("errorDetail");
+      document.getElementById("error-output").textContent = data.meta.error;
     }
 
     // Show token usage if available
@@ -1271,6 +1277,9 @@ function applyLanguage() {
   
   // Token usage title
   document.querySelector("#token-usage-section > div:first-child").textContent = t("tokenUsage");
+  
+  // Error label
+  document.getElementById("error-label").textContent = t("errorDetail");
   
   // History title
   const historyH2 = document.querySelector("#task-history").closest(".card").querySelector("h2");
