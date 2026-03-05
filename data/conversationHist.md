@@ -394,6 +394,24 @@
 - 更新缓存检测描述（新增模型维度）
 - 更新 `conversationHist.md`
 
+### Task 15: 前端自定义 LLM 提示词
+- 后端 `app/routes.py`：新增 `/api/prompt` GET 端点，返回默认 LLM 系统提示词
+- 后端 `app/routes.py`：`/api/process` 读取 `llm_prompt` 参数并传递给 LLM handler
+- 后端 `app/services.py`：所有 LLM handler 和 `_summarize_with_chunking` 新增 `system_prompt` 参数
+- 当 `system_prompt` 非空时覆盖默认 `LLM_PROMPT`，空值回退默认
+- 清理 `_summarize_with_chunking` 中线程不安全的全局 `_cfg.LLM_PROMPT` 交换，改为直接传参
+- 前端 `static/index.html`：模型选择器下方新增可折叠「自定义提示词」区域
+- 页面加载时从 `/api/prompt` 获取默认提示词填充 textarea
+- 编辑自动保存到 localStorage（`llm_custom_prompt`），「恢复默认」按钮一键重置
+- 提交任务时将自定义提示词随 formData 发送
+- 新增 i18n key：`promptLabel`, `promptToggle`, `promptReset`
+- 修复：`_promptExpanded` 变量声明移至 `applyLanguage()` 调用之前，避免 temporal dead zone 导致 toggle 失效
+
+### Task 16: 更新文档 + requirements.txt
+- `requirements.txt`：移除未使用的 `openai` 依赖，改用 `>=` 版本约束
+- `README_CN.md` / `README_EN.md`：新增自定义提示词功能描述，使用流程新增第 4 步
+- `conversationHist.md`：追加 Tasks 15-16
+
 ### Git 状态
 - 提交 `b75845c`：`feat: LLM model selector + cache fix + cleanup`
-- 后续更改待提交（Tasks 9-14）
+- 后续更改待提交（Tasks 9-16）

@@ -27,6 +27,7 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 - 🤖 **LLM Model Selection** — Choose specific models per LLM vendor, auto-fetches available model list
 - 📄 **Chunked Summarization** — Auto Map-Reduce for long transcripts, merges and deduplicates into complete minutes
 - 🔧 **Model Compatibility** — Auto-adapts for models that don't support system role (e.g. qwen-mt-lite)
+- ✏️ **Custom Prompt** — Edit the LLM system prompt from the frontend, auto-saved to browser, one-click reset to default
 
 ---
 
@@ -122,7 +123,8 @@ pip install 'requests[socks]'
 1. Fill in API keys under "Vendor Credentials" (auto-saved to browser)
 2. Upload audio/video file (mp3 / mp4 / wav / m4a / webm / ogg / flac)
 3. Select ASR & LLM vendors (only configured ones shown)
-4. Click "Start" — transcript and meeting minutes stream in real-time
+4. (Optional) Expand "Custom Prompt" to edit the LLM system prompt
+5. Click "Start" — transcript and meeting minutes stream in real-time
 
 ---
 

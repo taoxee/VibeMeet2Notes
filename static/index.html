@@ -79,6 +79,15 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
         <div id="llm-model-status" style="font-size:0.75rem;color:#888;margin-top:3px;"></div>
       </div>
     </div>
+    <div style="margin-bottom:12px;">
+      <label id="prompt-toggle-label" style="font-size:0.85rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="togglePromptEditor()">▶ 自定义提示词</label>
+      <div id="prompt-editor" style="display:none;margin-top:8px;">
+        <textarea id="llm-prompt" rows="8" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+          <button id="prompt-reset-btn" onclick="resetPrompt()" style="padding:4px 12px;font-size:0.78rem;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;color:#666;">恢复默认</button>
+        </div>
+      </div>
+    </div>
     <button id="process-btn" onclick="processFiles()" style="width:100%;padding:12px;background:#4361ee;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;transition:background 0.2s;">
       🚀 开始处理
     </button>
@@ -349,6 +358,9 @@ const i18n = {
     errorDetail: "错误信息",
     modelDefault: "-- 默认 --",
     modelLoading: "加载模型中...",
+    promptLabel: "系统提示词",
+    promptToggle: "自定义提示词",
+    promptReset: "恢复默认",
     stepUpload: "上传",
     stepTranscode: "转码",
     stepAsr: "语音识别",
@@ -438,6 +450,9 @@ const i18n = {
     errorDetail: "Error Details",
     modelDefault: "-- Default --",
     modelLoading: "Loading models...",
+    promptLabel: "System Prompt",
+    promptToggle: "Custom Prompt",
+    promptReset: "Reset to Default",
     stepUpload: "Upload",
     stepTranscode: "Transcode",
     stepAsr: "ASR",
@@ -826,6 +841,7 @@ async function processFiles() {
   if (llmErr) return alert(llmErr);
 
   const llmModel = document.getElementById("llm-model").value;
+  const llmPrompt = document.getElementById("llm-prompt").value.trim();
   const files = Array.from(fileInput.files);
 
   // Add all files to queue
@@ -833,7 +849,7 @@ async function processFiles() {
   for (const f of files) {
     const qid = Date.now() + "_" + Math.random().toString(36).slice(2, 6);
     taskQueue[qid] = { fileName: f.name, file: f, status: "waiting", percent: 0, message: t("queuing"),
-                        asrVendor, llmVendor, llmModel, token_usage: null, taskIdServer: null };
+                        asrVendor, llmVendor, llmModel, llmPrompt, token_usage: null, taskIdServer: null };
     queueIds.push(qid);
   }
   updateQueueUI();
@@ -871,6 +887,7 @@ async function processSingleFile(qid) {
   formData.append("llm_vendor", task.llmVendor);
   formData.append("llm_creds", JSON.stringify(getVendorCreds(task.llmVendor)));
   formData.append("llm_model", task.llmModel || "");
+  formData.append("llm_prompt", task.llmPrompt || "");
 
   try {
     const resp = await fetch("/api/process", { method: "POST", body: formData });
@@ -1299,6 +1316,10 @@ function applyLanguage() {
   const modelSel = document.getElementById("llm-model");
   if (modelSel.options.length > 0) modelSel.options[0].textContent = t("modelDefault");
   
+  // Prompt editor labels
+  document.getElementById("prompt-toggle-label").textContent = (_promptExpanded ? "▼ " : "▶ ") + t("promptToggle");
+  document.getElementById("prompt-reset-btn").textContent = t("promptReset");
+
   // Process button
   document.getElementById("process-btn").textContent = t("startBtn");
   
@@ -1426,6 +1447,10 @@ updateCredsSummary = function() {
 // ── LLM Model selector ──────────────────────────────────────────────
 let _modelCache = {}; // vendor -> {models:[], default:""}
 
+// ── Custom LLM Prompt state (must be before applyLanguage) ──────────
+let _defaultPrompt = "";
+let _promptExpanded = false;
+
 async function fetchModels(vendor) {
   const sel = document.getElementById("llm-model");
   const status = document.getElementById("llm-model-status");
@@ -1485,6 +1510,40 @@ applyLanguage();
 // Fetch models for initially selected vendor
 const _initLlmVendor = document.getElementById("llm-vendor").value;
 if (_initLlmVendor) fetchModels(_initLlmVendor);
+
+// ── Custom LLM Prompt ───────────────────────────────────────────────
+
+async function loadDefaultPrompt() {
+  try {
+    const resp = await fetch("/api/prompt");
+    const data = await resp.json();
+    _defaultPrompt = data.prompt || "";
+    const ta = document.getElementById("llm-prompt");
+    const saved = localStorage.getItem("llm_custom_prompt");
+    ta.value = saved !== null ? saved : _defaultPrompt;
+  } catch(e) { console.warn("Failed to load default prompt", e); }
+}
+
+function togglePromptEditor() {
+  _promptExpanded = !_promptExpanded;
+  document.getElementById("prompt-editor").style.display = _promptExpanded ? "block" : "none";
+  document.getElementById("prompt-toggle-label").textContent = (_promptExpanded ? "▼ " : "▶ ") + t("promptToggle");
+}
+
+function resetPrompt() {
+  document.getElementById("llm-prompt").value = _defaultPrompt;
+  localStorage.removeItem("llm_custom_prompt");
+}
+
+document.getElementById("llm-prompt").addEventListener("input", function() {
+  if (this.value === _defaultPrompt) {
+    localStorage.removeItem("llm_custom_prompt");
+  } else {
+    localStorage.setItem("llm_custom_prompt", this.value);
+  }
+});
+
+loadDefaultPrompt();
 </script>
 </body>
 </html>

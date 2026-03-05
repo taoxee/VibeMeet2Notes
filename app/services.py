@@ -1004,14 +1004,14 @@ def _chunk_transcript(text, max_chars):
     return chunks if chunks else [text]
 
 
-def _summarize_with_chunking(summarize_fn, creds, text, base_url, model):
+def _summarize_with_chunking(summarize_fn, creds, text, base_url, model, system_prompt=""):
     """Wrapper: if text fits in context, single call. Otherwise map-reduce."""
     if len(text) <= _MAX_CHARS:
-        return summarize_fn(creds, text, base_url, model)
+        return summarize_fn(creds, text, base_url, model, system_prompt)
 
     chunks = _chunk_transcript(text, _MAX_CHARS)
     if len(chunks) == 1:
-        return summarize_fn(creds, chunks[0], base_url, model)
+        return summarize_fn(creds, chunks[0], base_url, model, system_prompt)
 
     # Map: summarize each chunk
     partial_summaries = []
@@ -1019,7 +1019,7 @@ def _summarize_with_chunking(summarize_fn, creds, text, base_url, model):
 
     for i, chunk in enumerate(chunks):
         chunk_prompt = f"[Part {i + 1}/{len(chunks)}] This is a section of a longer meeting transcript. Summarize this section:\n\n{chunk}"
-        content, usage = summarize_fn(creds, chunk_prompt, base_url, model)
+        content, usage = summarize_fn(creds, chunk_prompt, base_url, model, system_prompt)
         partial_summaries.append(content)
         for k in ("prompt_tokens", "completion_tokens", "total_tokens"):
             total_usage[k] += usage.get(k, 0)
@@ -1030,22 +1030,17 @@ def _summarize_with_chunking(summarize_fn, creds, text, base_url, model):
         f"## Part {i + 1}\n{s}" for i, s in enumerate(partial_summaries)
     )
 
-    # For reduce step, temporarily swap system prompt
-    import app.config as _cfg
-    original_prompt = _cfg.LLM_PROMPT
-    _cfg.LLM_PROMPT = _REDUCE_PROMPT
-    try:
-        final_content, reduce_usage = summarize_fn(creds, merged_input, base_url, model)
-    finally:
-        _cfg.LLM_PROMPT = original_prompt
+    # For reduce step, use the reduce prompt as system prompt
+    final_content, reduce_usage = summarize_fn(creds, merged_input, base_url, model, _REDUCE_PROMPT)
 
     for k in ("prompt_tokens", "completion_tokens", "total_tokens"):
         total_usage[k] += reduce_usage.get(k, 0)
 
     return final_content, total_usage
 
-def summarize_openai_compatible(creds, text, base_url, model):
+def summarize_openai_compatible(creds, text, base_url, model, system_prompt=""):
     api_key = creds.get("api_key", "")
+    prompt = system_prompt or LLM_PROMPT
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -1053,7 +1048,7 @@ def summarize_openai_compatible(creds, text, base_url, model):
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": LLM_PROMPT},
+            {"role": "system", "content": prompt},
             {"role": "user", "content": text},
         ],
         "temperature": 0.3,
@@ -1070,7 +1065,7 @@ def summarize_openai_compatible(creds, text, base_url, model):
                 pass  # not a role error
             if "role" in err_msg.lower():
                 payload["messages"] = [
-                    {"role": "user", "content": f"{LLM_PROMPT}\n\n---\n\n{text}"},
+                    {"role": "user", "content": f"{prompt}\n\n---\n\n{text}"},
                 ]
                 resp = http.post(f"{base_url}/chat/completions", headers=headers, json=payload, timeout=300)
         except Exception:
@@ -1091,9 +1086,10 @@ def summarize_openai_compatible(creds, text, base_url, model):
 
 
 
-def summarize_minimax(creds, text, base_url, model):
+def summarize_minimax(creds, text, base_url, model, system_prompt=""):
     api_key = creds.get("api_key", "")
     group_id = creds.get("group_id", "")
+    prompt = system_prompt or LLM_PROMPT
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -1101,7 +1097,7 @@ def summarize_minimax(creds, text, base_url, model):
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": LLM_PROMPT},
+            {"role": "system", "content": prompt},
             {"role": "user", "content": text},
         ],
         "temperature": 0.3,
@@ -1118,7 +1114,7 @@ def summarize_minimax(creds, text, base_url, model):
             err_msg = resp.json().get("error", {}).get("message", "")
             if "role" in err_msg.lower():
                 payload["messages"] = [
-                    {"role": "user", "content": f"{LLM_PROMPT}\n\n---\n\n{text}"},
+                    {"role": "user", "content": f"{prompt}\n\n---\n\n{text}"},
                 ]
                 resp = http.post(url, headers=headers, json=payload, timeout=300)
         except Exception:
@@ -1138,31 +1134,31 @@ def summarize_minimax(creds, text, base_url, model):
 
 
 
-def summarize_tencent(creds, text, model=""):
+def summarize_tencent(creds, text, model="", system_prompt=""):
     """腾讯云 uses SecretId/SecretKey — route through their OpenAI-compatible endpoint."""
     api_key = creds.get("secret_key", "")
     return _summarize_with_chunking(
         summarize_openai_compatible, {"api_key": api_key}, text,
-        "https://api.lkeap.cloud.tencent.com/v1", model or "deepseek-v3"
+        "https://api.lkeap.cloud.tencent.com/v1", model or "deepseek-v3", system_prompt
     )
 
 
-def summarize_aliyun(creds, text, model=""):
+def summarize_aliyun(creds, text, model="", system_prompt=""):
     """阿里云 supports custom URL override."""
     custom_url = creds.get("url", "").strip().rstrip("/")
     base_url = custom_url if custom_url else "https://dashscope.aliyuncs.com/compatible-mode/v1"
     # Strip /chat/completions if user pasted the full endpoint
     if base_url.endswith("/chat/completions"):
         base_url = base_url.rsplit("/chat/completions", 1)[0]
-    return _summarize_with_chunking(summarize_openai_compatible, creds, text, base_url, model or "qwen-plus")
+    return _summarize_with_chunking(summarize_openai_compatible, creds, text, base_url, model or "qwen-plus", system_prompt)
 
 
 LLM_HANDLERS = {
-    "OpenAI":         lambda c, text, model="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://api.openai.com/v1", model or "gpt-4o"),
-    "Groq":           lambda c, text, model="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://api.groq.com/openai/v1", model or "llama-3.3-70b-versatile"),
-    "智谱":           lambda c, text, model="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://open.bigmodel.cn/api/paas/v4", model or "glm-4-flash"),
-    "Minimax-CN":     lambda c, text, model="": _summarize_with_chunking(summarize_minimax, c, text, "https://api.minimax.chat/v1", model or "MiniMax-Text-01"),
-    "Minimax-Global": lambda c, text, model="": _summarize_with_chunking(summarize_minimax, c, text, "https://api.minimaxi.chat/v1", model or "MiniMax-Text-01"),
+    "OpenAI":         lambda c, text, model="", sp="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://api.openai.com/v1", model or "gpt-4o", sp),
+    "Groq":           lambda c, text, model="", sp="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://api.groq.com/openai/v1", model or "llama-3.3-70b-versatile", sp),
+    "智谱":           lambda c, text, model="", sp="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://open.bigmodel.cn/api/paas/v4", model or "glm-4-flash", sp),
+    "Minimax-CN":     lambda c, text, model="", sp="": _summarize_with_chunking(summarize_minimax, c, text, "https://api.minimax.chat/v1", model or "MiniMax-Text-01", sp),
+    "Minimax-Global": lambda c, text, model="", sp="": _summarize_with_chunking(summarize_minimax, c, text, "https://api.minimaxi.chat/v1", model or "MiniMax-Text-01", sp),
     "腾讯云":         summarize_tencent,
     "阿里云":         summarize_aliyun,
 }

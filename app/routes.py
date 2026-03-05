@@ -73,6 +73,13 @@ def import_keys_route():
     return jsonify(creds)
 
 
+@bp.route("/api/prompt")
+def get_default_prompt():
+    """Return the default LLM system prompt."""
+    from app.config import LLM_PROMPT
+    return jsonify({"prompt": LLM_PROMPT})
+
+
 @bp.route("/api/models", methods=["POST"])
 def list_models():
     """Query available models from an LLM vendor using the user's credentials."""
@@ -140,6 +147,7 @@ def process_file():
     asr_vendor = request.form.get("asr_vendor", "")
     llm_vendor = request.form.get("llm_vendor", "")
     llm_model = request.form.get("llm_model", "")
+    llm_prompt = request.form.get("llm_prompt", "").strip()
 
     try:
         asr_creds = json.loads(request.form.get("asr_creds", "{}"))
@@ -255,7 +263,7 @@ def process_file():
                     yield sse_event("error", {"message": f"LLM 供应商 '{llm_vendor}' 暂未实现接口对接"})
                     return
 
-                llm_result = llm_handler(llm_creds, transcript, llm_model)
+                llm_result = llm_handler(llm_creds, transcript, llm_model, llm_prompt)
                 if isinstance(llm_result, tuple):
                     summary, token_usage = llm_result
                 else:
