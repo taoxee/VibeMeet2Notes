@@ -992,7 +992,7 @@ async function loadTask(taskId) {
     if (data.summary) {
       document.getElementById("summary-section").style.display = "block";
       document.getElementById("summary-output").innerHTML = renderMarkdown(data.summary);
-      document.getElementById("llm-vendor-tag").textContent = data.meta ? `(${data.meta.llm_vendor})` : '';
+      document.getElementById("llm-vendor-tag").textContent = data.meta ? `(${getVendorDisplayName(data.meta.llm_vendor)})` : '';
     }
     // Show token usage if available
     const usage = data.meta && data.meta.token_usage;
