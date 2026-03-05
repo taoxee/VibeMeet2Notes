@@ -340,7 +340,7 @@ const i18n = {
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
     subtitle: "Upload audio/video → ASR transcription (speaker diarization) → LLM meeting minutes",
-    tipBanner: "💡 Recommended: ASR use <strong>Soniox</strong>, LLM use <strong>Alibaba Cloud</strong> (fast, accurate, cost-effective)",
+    tipBanner: "💡 Recommended: ASR use <strong>Soniox</strong>, LLM use <strong>Open AI</strong> (fast, accurate, cost-effective)",
     uploadTitle: "📁 Upload & Process",
     selectFile: "Select audio/video files (multiple allowed)",
     asrVendor: "ASR Vendor (Speech-to-Text + Speaker Diarization)",
@@ -593,9 +593,13 @@ function getVendorCreds(vendor) {
   return getStoredCreds()[vendor] || {};
 }
 
+// Last transcript metadata for language refresh
+let _lastTranscriptMeta = null;
+
 function renderTranscript(text) {
   const output = document.getElementById("transcript-output");
   const meta = document.getElementById("transcript-meta");
+  _lastTranscriptMeta = null;
   try {
     const data = JSON.parse(text);
     if (data.segments && Array.isArray(data.segments)) {
@@ -603,6 +607,7 @@ function renderTranscript(text) {
       if (data.metadata) {
         const lang = data.metadata.language || "—";
         const speakers = data.metadata.total_speakers || "?";
+        _lastTranscriptMeta = { lang, speakers };
         meta.innerHTML = `${t("speakersDetected")} <strong>${speakers}</strong> ${t("speakersUnit")} · ${t("langLabel")}: ${lang}`;
         meta.style.display = "block";
       }
@@ -1280,6 +1285,14 @@ function applyLanguage() {
   
   // Error label
   document.getElementById("error-label").textContent = t("errorDetail");
+
+  // Refresh transcript metadata if visible
+  if (_lastTranscriptMeta) {
+    const meta = document.getElementById("transcript-meta");
+    if (meta.style.display !== "none") {
+      meta.innerHTML = `${t("speakersDetected")} <strong>${_lastTranscriptMeta.speakers}</strong> ${t("speakersUnit")} · ${t("langLabel")}: ${_lastTranscriptMeta.lang}`;
+    }
+  }
   
   // History title
   const historyH2 = document.querySelector("#task-history").closest(".card").querySelector("h2");
