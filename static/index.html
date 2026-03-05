@@ -83,7 +83,7 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     <h2 style="cursor:pointer;user-select:none;" onclick="toggleQueue()">
       📋 任务队列 <span id="queue-count" style="font-size:0.82rem;color:#888;"></span> <span id="queue-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▲ 收起</span>
     </h2>
-    <div id="task-queue-list"></div>
+    <div id="task-queue-list" style="max-height:300px;overflow-y:auto;"></div>
   </div>
 
   <!-- Task completion notification container -->
@@ -190,18 +190,17 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
 #summary-output th, #summary-output td { border: 1px solid #d6e0ff; padding: 6px 10px; text-align: left; font-size: 0.85rem; }
 #summary-output th { background: #e8eaf6; }
 /* Task queue item */
-.queue-item { border: 1px solid #e9ecef; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; transition: border-color 0.3s; }
-.queue-item.running { border-left: 4px solid #4361ee; background: #f8f9ff; }
-.queue-item.done { border-left: 4px solid #4caf50; background: #f1f8e9; }
-.queue-item.error { border-left: 4px solid #e53935; background: #fff5f5; }
-.queue-item.waiting { border-left: 4px solid #ff9800; background: #fff8e1; }
-.queue-item .qi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.queue-item .qi-file { font-weight: 500; font-size: 0.9rem; }
-.queue-item .qi-status { font-size: 0.78rem; padding: 2px 8px; border-radius: 4px; }
-.queue-item .qi-progress { background: #e9ecef; border-radius: 4px; height: 6px; overflow: hidden; margin-top: 6px; }
+.queue-item { border: 1px solid #e9ecef; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; transition: border-color 0.3s; cursor: pointer; }
+.queue-item.running { border-left: 3px solid #4361ee; background: #f8f9ff; }
+.queue-item.done { border-left: 3px solid #4caf50; background: #f1f8e9; }
+.queue-item.error { border-left: 3px solid #e53935; background: #fff5f5; }
+.queue-item.waiting { border-left: 3px solid #ff9800; background: #fff8e1; }
+.queue-item .qi-header { display: flex; justify-content: space-between; align-items: center; }
+.queue-item .qi-file { font-weight: 500; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%; }
+.queue-item .qi-status { font-size: 0.75rem; }
+.queue-item .qi-time { font-size: 0.7rem; color: #aaa; white-space: nowrap; }
+.queue-item .qi-progress { background: #e9ecef; border-radius: 4px; height: 4px; overflow: hidden; margin-top: 4px; }
 .queue-item .qi-progress-bar { height: 100%; background: linear-gradient(90deg,#4361ee,#7c3aed); border-radius: 4px; transition: width 0.5s ease; }
-.queue-item .qi-detail { font-size: 0.78rem; color: #888; margin-top: 4px; }
-.queue-item .qi-token { font-size: 0.75rem; color: #7b1fa2; margin-top: 4px; }
 /* Task completion notification */
 .task-notify { background: #fff; border: 1px solid #c8e6c9; border-left: 4px solid #4caf50; border-radius: 8px; padding: 10px 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); cursor: pointer; animation: slideIn 0.3s ease; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .task-notify.error { border-color: #ffcdd2; border-left-color: #e53935; }
@@ -685,7 +684,7 @@ function renderTokenUsage(usage) {
 function updateQueueUI() {
   const container = document.getElementById("task-queue-list");
   const card = document.getElementById("queue-card");
-  const ids = Object.keys(taskQueue);
+  const ids = Object.keys(taskQueue).reverse();
   if (ids.length === 0) { card.style.display = "none"; return; }
   card.style.display = "block";
   const running = ids.filter(id => taskQueue[id].status === "running" || taskQueue[id].status === "waiting").length;
@@ -696,18 +695,20 @@ function updateQueueUI() {
     const statusMap = {waiting: t("statusWaiting"), running: t("statusRunning"), done: t("statusDone"), error: t("statusError")};
     const statusText = statusMap[task.status] || task.status;
     const statusColor = {waiting: "#ff9800", running: "#4361ee", done: "#4caf50", error: "#e53935"}[task.status] || "#888";
-    let tokenHtml = "";
+    const timeHtml = task.completedAt ? `<span class="qi-time">${task.completedAt}</span>` : '';
+    let extraHtml = "";
     if (task.token_usage && task.token_usage.total_tokens) {
-      tokenHtml = `<div class="qi-token">🔢 ${task.token_usage.model || ''}: ${task.token_usage.prompt_tokens}+${task.token_usage.completion_tokens}=${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`;
+      extraHtml = ` · 🔢 ${task.token_usage.total_tokens} ${t("tokensUnit")}`;
     }
     return `<div class="queue-item ${task.status}" onclick="viewQueueTask('${tid}')">
       <div class="qi-header">
         <span class="qi-file">${escapeHtml(task.fileName)}</span>
-        <span class="qi-status" style="color:${statusColor};">${statusText}</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span class="qi-status" style="color:${statusColor};">${statusText}${extraHtml}</span>
+          ${timeHtml}
+        </span>
       </div>
-      <div class="qi-detail">${task.message || ''}</div>
       ${task.status === 'running' ? `<div class="qi-progress"><div class="qi-progress-bar" style="width:${task.percent || 0}%"></div></div>` : ''}
-      ${tokenHtml}
     </div>`;
   }).join("");
 }
@@ -881,6 +882,7 @@ function handleQueueSSE(qid, event, data) {
     task.percent = 100;
     task.message = t("statusDone");
     task.taskIdServer = data.task_id;
+    task.completedAt = new Date().toLocaleString();
     if (data.token_usage) task.token_usage = data.token_usage;
     updateQueueUI();
     showTaskNotification(qid, false);
@@ -891,6 +893,7 @@ function handleQueueSSE(qid, event, data) {
   } else if (event === "error") {
     task.status = "error";
     task.message = "❌ " + data.message;
+    task.completedAt = new Date().toLocaleString();
     updateQueueUI();
     showTaskNotification(qid, true);
   }
@@ -958,16 +961,20 @@ async function loadTaskHistory() {
       const statusColor = task.error ? '#e65100' : '#2e7d32';
       const asrVendorName = getVendorDisplayName(task.asr_vendor);
       const llmVendorName = getVendorDisplayName(task.llm_vendor);
+      const timeStr = task.created_at ? new Date(task.created_at).toLocaleString() : '';
       const tokenHtml = task.token_usage && task.token_usage.total_tokens
         ? `<div style="font-size:0.72rem;color:#7b1fa2;margin-top:2px;">🔢 ${task.token_usage.model || llmVendorName}: ${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`
         : '';
       return `<div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;" onclick="loadTask('${task.task_id}')">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-weight:500;font-size:0.9rem;">${task.source_file || '—'}</span>
-          <span style="font-size:0.78rem;color:${statusColor};">${status}</span>
+          <span style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:0.78rem;color:${statusColor};">${status}</span>
+            <span style="font-size:0.7rem;color:#aaa;">${timeStr}</span>
+          </span>
         </div>
         <div style="font-size:0.78rem;color:#999;margin-top:4px;">
-          ${task.task_id} · ASR: ${asrVendorName} · LLM: ${llmVendorName}
+          ASR: ${asrVendorName} · LLM: ${llmVendorName}
         </div>
         ${tokenHtml}
       </div>`;
@@ -983,6 +990,10 @@ async function loadTask(taskId) {
     const data = await resp.json();
     document.getElementById("task-id-display").textContent = `${t("taskIdLabel")}: ${taskId}`;
     document.getElementById("result-filename").textContent = data.meta ? "📄 " + (data.meta.source_file || '') : '';
+    document.getElementById("transcript-section").style.display = "none";
+    document.getElementById("summary-section").style.display = "none";
+    document.getElementById("token-usage-section").style.display = "none";
+
     if (data.transcript) {
       document.getElementById("transcript-section").style.display = "block";
       renderTranscript(data.transcript);
@@ -994,6 +1005,15 @@ async function loadTask(taskId) {
       document.getElementById("summary-output").innerHTML = renderMarkdown(data.summary);
       document.getElementById("llm-vendor-tag").textContent = data.meta ? `(${getVendorDisplayName(data.meta.llm_vendor)})` : '';
     }
+
+    // Show error if task failed
+    if (data.meta && data.meta.error && !data.transcript && !data.summary) {
+      document.getElementById("transcript-section").style.display = "block";
+      document.getElementById("transcript-output").innerHTML = `<div style="color:#e53935;padding:12px;">${t("statusError")}<br><pre style="white-space:pre-wrap;margin-top:8px;font-size:0.82rem;color:#666;">${escapeHtml(data.meta.error)}</pre></div>`;
+      document.getElementById("transcript-meta").style.display = "none";
+      document.getElementById("asr-vendor-tag").textContent = '';
+    }
+
     // Show token usage if available
     const usage = data.meta && data.meta.token_usage;
     showTokenUsageInResults(usage);
