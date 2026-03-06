@@ -20,11 +20,15 @@ def seconds_to_hms(seconds):
     return f"{s // 3600:02d}:{(s % 3600) // 60:02d}:{s % 60:02d}"
 
 
-def find_cached(source_file, asr_vendor, llm_vendor, llm_model=""):
-    """Search output/ for a previous successful task with the same file + vendors + model.
-    Returns (cached_transcript, cached_summary) — either may be None."""
+def find_cached(source_file, asr_vendor, llm_vendor, llm_model="", llm_prompt=""):
+    """Search output/ for a previous successful task matching step-by-step:
+      Step 1 (ASR): same file + same asr_vendor → reuse transcript
+      Step 2 (LLM): same asr result + same llm_vendor + same llm_model + same llm_prompt → reuse summary
+    Returns (cached_transcript, cached_summary) — cached_summary is None if prompt differs."""
+    import hashlib
     cached_transcript = None
     cached_summary = None
+    prompt_hash = hashlib.sha256(llm_prompt.encode()).hexdigest() if llm_prompt else ""
     if not os.path.isdir(OUTPUT_DIR):
         return None, None
     for tid in sorted(os.listdir(OUTPUT_DIR), reverse=True):
@@ -38,19 +42,21 @@ def find_cached(source_file, asr_vendor, llm_vendor, llm_model=""):
             continue
         if m.get("source_file") != source_file:
             continue
+        # Step 1: ASR match
         if cached_transcript is None and m.get("asr_vendor") == asr_vendor and m.get("asr_status") == "success":
             tp = os.path.join(OUTPUT_DIR, tid, "transcript.txt")
             if os.path.isfile(tp):
                 with open(tp, "r", encoding="utf-8") as f:
                     cached_transcript = f.read()
+        # Step 2: LLM match (only if ASR also matches, and prompt matches)
         if cached_summary is None and m.get("asr_vendor") == asr_vendor and m.get("llm_vendor") == llm_vendor and m.get("llm_status") == "success":
-            # Also match llm_model: both empty means default, otherwise must match exactly
-            cached_model = m.get("llm_model", "")
-            if cached_model == llm_model:
-                sp = os.path.join(OUTPUT_DIR, tid, "summary.txt")
-                if os.path.isfile(sp):
-                    with open(sp, "r", encoding="utf-8") as f:
-                        cached_summary = f.read()
+            if m.get("llm_model", "") == llm_model:
+                cached_prompt_hash = m.get("llm_prompt_hash", "")
+                if cached_prompt_hash == prompt_hash:
+                    sp = os.path.join(OUTPUT_DIR, tid, "summary.txt")
+                    if os.path.isfile(sp):
+                        with open(sp, "r", encoding="utf-8") as f:
+                            cached_summary = f.read()
         if cached_transcript and cached_summary:
             break
     return cached_transcript, cached_summary

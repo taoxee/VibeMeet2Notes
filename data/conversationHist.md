@@ -412,6 +412,14 @@
 - `README_CN.md` / `README_EN.md`：新增自定义提示词功能描述，使用流程新增第 4 步
 - `conversationHist.md`：追加 Tasks 15-16
 
+### Task 17: 智能缓存 — 提示词维度比对
+- `app/utils.py` `find_cached()` 新增 `llm_prompt` 参数，计算 SHA-256 哈希后与 `meta.json` 中的 `llm_prompt_hash` 比对
+- 分步比对逻辑：Step 1 ASR 匹配（file + asr_vendor）→ Step 2 LLM 匹配（+ llm_vendor + llm_model + llm_prompt_hash）
+- ASR 命中但提示词不同时返回 `(transcript, None)`，仅重跑 LLM；ASR 不同则返回 `(None, None)` 全部重跑
+- `app/routes.py` 保存 `llm_prompt_hash` 到 `meta.json`，调用 `find_cached()` 时传入 `llm_prompt`
+- 新增 `import hashlib` 到 `routes.py` 顶部导入
+
 ### Git 状态
 - 提交 `b75845c`：`feat: LLM model selector + cache fix + cleanup`
-- 后续更改待提交（Tasks 9-16）
+- 提交 `fa7f010`：`feat: custom LLM prompt from frontend + requirements cleanup`
+- 后续更改待提交（Task 17）

@@ -16,7 +16,7 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 - 📝 **Structured Meeting Minutes** — LLM outputs professional Markdown meeting notes (topics, decisions, action items)
 - 🔌 **Multi-Vendor Support** — 14 ASR/LLM vendors, mix and match freely
 - 💾 **Local Credential Storage** — API keys stored only in browser localStorage, never sent to server
-- ⚡ **Cache Detection** — Auto-reuse historical results for same file + same vendor + same model
+- ⚡ **Cache Detection** — Auto-reuse historical results for same file + same vendor + same model + same prompt; prompt change only re-runs LLM
 - 🌐 **Auto Proxy Detection** — Detects macOS system proxy (ShadowsocksX-NG / ClashX etc.)
 - 📊 **SSE Real-time Progress** — Streaming progress bar, transcript shows when ASR completes, minutes show when LLM completes
 - 📋 **Multi-task Parallel** — Upload multiple files, up to 3 tasks processed in parallel with queue management

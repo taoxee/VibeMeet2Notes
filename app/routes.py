@@ -3,6 +3,7 @@ import os
 import json
 import uuid
 import shutil
+import hashlib
 import threading
 from datetime import datetime
 from collections import OrderedDict
@@ -175,6 +176,7 @@ def process_file():
         "asr_vendor": asr_vendor,
         "llm_vendor": llm_vendor,
         "llm_model": llm_model,
+        "llm_prompt_hash": hashlib.sha256(llm_prompt.encode()).hexdigest() if llm_prompt else "",
     }
 
     with _task_lock:
@@ -190,7 +192,7 @@ def process_file():
         summary = ""
         token_usage = {}
 
-        cached_transcript, cached_summary = find_cached(file.filename, asr_vendor, llm_vendor, llm_model)
+        cached_transcript, cached_summary = find_cached(file.filename, asr_vendor, llm_vendor, llm_model, llm_prompt)
 
         try:
             yield sse_event("progress", {"step": "upload", "percent": 10, "message": "文件上传完成"})
