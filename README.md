@@ -16,6 +16,14 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 
 ---
 
+## 📸 截图
+
+![VibeMeet2Notes CN](data/vibemeet2notes%20CN%20screenshot.png)
+
+![VibeMeet2Notes EN](data/vibemeet2notes%20EN%20screenshot.png)
+
+---
+
 ## ⭐ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=taoxee/VibeMeet2Notes&type=Date)](https://star-history.com/#taoxee/VibeMeet2Notes&Date)

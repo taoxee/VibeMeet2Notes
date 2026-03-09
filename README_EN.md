@@ -10,6 +10,12 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 
 ---
 
+## 📸 Screenshots
+
+![VibeMeet2Notes](data/vibemeet2notes%20EN%20screenshot.png)
+
+---
+
 ## ✨ Features
 
 - 🎙️ **Speaker Diarization** — Auto-identify multiple speakers, labeled as Speaker 1/2/3...

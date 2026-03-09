@@ -10,6 +10,12 @@
 
 ---
 
+## 📸 截图
+
+![VibeMeet2Notes](data/vibemeet2notes%20CN%20screenshot.png)
+
+---
+
 ## ✨ 功能特性
 
 - 🎙️ **说话人分离** — 自动识别多位说话人，标注 Speaker 1/2/3...
