@@ -13,3 +13,4 @@ Thumbs.db
 output/
 vendor_creds.json
 static/tmp/
+.vscode/
