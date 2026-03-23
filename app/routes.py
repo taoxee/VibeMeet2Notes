@@ -26,6 +26,7 @@ _LLM_BASE_URLS = {
     "Minimax-CN":     "https://api.minimax.chat/v1",
     "Minimax-Global": "https://api.minimaxi.chat/v1",
     "腾讯云":         "https://api.lkeap.cloud.tencent.com/v1",
+    "阶跃星辰":       "https://api.stepfun.com/v1",
 }
 
 # ── Default models per vendor ────────────────────────────────────────
@@ -37,6 +38,7 @@ LLM_DEFAULT_MODELS = {
     "Minimax-Global": "MiniMax-Text-01",
     "腾讯云":         "deepseek-v3",
     "阿里云":         "qwen-plus",
+    "阶跃星辰":       "step-1-8k",
 }
 
 # ── Task queue for parallel processing ───────────────────────────────

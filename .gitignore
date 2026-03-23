@@ -14,3 +14,5 @@ output/
 vendor_creds.json
 static/tmp/
 .vscode/
+.qoder/
+tests/

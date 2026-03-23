@@ -423,3 +423,51 @@
 - 提交 `b75845c`：`feat: LLM model selector + cache fix + cleanup`
 - 提交 `fa7f010`：`feat: custom LLM prompt from frontend + requirements cleanup`
 - 后续更改待提交（Task 17）
+
+---
+
+## Conversation 11 (current)
+
+### Task 1: 新增 3 个供应商（FishAudio, BytePlus, 阶跃星辰）
+- `app/config.py` 新增 VENDORS 配置：
+  - **FishAudio** — TTS only，字段：`api_key`
+  - **BytePlus** — ASR, TTS, 声音复刻（火山海外版），字段：`app_id`, `access_token`, `secret_key`
+  - **阶跃星辰** — ASR, TTS, 声音复刻, LLM，字段：`api_key`
+- `app/services.py` 新增 ASR handlers：
+  - `transcribe_byteplus()` — BytePlus ASR via openspeech API
+  - `transcribe_stepfun()` — 阶跃星辰 ASR via OpenAI-compatible endpoint
+- `app/services.py` 新增 LLM handler：阶跃星辰 via OpenAI-compatible API，默认模型 `step-1-8k`
+- `app/routes.py` 新增 `阶跃星辰` 到 `_LLM_BASE_URLS` 和 `LLM_DEFAULT_MODELS`
+- `tests/test_new_vendors.py` 新增 13 个测试用例覆盖新供应商
+
+### Task 2: 火山云 ASR 错误 1022 修复
+- 原 VC API (`/api/v1/vc/`) 返回 `error 1022: resource not granted`
+- `transcribe_volcengine()` 改用 SAMI Large Model API (`/api/v3/sauc/bigmodel`)
+- 新增 `_transcribe_volcengine_legacy()` 作为 fallback
+- 若 SAMI 失败则自动回退到 legacy API
+
+### Task 3: import_keys.py 支持新供应商 + JSON 导入
+- `ENV_MAPPINGS` 新增 BytePlus, FishAudio, 阶跃星辰 环境变量映射
+- `LABEL_TO_FIELD` 新增 CSV 字段映射
+- 新增 `JSON_FIELD_MAPPINGS` 处理 JSON 字段名转换：
+  - FishAudio: `Key` → `api_key`
+  - BytePlus: `APPID` → `app_id`, `AccessToken` → `access_token`, `Secret Key` → `secret_key`
+  - 阶跃星辰: `tts_stepfun_key` → `api_key`
+- 新增 `parse_json_creds_file()` 函数解析 JSON 凭证文件
+- `detect_all()` 支持 `--json` 参数，自动扫描 `data/20260323vendor_creds_format.json`
+
+### Task 4: 前端 i18n 翻译补全
+- `vendorNames` 新增 FishAudio, BytePlus, 阶跃星辰 英文名
+- `translateFieldLabel()` 新增字段翻译：密钥1→Key 1, 密钥2→Key 2, 位置/区域→Region, 终结点→Endpoint
+- `translateNote()` 新增 BytePlus note 翻译
+- 新增 `translateError()` 函数翻译错误消息：API 调用失败→API call failed 等
+- 错误显示处调用 `translateError()` 确保中英文切换
+
+### 文件变更汇总
+- `app/config.py` — 新增 3 个供应商定义
+- `app/services.py` — 新增 2 个 ASR handler + 1 个 LLM handler + 火山云 SAMI API
+- `app/routes.py` — 新增阶跃星辰 LLM 配置
+- `import_keys.py` — 新增 JSON 导入 + 新供应商映射
+- `static/index.html` — 新增翻译函数 + vendorNames
+- `tests/test_new_vendors.py` — 新建测试文件
+

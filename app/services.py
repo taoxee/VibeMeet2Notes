@@ -189,7 +189,68 @@ def transcribe_elevenlabs(creds, filepath):
 
 
 def transcribe_volcengine(creds, filepath):
-    """火山云 ASR via openspeech.bytedance.com submit+query API."""
+    """火山云 ASR via SAMI Large Model API (录音文件识别大模型版).
+    Docs: https://www.volcengine.com/docs/6561/1354868
+    """
+    import time as _time
+    app_id = creds.get("app_id", "")
+    access_token = creds.get("access_token", "")
+
+    # Use SAMI Large Model API (more commonly available)
+    submit_url = "https://openspeech.bytedance.com/api/v3/sauc/bigmodel"
+    
+    payload = {
+        "appid": app_id,
+        "language": "zh-CN",
+        "file_type": "audio",
+        "show_utterances": True,  # Get timestamped utterances
+        "enable_itn": True,       # Inverse text normalization
+        "enable_punc": True,      # Punctuation
+    }
+    
+    headers = {
+        "Content-Type": "audio/mpeg",
+        "Authorization": f"Bearer; {access_token}",
+    }
+    
+    with open(filepath, "rb") as f:
+        audio_data = f.read()
+    
+    resp = http.post(submit_url, params=payload, headers=headers, data=audio_data, timeout=300)
+    resp.raise_for_status()
+    result = resp.json()
+    
+    # Check for errors
+    code = result.get("code", -1)
+    if code != 0:
+        # Fallback to legacy VC API if SAMI fails
+        return _transcribe_volcengine_legacy(creds, filepath)
+    
+    # Parse SAMI response
+    resp_data = result.get("resp", {})
+    utterances = resp_data.get("utterances", [])
+    text = resp_data.get("text", "")
+    
+    if utterances:
+        segments = []
+        for u in utterances:
+            segments.append({
+                "start_time": seconds_to_hms(u.get("start_time", 0) / 1000),
+                "end_time": seconds_to_hms(u.get("end_time", 0) / 1000),
+                "speaker": "Speaker 1",
+                "text": u.get("text", ""),
+            })
+        return json.dumps({
+            "metadata": {"language": "zh-CN", "total_speakers": 1},
+            "segments": segments,
+        }, ensure_ascii=False, indent=2)
+    
+    return text or ""
+
+
+def _transcribe_volcengine_legacy(creds, filepath):
+    """火山云 ASR legacy API via openspeech.bytedance.com submit+query API.
+    Used as fallback if SAMI API is not available."""
     import time as _time
     app_id = creds.get("app_id", "")
     access_token = creds.get("access_token", "")
@@ -246,6 +307,66 @@ def transcribe_volcengine(creds, filepath):
         else:
             raise Exception(f"火山云查询失败: {result.get('message', result)}")
     raise Exception("火山云 ASR 超时，请稍后重试")
+
+
+def transcribe_byteplus(creds, filepath):
+    """BytePlus ASR (international version of Volcengine) via openspeech API."""
+    import time as _time
+    app_id = creds.get("app_id", "")
+    access_token = creds.get("access_token", "")
+
+    # BytePlus uses international endpoints
+    submit_url = "https://openspeech.bytedance.com/api/v1/vc/submit"
+    params = {
+        "appid": app_id,
+        "language": "en-US",  # Default to English for international users
+        "use_itn": "True",
+        "use_punc": "True",
+        "words_per_line": 46,
+    }
+    headers = {
+        "Content-Type": "audio/wav",
+        "Authorization": f"Bearer; {access_token}",
+    }
+    with open(filepath, "rb") as f:
+        resp = http.post(submit_url, params=params, headers=headers, data=f, timeout=300)
+    resp.raise_for_status()
+    submit_data = resp.json()
+    if str(submit_data.get("code", "")) != "0":
+        raise Exception(f"BytePlus submit failed: {submit_data.get('message', submit_data)}")
+    task_id = submit_data["id"]
+
+    # Query result (blocking mode)
+    query_url = "https://openspeech.bytedance.com/api/v1/vc/query"
+    query_params = {"appid": app_id, "id": task_id, "blocking": 1}
+    query_headers = {"Authorization": f"Bearer; {access_token}"}
+    for attempt in range(60):
+        resp = http.get(query_url, params=query_params, headers=query_headers, timeout=300)
+        resp.raise_for_status()
+        result = resp.json()
+        code = result.get("code", -1)
+        if code == 0:
+            utterances = result.get("utterances", [])
+            if utterances and any("start_time" in u for u in utterances):
+                segments = []
+                for u in utterances:
+                    segments.append({
+                        "start_time": seconds_to_hms(u.get("start_time", 0) / 1000),
+                        "end_time": seconds_to_hms(u.get("end_time", 0) / 1000),
+                        "speaker": "Speaker 1",
+                        "text": u.get("text", ""),
+                    })
+                return json.dumps({
+                    "metadata": {"language": "en-US", "total_speakers": 1},
+                    "segments": segments,
+                }, ensure_ascii=False, indent=2)
+            return "".join(u.get("text", "") for u in utterances)
+        elif code == 1:  # still processing
+            _time.sleep(3)
+            continue
+        else:
+            raise Exception(f"BytePlus query failed: {result.get('message', result)}")
+    raise Exception("BytePlus ASR timeout, please try again")
 
 
 
@@ -913,18 +1034,58 @@ def transcribe_microsoft_cn(creds, filepath):
     return ""
 
 
+def transcribe_stepfun(creds, filepath):
+    """阶跃星辰 ASR via StepFun speech-to-text API (OpenAI-compatible)."""
+    api_key = creds.get("api_key", "")
+    headers = {"Authorization": f"Bearer {api_key}"}
+    
+    # StepFun uses OpenAI-compatible whisper endpoint
+    with open(filepath, "rb") as f:
+        resp = http.post(
+            "https://api.stepfun.com/v1/audio/transcriptions",
+            headers=headers,
+            files={"file": (os.path.basename(filepath), f)},
+            data={
+                "model": "step-asr-mini",
+                "response_format": "verbose_json",
+            },
+            timeout=300,
+        )
+    resp.raise_for_status()
+    data = resp.json()
+    
+    # Build timestamped segments from response
+    raw_segments = data.get("segments", [])
+    if raw_segments:
+        segments = []
+        for s in raw_segments:
+            segments.append({
+                "start_time": seconds_to_hms(s.get("start", 0)),
+                "end_time": seconds_to_hms(s.get("end", 0)),
+                "speaker": "Speaker 1",
+                "text": s.get("text", "").strip(),
+            })
+        return json.dumps({
+            "metadata": {"language": data.get("language", ""), "total_speakers": 1},
+            "segments": segments,
+        }, ensure_ascii=False, indent=2)
+    return data.get("text", "")
+
+
 ASR_HANDLERS = {
     "OpenAI":       lambda c, fp: transcribe_openai_compatible(c, fp, "https://api.openai.com/v1"),
     "Groq":         lambda c, fp: transcribe_openai_compatible(c, fp, "https://api.groq.com/openai/v1"),
     "Deepgram":     transcribe_deepgram,
     "ElevenLabs":   transcribe_elevenlabs,
     "火山云":       transcribe_volcengine,
+    "BytePlus":     transcribe_byteplus,
     "Soniox":       transcribe_soniox,
     "腾讯云":       transcribe_tencent,
     "微软-Global":  transcribe_microsoft_global,
     "微软-世纪互联": transcribe_microsoft_cn,
     "阿里云":       transcribe_aliyun,
     "讯飞":         transcribe_xfyun,
+    "阶跃星辰":     transcribe_stepfun,
 }
 
 
@@ -1161,5 +1322,6 @@ LLM_HANDLERS = {
     "Minimax-Global": lambda c, text, model="", sp="": _summarize_with_chunking(summarize_minimax, c, text, "https://api.minimaxi.chat/v1", model or "MiniMax-Text-01", sp),
     "腾讯云":         summarize_tencent,
     "阿里云":         summarize_aliyun,
+    "阶跃星辰":       lambda c, text, model="", sp="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://api.stepfun.com/v1", model or "step-1-8k", sp),
 }
 

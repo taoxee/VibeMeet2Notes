@@ -30,6 +30,11 @@ ENV_MAPPINGS = [
     ("VOLCENGINE_ACCESS_TOKEN", "火山云", "access_token"),
     ("VOLC_ACCESS_TOKEN",    "火山云", "access_token"),
     ("VOLCENGINE_SECRET_KEY", "火山云", "secret_key"),
+    # BytePlus (international Volcengine)
+    ("BYTEPLUS_APP_ID",      "BytePlus", "app_id"),
+    ("BYTEPLUS_APPID",       "BytePlus", "app_id"),
+    ("BYTEPLUS_ACCESS_TOKEN", "BytePlus", "access_token"),
+    ("BYTEPLUS_SECRET_KEY",  "BytePlus", "secret_key"),
     # 微软 Azure
     ("AZURE_SPEECH_KEY",     "微软-世纪互联", "key1"),
     ("AZURE_SPEECH_KEY_CN",  "微软-世纪互联", "key1"),
@@ -69,7 +74,26 @@ ENV_MAPPINGS = [
     ("IFLYTEK_ACCESS_SECRET", "讯飞", "access_secret"),
     # OpenAI
     ("OPENAI_API_KEY",       "OpenAI", "api_key"),
+    # FishAudio
+    ("FISHAUDIO_API_KEY",    "FishAudio", "api_key"),
+    ("FISH_AUDIO_KEY",       "FishAudio", "api_key"),
+    # 阶跃星辰 / StepFun
+    ("STEPFUN_API_KEY",      "阶跃星辰", "api_key"),
+    ("STEP_API_KEY",         "阶跃星辰", "api_key"),
 ]
+
+
+# ── JSON field name mapping (for importing from JSON files) ──────────
+# Maps JSON field names to internal field keys
+JSON_FIELD_MAPPINGS = {
+    "FishAudio": {"Key": "api_key"},
+    "BytePlus": {"APPID": "app_id", "AccessToken": "access_token", "Secret Key": "secret_key"},
+    "阶跃星辰": {"tts_stepfun_key": "api_key"},
+    "微软-世纪互联": {"key1": "key1", "key2": "key2", "region": "region", "endpoint": "endpoint"},
+    "微软-Global": {"key1": "key1", "key2": "key2", "region": "region", "endpoint": "endpoint"},
+    "火山云": {"app_id": "app_id", "access_token": "access_token", "secret_key": "secret_key"},
+    "讯飞方言": {"appid": "appid", "access_key": "access_key", "access_secret": "access_secret", "language": "language"},
+}
 
 
 def scan_env_vars(extra_env=None):
@@ -107,6 +131,44 @@ def parse_env_file(filepath):
     return result
 
 
+def parse_json_creds_file(filepath):
+    """Parse a JSON credentials file and normalize field names."""
+    found = {}
+    if not os.path.isfile(filepath):
+        return found
+    
+    with open(filepath, "r", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            return found
+    
+    for vendor, fields in data.items():
+        if not isinstance(fields, dict):
+            continue
+        
+        # Normalize vendor name (handle aliases like "讯飞方言" -> "讯飞")
+        normalized_vendor = vendor
+        if vendor == "讯飞方言":
+            normalized_vendor = "讯飞"
+        
+        # Get field mappings for this vendor
+        field_map = JSON_FIELD_MAPPINGS.get(vendor, {})
+        
+        normalized_fields = {}
+        for field_key, field_value in fields.items():
+            if not field_value or field_value == "-":  # Skip empty or placeholder values
+                continue
+            # Map field name if mapping exists, otherwise use original
+            internal_key = field_map.get(field_key, field_key)
+            normalized_fields[internal_key] = field_value
+        
+        if normalized_fields:
+            found[normalized_vendor] = normalized_fields
+    
+    return found
+
+
 def scan_vendor_keys_csv(filepath="vendor_keys.csv"):
     """Parse vendor_keys.csv for any pre-filled credential values."""
     found = {}
@@ -118,7 +180,7 @@ def scan_vendor_keys_csv(filepath="vendor_keys.csv"):
         "腾讯云": {"appid": "appid", "SecretId": "secret_id", "SecretKey": "secret_key"},
         "火山云": {"APP ID": "app_id", "Access Token": "access_token", "Secret Key": "secret_key"},
         "微软-世纪互联": {"密钥1": "key1", "密钥2": "key2", "位置/区域": "region", "终结点": "endpoint"},
-        "Minimax-CN": {"接口密钥": "api_key", "Group ID": "group_id"},
+        "Minimax-CN": {"接口密钥": "api_key", "Key": "api_key", "Group ID": "group_id"},
         "阿里云": {"api_key": "api_key", "url": "url"},
         "Minimax-Global": {"Group ID": "group_id", "Key": "api_key"},
         "ElevenLabs": {"Key": "api_key"},
@@ -129,6 +191,10 @@ def scan_vendor_keys_csv(filepath="vendor_keys.csv"):
         "智谱": {"API Key": "api_key"},
         "讯飞": {"APPID": "appid", "accessKey": "access_key", "accessSecret": "access_secret"},
         "OpenAI": {"API Key": "api_key"},
+        # New vendors
+        "FishAudio": {"Key": "api_key"},
+        "BytePlus": {"APPID": "app_id", "AccessToken": "access_token", "Secret Key": "secret_key"},
+        "阶跃星辰": {"API Key": "api_key", "tts_stepfun_key": "api_key"},
     }
 
     with open(filepath, "r", encoding="utf-8") as f:
@@ -172,27 +238,45 @@ def scan_vendor_keys_csv(filepath="vendor_keys.csv"):
     return found
 
 
-def detect_all(env_file=None, csv_file="vendor_keys.csv"):
+def detect_all(env_file=None, csv_file="vendor_keys.csv", json_file=None):
     """Detect keys from all sources. Later sources override earlier ones."""
     result = {}
 
-    # 1. Scan vendor_keys.csv
+    # 1. Scan JSON file if provided (lowest priority for file sources)
+    if json_file:
+        json_keys = parse_json_creds_file(json_file)
+        for vendor, fields in json_keys.items():
+            if vendor not in result:
+                result[vendor] = {}
+            result[vendor].update(fields)
+    
+    # Also check for common JSON files in current/data directory
+    for json_path in ["vendor_creds.json", "data/vendor_creds.json", 
+                      "20260323vendor_creds_format.json", "data/20260323vendor_creds_format.json"]:
+        if os.path.isfile(json_path) and json_path != json_file:
+            json_keys = parse_json_creds_file(json_path)
+            for vendor, fields in json_keys.items():
+                if vendor not in result:
+                    result[vendor] = {}
+                result[vendor].update(fields)
+
+    # 2. Scan vendor_keys.csv
     csv_keys = scan_vendor_keys_csv(csv_file)
     for vendor, fields in csv_keys.items():
         if vendor not in result:
             result[vendor] = {}
         result[vendor].update(fields)
 
-    # 2. Scan .env file if provided
+    # 3. Scan .env file if provided
     extra_env = {}
     if env_file:
         extra_env = parse_env_file(env_file)
 
-    # 3. Also check for .env in current directory
+    # 4. Also check for .env in current directory
     if not env_file and os.path.isfile(".env"):
         extra_env = parse_env_file(".env")
 
-    # 4. Scan environment variables (highest priority)
+    # 5. Scan environment variables (highest priority)
     env_keys = scan_env_vars(extra_env)
     for vendor, fields in env_keys.items():
         if vendor not in result:
@@ -208,9 +292,10 @@ def main():
     parser.add_argument("--save", action="store_true", help="Save to vendor_creds.json")
     parser.add_argument("--env-file", type=str, help="Path to .env file to scan")
     parser.add_argument("--csv", type=str, default="vendor_keys.csv", help="Path to vendor_keys.csv")
+    parser.add_argument("--json", type=str, help="Path to JSON credentials file to import")
     args = parser.parse_args()
 
-    creds = detect_all(env_file=args.env_file, csv_file=args.csv)
+    creds = detect_all(env_file=args.env_file, csv_file=args.csv, json_file=args.json)
 
     if not creds:
         print("未检测到任何凭证 / No credentials detected.")

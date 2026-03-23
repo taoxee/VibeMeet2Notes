@@ -264,7 +264,10 @@ const vendorNames = {
   "Deepgram": { en: "Deepgram" },
   "智谱": { en: "Zhipu AI" },
   "讯飞": { en: "iFlytek" },
-  "OpenAI": { en: "OpenAI" }
+  "OpenAI": { en: "OpenAI" },
+  "FishAudio": { en: "FishAudio" },
+  "BytePlus": { en: "BytePlus" },
+  "阶跃星辰": { en: "StepFun" }
 };
 
 function getVendorDisplayName(vendor) {
@@ -540,15 +543,38 @@ function translateType(type) {
 
 function translateNote(note) {
   if (currentLang === "zh") return note;
-  return note
-    .replace("方言自由说ASR，语言参数：autodialect（自动识别中英及中文方言）",
-      "Dialect ASR. Language param: autodialect (auto-detect Chinese/English/dialects)");
+  const translations = {
+    "方言自由说ASR，语言参数：autodialect（自动识别中英及中文方言）": 
+      "Dialect ASR. Language param: autodialect (auto-detect Chinese/English/dialects)",
+    "火山海外版 BytePlus，服务海外用户":
+      "BytePlus (International Volcengine) for overseas users",
+  };
+  return translations[note] || note;
 }
 
 function translateFieldLabel(label) {
   if (currentLang === "zh") return label;
-  const map = { "语言参数": "Language" };
+  const map = {
+    "语言参数": "Language",
+    "密钥1": "Key 1",
+    "密钥2": "Key 2",
+    "位置/区域": "Region",
+    "终结点": "Endpoint",
+  };
   return map[label] || label;
+}
+
+// Translate error messages from Chinese to English
+function translateError(msg) {
+  if (currentLang === "zh") return msg;
+  return msg
+    .replace("API 调用失败:", "API call failed:")
+    .replace("处理失败:", "Processing failed:")
+    .replace("转录结果为空，请检查音频文件是否包含语音内容", "Transcription is empty. Please check if the audio contains speech.")
+    .replace("请上传有效的音视频文件", "Please upload a valid audio/video file")
+    .replace("凭证格式错误", "Invalid credentials format")
+    .replace("请选择 ASR 供应商并填写凭证", "Please select an ASR vendor and fill in credentials")
+    .replace("请选择 LLM 供应商并填写凭证", "Please select an LLM vendor and fill in credentials");
 }
 
 function renderVendorKeys() {
@@ -973,7 +999,7 @@ function handleQueueSSE(qid, event, data) {
     loadTaskHistory();
   } else if (event === "error") {
     task.status = "error";
-    task.message = "❌ " + data.message;
+    task.message = "❌ " + translateError(data.message);
     task.completedAt = new Date().toLocaleString();
     updateQueueUI();
     showTaskNotification(qid, true);
@@ -1093,7 +1119,7 @@ async function loadTask(taskId) {
     if (data.meta && data.meta.error) {
       document.getElementById("error-section").style.display = "block";
       document.getElementById("error-label").textContent = t("errorDetail");
-      document.getElementById("error-output").textContent = data.meta.error;
+      document.getElementById("error-output").textContent = translateError(data.meta.error);
     }
 
     // Show token usage if available

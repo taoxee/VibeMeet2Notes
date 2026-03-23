@@ -1,0 +1,71 @@
+{
+  "微软-世纪互联": {
+    "region": "chinaeast2",
+    "endpoint": "https://chinaeast2.api.cognitive.azure.cn/sts/v1.0/issuetoken",
+    "key1": "",
+    "key2": ""
+  },
+  "腾讯云": {
+    "appid": "1259678631",
+    "secret_id": "",
+    "secret_key": ""
+  },
+  "火山云": {
+    "app_id": "4064223032",
+    "access_token": "",
+    "secret_key": "-"
+  },
+  "OpenAI": {
+    "api_key": ""
+  },
+  "Deepgram": {
+    "api_key": ""
+  },
+  "ElevenLabs": {
+    "api_key": ""
+  },
+  "Groq": {
+    "api_key": ""
+  },
+  "Minimax-CN": {
+    "group_id": "1872576106666660089",
+    "api_key": ""
+  },
+  "Minimax-Global": {
+    "group_id": "",
+    "api_key": ""
+  },
+  "Soniox": {
+    "api_key": ""
+  },
+  "智谱": {
+    "api_key": ""
+  },
+  "阿里云": {
+    "url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "api_key": ""
+  },
+  "讯飞方言": {
+    "appid": "75dBvJ",
+    "access_key": "",
+    "access_secret": "",
+    "language": "autodialect"
+  },
+  "微软-Global": {
+    "key1": "",
+    "key2": "",
+    "region": "",
+    "endpoint": ""
+  },
+  "FishAudio": {
+    "Key": ""
+  },
+    "BytePlus": {
+    "APPID": "",
+    "AccessToken": "",
+    "Secret Key": ""
+  },
+  "阶跃星辰": {
+    "tts_stepfun_key": ""
+  }
+}

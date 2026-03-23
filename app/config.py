@@ -174,4 +174,25 @@ VENDORS = {
             {"key": "api_key", "label": "API Key", "placeholder": "sk-xxxxxxxx"},
         ],
     },
+    "FishAudio": {
+        "types": ["TTS"],
+        "fields": [
+            {"key": "api_key", "label": "Key", "placeholder": "xxxxxxxx"},
+        ],
+    },
+    "BytePlus": {
+        "types": ["ASR", "TTS", "声音复刻"],
+        "fields": [
+            {"key": "app_id",       "label": "APPID",        "placeholder": "xxxxxxxx"},
+            {"key": "access_token", "label": "AccessToken",  "placeholder": "xxxxxxxx"},
+            {"key": "secret_key",   "label": "Secret Key",   "placeholder": "xxxxxxxx"},
+        ],
+        "note": "火山海外版 BytePlus，服务海外用户",
+    },
+    "阶跃星辰": {
+        "types": ["ASR", "TTS", "声音复刻", "LLM"],
+        "fields": [
+            {"key": "api_key", "label": "API Key", "placeholder": "xxxxxxxx"},
+        ],
+    },
 }

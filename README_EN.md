@@ -20,7 +20,7 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 
 - 🎙️ **Speaker Diarization** — Auto-identify multiple speakers, labeled as Speaker 1/2/3...
 - 📝 **Structured Meeting Minutes** — LLM outputs professional Markdown meeting notes (topics, decisions, action items)
-- 🔌 **Multi-Vendor Support** — 14 ASR/LLM vendors, mix and match freely
+- 🔌 **Multi-Vendor Support** — 17 ASR/LLM vendors, mix and match freely
 - 💾 **Local Credential Storage** — API keys stored only in browser localStorage, never sent to server
 - ⚡ **Cache Detection** — Auto-reuse historical results for same file + same vendor + same model + same prompt; prompt change only re-runs LLM
 - 🌐 **Auto Proxy Detection** — Detects macOS system proxy (ShadowsocksX-NG / ClashX etc.)
@@ -50,7 +50,9 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 | Microsoft 21Vianet | ✅ Native | China endpoint |
 | OpenAI / Groq | ⚠️ Timestamps only | Single speaker |
 | Volcengine | ⚠️ Timestamps only | Single speaker |
+| BytePlus | ⚠️ Timestamps only | Single speaker, intl Volcengine |
 | iFlytek | ✅ Native | raasr v2 API |
+| StepFun | ⚠️ Timestamps only | Single speaker |
 
 ---
 
@@ -60,6 +62,7 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 |--------|-----|-----|-----|-------|
 | Tencent Cloud | ✅ | ✅ | ✅ | Voice Clone |
 | Volcengine | ✅ | | ✅ | Voice Clone |
+| BytePlus | ✅ | | ✅ | Voice Clone |
 | Microsoft 21Vianet | ✅ | | ✅ | Translation |
 | Minimax-CN | | ✅ | ✅ | |
 | Alibaba Cloud | ✅ | ✅ | ✅ | Voice Clone |
@@ -72,6 +75,8 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 | Zhipu AI | | ✅ | | |
 | iFlytek | ✅ | | | |
 | OpenAI | | ✅ | | |
+| FishAudio | | | ✅ | |
+| StepFun | ✅ | ✅ | ✅ | Voice Clone |
 
 ---
 
