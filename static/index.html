@@ -56,6 +56,16 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
   <!-- Upload & Process (FIRST — core feature) -->
   <div class="card">
     <h2>📁 上传文件并处理</h2>
+    <!-- Folder Watch: Detected files badge area -->
+    <div id="fw-detected-area" style="display:none;margin-bottom:12px;padding:10px 14px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:0.88rem;font-weight:600;color:#2e7d32;">
+          📂 <span id="fw-detected-count">0</span> <span id="fw-detected-label">new files detected</span>
+        </span>
+        <button onclick="runFolderScan()" style="font-size:0.78rem;padding:2px 8px;border:1px solid #c8e6c9;border-radius:4px;background:#fff;cursor:pointer;color:#2e7d32;">↻ <span id="fw-refresh-label">Refresh</span></button>
+      </div>
+      <div id="fw-detected-list"></div>
+    </div>
     <div class="form-row">
       <div class="form-group" style="flex:2;">
         <label id="file-label">选择音视频文件（可多选）</label>
@@ -87,6 +97,20 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
           <button id="prompt-reset-btn" onclick="resetPrompt()" style="padding:4px 12px;font-size:0.78rem;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;color:#666;">恢复默认</button>
         </div>
       </div>
+    </div>
+    <!-- Folder Watch Settings -->
+    <div id="fw-settings-section" style="margin-bottom:12px;border:1px solid #e9ecef;border-radius:8px;padding:12px 14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label style="font-size:0.9rem;font-weight:600;color:#555;display:flex;align-items:center;gap:6px;">
+          <span id="fw-section-title">📂 Folder Watch</span>
+          <button onclick="showFolderWatchCompatInfo()" title="Browser Compatibility" style="background:none;border:1px solid #ccc;border-radius:50%;width:18px;height:18px;font-size:0.7rem;cursor:pointer;color:#888;padding:0;line-height:1;">i</button>
+        </label>
+        <label style="font-size:0.82rem;color:#888;display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="fw-master-toggle" onchange="toggleFolderWatchMaster(this.checked)">
+          <span id="fw-master-label">Enable</span>
+        </label>
+      </div>
+      <div id="fw-folders-container"></div>
     </div>
     <button id="process-btn" onclick="processFiles()" style="width:100%;padding:12px;background:#4361ee;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;transition:background 0.2s;">
       🚀 开始处理
@@ -236,6 +260,11 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
 .task-notify .tn-close:hover { color: #666; }
 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateX(50px); } }
+/* Folder Watch */
+.fw-folder-row { padding:8px 0; border-bottom:1px solid #f0f0f0; }
+.fw-folder-row:last-child { border-bottom:none; }
+#fw-detected-list .fw-file-row { display:flex; align-items:center; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #e0e0e0; font-size:0.85rem; }
+#fw-detected-list .fw-file-row:last-child { border-bottom:none; }
 </style>
 <script>
 let VENDORS = {};
@@ -368,7 +397,30 @@ const i18n = {
     stepTranscode: "转码",
     stepAsr: "语音识别",
     stepLlm: "会议纪要",
-    stepDone: "完成"
+    stepDone: "完成",
+    fwTitle: "📂 文件夹监控",
+    fwEnable: "启用",
+    fwSetDefault: "📂 设置默认监控文件夹",
+    fwAddFolder: "+ 添加文件夹",
+    fwAutoProcess: "自动处理",
+    fwCustomPrompt: "自定义提示词",
+    fwDetectedCount: "个新文件被检测到",
+    fwRefresh: "刷新",
+    fwProcess: "处理",
+    fwSkip: "跳过",
+    fwPermNeeded: "⚠ 需要授权",
+    fwReauthorize: "重新授权",
+    fwUseGlobal: "-- 使用全局设置 --",
+    fwCompatTitle: "浏览器兼容性",
+    fwCompatChrome: "Chrome / Edge: ✅ 完整支持",
+    fwCompatFirefox: "Firefox: ❌ 不支持（功能不可用）",
+    fwCompatSafari: "Safari: ⚠️ macOS 15.2+ 部分支持，每次启动需重新授权",
+    fwCompatRec: "推荐使用 Chrome 或 Edge 浏览器",
+    fwSelectVendorFirst: "请先配置 ASR 和 LLM 供应商凭证",
+    fwClose: "关闭",
+    fwNotSupported: "您的浏览器不支持文件夹监控功能",
+    fwMaxFolders: "最多支持 3 个文件夹",
+    fwHowItWorks: "原理：浏览器通过文件系统权限直接读取本地文件夹，每 10 秒检测是否有新录音文件，无需安装任何插件或本地程序。"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -460,7 +512,30 @@ const i18n = {
     stepTranscode: "Transcode",
     stepAsr: "ASR",
     stepLlm: "LLM",
-    stepDone: "Done"
+    stepDone: "Done",
+    fwTitle: "📂 Folder Watch",
+    fwEnable: "Enable",
+    fwSetDefault: "📂 Set Default Watch Folder",
+    fwAddFolder: "+ Add Folder",
+    fwAutoProcess: "Auto-process",
+    fwCustomPrompt: "Custom Prompt",
+    fwDetectedCount: "new files detected",
+    fwRefresh: "Refresh",
+    fwProcess: "Process",
+    fwSkip: "Skip",
+    fwPermNeeded: "⚠ Permission needed",
+    fwReauthorize: "Re-authorize",
+    fwUseGlobal: "-- Use global setting --",
+    fwCompatTitle: "Browser Compatibility",
+    fwCompatChrome: "Chrome / Edge: ✅ Full support",
+    fwCompatFirefox: "Firefox: ❌ Not supported",
+    fwCompatSafari: "Safari: ⚠️ macOS 15.2+ partial, re-auth each session",
+    fwCompatRec: "Recommended: Chrome or Edge",
+    fwSelectVendorFirst: "Please configure ASR and LLM vendor credentials first",
+    fwClose: "Close",
+    fwNotSupported: "Your browser doesn't support Folder Watch",
+    fwMaxFolders: "Maximum 3 folders supported",
+    fwHowItWorks: "How it works: the browser reads your local folders directly via file system permissions, checking every 10 seconds for new recordings — no plugin or local app required."
   }
 };
 
@@ -478,6 +553,11 @@ async function init() {
   if (!localStorage.getItem("tip_dismissed")) {
     document.getElementById("tip-banner").style.display = "flex";
   }
+  document.getElementById("fw-master-toggle").checked =
+    localStorage.getItem("folder_watch_enabled") === "1";
+  renderFolderWatchSettings();
+  await requestPermissionsForStoredHandles();
+  setInterval(runFolderScan, 10000);
 }
 
 function getStoredCreds() {
@@ -852,6 +932,27 @@ function viewQueueTask(taskId) {
   loadTask(task.taskIdServer);
 }
 
+function drainQueue() {
+  const waiting = Object.entries(taskQueue).filter(([, t]) => t.status === "waiting");
+  const slots = MAX_PARALLEL - activeTaskCount;
+  waiting.slice(0, slots).forEach(([qid]) => scheduleQueuedTask(qid));
+}
+
+async function scheduleQueuedTask(qid) {
+  if (activeTaskCount >= MAX_PARALLEL) return;
+  if (!taskQueue[qid] || taskQueue[qid].status !== "waiting") return;
+  activeTaskCount++;
+  taskQueue[qid].status = "running";
+  taskQueue[qid].message = t("uploading");
+  updateQueueUI();
+  try {
+    await processSingleFile(qid);
+  } finally {
+    activeTaskCount--;
+    drainQueue();
+  }
+}
+
 async function processFiles() {
   const fileInput = document.getElementById("media-file");
   const asrVendor = document.getElementById("asr-vendor").value;
@@ -870,38 +971,13 @@ async function processFiles() {
   const llmPrompt = document.getElementById("llm-prompt").value.trim();
   const files = Array.from(fileInput.files);
 
-  // Add all files to queue
-  const queueIds = [];
   for (const f of files) {
     const qid = Date.now() + "_" + Math.random().toString(36).slice(2, 6);
     taskQueue[qid] = { fileName: f.name, file: f, status: "waiting", percent: 0, message: t("queuing"),
                         asrVendor, llmVendor, llmModel, llmPrompt, token_usage: null, taskIdServer: null };
-    queueIds.push(qid);
   }
   updateQueueUI();
-
-  // Process queue with concurrency limit
-  const runNext = async () => {
-    const waiting = queueIds.filter(id => taskQueue[id].status === "waiting");
-    if (waiting.length === 0) return;
-    if (activeTaskCount >= MAX_PARALLEL) return;
-    const qid = waiting[0];
-    activeTaskCount++;
-    taskQueue[qid].status = "running";
-    taskQueue[qid].message = t("uploading");
-    updateQueueUI();
-    try {
-      await processSingleFile(qid);
-    } finally {
-      activeTaskCount--;
-      runNext();
-    }
-  };
-
-  // Start up to MAX_PARALLEL tasks
-  for (let i = 0; i < Math.min(MAX_PARALLEL, files.length); i++) {
-    runNext();
-  }
+  drainQueue();
 }
 
 async function processSingleFile(qid) {
@@ -1456,6 +1532,16 @@ function applyLanguage() {
   // Re-render dynamic content with new language
   updateQueueUI();
   if (historyExpanded) loadTaskHistory();
+  // Folder Watch static labels
+  const fwTitle = document.getElementById("fw-section-title");
+  if (fwTitle) fwTitle.textContent = t("fwTitle");
+  const fwMaster = document.getElementById("fw-master-label");
+  if (fwMaster) fwMaster.textContent = t("fwEnable");
+  const fwDetLabel = document.getElementById("fw-detected-label");
+  if (fwDetLabel) fwDetLabel.textContent = t("fwDetectedCount");
+  const fwRefreshLabel = document.getElementById("fw-refresh-label");
+  if (fwRefreshLabel) fwRefreshLabel.textContent = t("fwRefresh");
+  renderFolderWatchSettings();
 }
 
 // Override updateCredsSummary to use i18n
@@ -1570,6 +1656,329 @@ document.getElementById("llm-prompt").addEventListener("input", function() {
 });
 
 loadDefaultPrompt();
+
+// ── Folder Watch ────────────────────────────────────────────────────
+
+let _fwDB = null;
+let _folderHandles = new Map();
+let _pendingFolderFiles = [];
+const FW_ALLOWED_EXT = new Set(["mp3","mp4","wav","m4a","webm","ogg","flac","mpeg","mpga"]);
+
+function openFolderWatchDB() {
+  if (_fwDB) return Promise.resolve(_fwDB);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("vibemeet_folderwatch", 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore("handles", { keyPath: "id" });
+    req.onsuccess = e => { _fwDB = e.target.result; resolve(_fwDB); };
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSaveHandle(id, handle) {
+  const db = await openFolderWatchDB();
+  return new Promise((res, rej) => { const tx = db.transaction("handles","readwrite"); tx.objectStore("handles").put({id,handle}); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
+}
+async function idbDeleteHandle(id) {
+  const db = await openFolderWatchDB();
+  return new Promise((res, rej) => { const tx = db.transaction("handles","readwrite"); tx.objectStore("handles").delete(id); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
+}
+async function idbGetAllHandles() {
+  const db = await openFolderWatchDB();
+  return new Promise((res, rej) => { const tx = db.transaction("handles","readonly"); const req=tx.objectStore("handles").getAll(); req.onsuccess=()=>res(req.result||[]); req.onerror=()=>rej(req.error); });
+}
+
+function getFolderConfigs() { try { return JSON.parse(localStorage.getItem("folder_watch_configs")||"[]"); } catch { return []; } }
+function saveFolderConfigs(arr) { localStorage.setItem("folder_watch_configs", JSON.stringify(arr)); }
+function getSeenFiles() { try { return JSON.parse(localStorage.getItem("folder_seen_files")||"{}"); } catch { return {}; } }
+function saveSeenFiles(obj) { localStorage.setItem("folder_seen_files", JSON.stringify(obj)); }
+function _fwFP(file) { return `${file.name}::${file.size}::${file.lastModified}`; }
+function isFileSeen(fid, file) { return (getSeenFiles()[fid]||[]).includes(_fwFP(file)); }
+function markFileSeen(fid, file) { const s=getSeenFiles(); if(!s[fid])s[fid]=[]; if(!s[fid].includes(_fwFP(file)))s[fid].push(_fwFP(file)); saveSeenFiles(s); }
+
+function toggleFolderWatchMaster(enabled) { localStorage.setItem("folder_watch_enabled", enabled?"1":"0"); }
+
+function saveFolderSetting(id, key, value) {
+  const configs = getFolderConfigs();
+  const cfg = configs.find(c => c.id === id);
+  if (!cfg) return;
+  cfg[key] = value;
+  saveFolderConfigs(configs);
+  if (key === "autoProcess") renderFolderWatchSettings();
+  if (key === "llmVendor") fetchModelsForFolder(id, value);
+}
+
+async function fetchModelsForFolder(folderId, vendor) {
+  const sel = document.getElementById("fw-llm-model-" + folderId);
+  if (!sel) return;
+  sel.textContent = "";
+  const defOpt = document.createElement("option");
+  defOpt.value = ""; defOpt.textContent = t("fwUseGlobal");
+  sel.appendChild(defOpt);
+  if (!vendor) return;
+  if (_modelCache[vendor]) { _modelCache[vendor].models.forEach(m => { const o=document.createElement("option"); o.value=m; o.textContent=m; sel.appendChild(o); }); return; }
+  try {
+    const resp = await fetch("/api/models",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({vendor,creds:getVendorCreds(vendor)})});
+    const data = await resp.json();
+    _modelCache[vendor] = data;
+    (data.models||[]).forEach(m => { const o=document.createElement("option"); o.value=m; o.textContent=m; sel.appendChild(o); });
+  } catch(e) {}
+}
+
+function showFolderWatchCompatInfo() {
+  let modal = document.getElementById("fw-compat-modal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "fw-compat-modal";
+    modal.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:2000;display:flex;align-items:center;justify-content:center;";
+    document.body.appendChild(modal);
+    modal.addEventListener("click", e => { if(e.target===modal) modal.style.display="none"; });
+  }
+  modal.style.display = "flex";
+  const box = document.createElement("div");
+  box.style.cssText = "background:#fff;border-radius:12px;padding:24px;max-width:420px;width:90%;box-shadow:0 4px 32px rgba(0,0,0,0.18);";
+  const h3 = document.createElement("h3"); h3.style.cssText="font-size:1rem;margin-bottom:10px;color:#1a1a2e;"; h3.textContent=t("fwCompatTitle");
+  const pHow=document.createElement("p"); pHow.style.cssText="font-size:0.84rem;color:#555;margin-bottom:14px;padding:8px 10px;background:#f8f9fa;border-radius:6px;"; pHow.textContent=t("fwHowItWorks");
+  const p1=document.createElement("p"); p1.style.cssText="font-size:0.87rem;margin-bottom:8px;"; p1.textContent=t("fwCompatChrome");
+  const p2=document.createElement("p"); p2.style.cssText="font-size:0.87rem;margin-bottom:8px;"; p2.textContent=t("fwCompatFirefox");
+  const p3=document.createElement("p"); p3.style.cssText="font-size:0.87rem;margin-bottom:14px;"; p3.textContent=t("fwCompatSafari");
+  const p4=document.createElement("p"); p4.style.cssText="font-size:0.82rem;color:#4361ee;margin-bottom:16px;"; p4.textContent=t("fwCompatRec");
+  const btn=document.createElement("button"); btn.style.cssText="padding:6px 18px;background:#4361ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.88rem;"; btn.textContent=t("fwClose"); btn.onclick=()=>modal.style.display="none";
+  box.append(h3,pHow,p1,p2,p3,p4,btn);
+  modal.textContent = "";
+  modal.appendChild(box);
+}
+
+// All user-supplied strings in renderFolderWatchSettings go through escapeHtml() before assignment,
+// matching the existing codebase pattern used in renderVendorKeys() and renderVendorTable().
+function renderFolderWatchSettings() {
+  const configs = getFolderConfigs();
+  const container = document.getElementById("fw-folders-container");
+  if (!container) return;
+  // Build HTML with all user content escaped — identical pattern to renderVendorKeys()
+  let rows = "";
+  for (const cfg of configs) {
+    const hasHandle = _folderHandles.has(cfg.id);
+    const safeLabel = escapeHtml(cfg.label);
+    const safePrompt = escapeHtml(cfg.llmPrompt||"");
+    const asrOpts = Object.keys(VENDORS).filter(v=>VENDORS[v].types&&VENDORS[v].types.includes("asr"))
+      .map(v=>`<option value="${escapeHtml(v)}"${cfg.asrVendor===v?" selected":""}>${escapeHtml(v)}</option>`).join("");
+    const llmOpts = Object.keys(VENDORS).filter(v=>VENDORS[v].types&&VENDORS[v].types.includes("llm"))
+      .map(v=>`<option value="${escapeHtml(v)}"${cfg.llmVendor===v?" selected":""}>${escapeHtml(v)}</option>`).join("");
+    const permBadge = hasHandle ? `<span id="fw-perm-badge-${cfg.id}" style="display:none;font-size:0.72rem;color:#e65100;">${t("fwPermNeeded")}</span>` :
+      `<span id="fw-perm-badge-${cfg.id}" style="font-size:0.72rem;color:#e65100;">${t("fwPermNeeded")}</span><button onclick="reauthorizeFolder('${cfg.id}')" style="font-size:0.72rem;padding:1px 6px;border:1px solid #ffcc80;border-radius:4px;background:#fff3e0;color:#e65100;cursor:pointer;">${t("fwReauthorize")}</button>`;
+    rows += `<div class="fw-folder-row" id="fw-row-${cfg.id}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+        <span style="font-size:0.85rem;font-weight:500;">📁 ${safeLabel}</span>
+        ${permBadge}
+        <button onclick="removeFolderWatch('${cfg.id}')" style="margin-left:auto;font-size:0.72rem;padding:1px 6px;border:1px solid #ffcdd2;border-radius:4px;background:#fff5f5;color:#c62828;cursor:pointer;">✕</button>
+      </div>
+      <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:4px;">
+        <input type="checkbox" ${cfg.autoProcess?"checked":""} onchange="saveFolderSetting('${cfg.id}','autoProcess',this.checked)">
+        <span>${t("fwAutoProcess")}</span>
+      </label>
+      <div id="fw-opts-${cfg.id}" style="display:${cfg.autoProcess?"block":"none"};margin-top:6px;padding:8px;background:#f8f9fa;border-radius:6px;">
+        <div class="form-row" style="margin-bottom:6px;">
+          <div class="form-group" style="min-width:100px;">
+            <label style="font-size:0.78rem;">ASR</label>
+            <select id="fw-asr-${cfg.id}" onchange="saveFolderSetting('${cfg.id}','asrVendor',this.value)" style="font-size:0.82rem;padding:6px 8px;">
+              <option value="">${t("fwUseGlobal")}</option>${asrOpts}
+            </select>
+          </div>
+          <div class="form-group" style="min-width:100px;">
+            <label style="font-size:0.78rem;">LLM</label>
+            <select id="fw-llm-${cfg.id}" onchange="saveFolderSetting('${cfg.id}','llmVendor',this.value)" style="font-size:0.82rem;padding:6px 8px;">
+              <option value="">${t("fwUseGlobal")}</option>${llmOpts}
+            </select>
+          </div>
+          <div class="form-group" style="min-width:100px;">
+            <label style="font-size:0.78rem;">${t("modelLabel")}</label>
+            <select id="fw-llm-model-${cfg.id}" onchange="saveFolderSetting('${cfg.id}','llmModel',this.value)" style="font-size:0.82rem;padding:6px 8px;">
+              <option value="">${t("fwUseGlobal")}</option>
+            </select>
+          </div>
+        </div>
+        <label style="font-size:0.78rem;color:#4361ee;cursor:pointer;" onclick="toggleFolderPrompt('${cfg.id}')">▶ ${t("fwCustomPrompt")}</label>
+        <div id="fw-pe-${cfg.id}" style="display:none;margin-top:6px;">
+          <textarea id="fw-prompt-${cfg.id}" rows="4" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:0.82rem;resize:vertical;" oninput="saveFolderSetting('${cfg.id}','llmPrompt',this.value)">${safePrompt}</textarea>
+        </div>
+      </div>
+    </div>`;
+    if (cfg.autoProcess && cfg.llmVendor) setTimeout(()=>fetchModelsForFolder(cfg.id, cfg.llmVendor), 0);
+  }
+  const count = configs.length;
+  let addBtn = "";
+  if (count === 0) addBtn = `<button onclick="addFolderWatch(true)" style="font-size:0.85rem;padding:6px 14px;border:1px dashed #4361ee;border-radius:6px;background:#f8f9ff;color:#4361ee;cursor:pointer;width:100%;">${t("fwSetDefault")}</button>`;
+  else if (count < 3) addBtn = `<button onclick="addFolderWatch(false)" style="font-size:0.82rem;padding:4px 12px;border:1px dashed #aaa;border-radius:6px;background:#fafafa;color:#888;cursor:pointer;margin-top:6px;">${t("fwAddFolder")} (${count}/3)</button>`;
+  container.innerHTML = rows + addBtn;
+  const titleEl = document.getElementById("fw-section-title");
+  if (titleEl) titleEl.textContent = t("fwTitle");
+  const masterLabel = document.getElementById("fw-master-label");
+  if (masterLabel) masterLabel.textContent = t("fwEnable");
+}
+
+function toggleFolderPrompt(id) {
+  const pe = document.getElementById("fw-pe-"+id);
+  if (!pe) return;
+  pe.style.display = pe.style.display==="block" ? "none" : "block";
+}
+
+function showPermBadge(id) { const el=document.getElementById("fw-perm-badge-"+id); if(el) el.style.display=""; }
+function hidePermBadge(id) { const el=document.getElementById("fw-perm-badge-"+id); if(el) el.style.display="none"; }
+
+async function addFolderWatch(isDefault) {
+  if (!window.showDirectoryPicker) { showFolderWatchCompatInfo(); return; }
+  if (getFolderConfigs().length >= 3) { alert(t("fwMaxFolders")); return; }
+  let handle;
+  try { handle = await window.showDirectoryPicker({ mode:"read" }); } catch(e) { return; }
+  const id = "fw_" + Date.now();
+  const cfg = { id, label:handle.name, isDefault, autoProcess:false, asrVendor:"", llmVendor:"", llmModel:"", llmPrompt:"" };
+  await idbSaveHandle(id, handle);
+  _folderHandles.set(id, handle);
+  const configs = getFolderConfigs(); configs.push(cfg); saveFolderConfigs(configs);
+  renderFolderWatchSettings();
+  if (localStorage.getItem("folder_watch_enabled")==="1") runFolderScan();
+}
+
+async function removeFolderWatch(id) {
+  saveFolderConfigs(getFolderConfigs().filter(c=>c.id!==id));
+  await idbDeleteHandle(id).catch(()=>{});
+  _folderHandles.delete(id);
+  const seen=getSeenFiles(); delete seen[id]; saveSeenFiles(seen);
+  renderFolderWatchSettings();
+  _pendingFolderFiles = _pendingFolderFiles.filter(f=>f.config.id!==id);
+  renderDetectedFiles(_pendingFolderFiles);
+}
+
+async function reauthorizeFolder(id) {
+  if (!window.showDirectoryPicker) { showFolderWatchCompatInfo(); return; }
+  let handle;
+  try { handle = await window.showDirectoryPicker({ mode:"read" }); } catch(e) { return; }
+  await idbSaveHandle(id, handle);
+  _folderHandles.set(id, handle);
+  hidePermBadge(id);
+  renderFolderWatchSettings();
+  if (localStorage.getItem("folder_watch_enabled")==="1") runFolderScan();
+}
+
+async function requestPermissionsForStoredHandles() {
+  let records = [];
+  try { records = await idbGetAllHandles(); } catch(e) { return; }
+  const configs = getFolderConfigs();
+  for (const { id, handle } of records) {
+    if (!configs.find(c=>c.id===id)) continue;
+    try {
+      let perm = await handle.queryPermission({ mode:"read" });
+      if (perm === "prompt") { try { perm = await handle.requestPermission({ mode:"read" }); } catch(e) {} }
+      if (perm === "granted") { _folderHandles.set(id, handle); } else { showPermBadge(id); }
+    } catch(e) { showPermBadge(id); }
+  }
+  renderFolderWatchSettings();
+  if (localStorage.getItem("folder_watch_enabled")==="1") runFolderScan();
+}
+
+async function scanFolder(config, handle) {
+  const newFiles = [];
+  try {
+    for await (const entry of handle.values()) {
+      if (entry.kind !== "file") continue;
+      const ext = entry.name.split(".").pop().toLowerCase();
+      if (!FW_ALLOWED_EXT.has(ext)) continue;
+      const file = await entry.getFile();
+      if (!isFileSeen(config.id, file)) newFiles.push({ config, file });
+    }
+  } catch(e) {}
+  return newFiles;
+}
+
+async function runFolderScan() {
+  if (localStorage.getItem("folder_watch_enabled") !== "1") return;
+  const configs = getFolderConfigs();
+  const allNew = [];
+  for (const [id, handle] of _folderHandles) {
+    const config = configs.find(c=>c.id===id);
+    if (!config) continue;
+    try { const perm = await handle.queryPermission({mode:"read"}); if(perm!=="granted"){showPermBadge(id);continue;} } catch(e){continue;}
+    const found = await scanFolder(config, handle);
+    for (const item of found) {
+      if (config.autoProcess) { queueFolderFile(config, item.file); markFileSeen(config.id, item.file); }
+      else { allNew.push(item); }
+    }
+  }
+  _pendingFolderFiles = allNew;
+  renderDetectedFiles(allNew);
+}
+
+function renderDetectedFiles(files) {
+  const area = document.getElementById("fw-detected-area");
+  const list = document.getElementById("fw-detected-list");
+  const countEl = document.getElementById("fw-detected-count");
+  const labelEl = document.getElementById("fw-detected-label");
+  if (!area) return;
+  if (!files || files.length === 0) { area.style.display="none"; return; }
+  area.style.display = "block";
+  countEl.textContent = files.length;
+  labelEl.textContent = t("fwDetectedCount");
+  // Build file rows — file.name and config.label are user/filesystem data, escaped via textContent assignment
+  list.textContent = "";
+  files.forEach((item, idx) => {
+    const row = document.createElement("div");
+    row.className = "fw-file-row";
+    const nameSpan = document.createElement("span");
+    nameSpan.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%;font-size:0.83rem;";
+    nameSpan.title = item.file.name;
+    nameSpan.textContent = "🎵 " + item.file.name;
+    const folderSpan = document.createElement("span");
+    folderSpan.style.cssText = "font-size:0.75rem;color:#888;flex-shrink:0;margin:0 6px;";
+    folderSpan.textContent = "📁 " + item.config.label;
+    const btnGroup = document.createElement("span");
+    btnGroup.style.cssText = "flex-shrink:0;display:flex;gap:6px;";
+    const processBtn = document.createElement("button");
+    processBtn.style.cssText = "font-size:0.78rem;padding:2px 8px;background:#4361ee;color:#fff;border:none;border-radius:4px;cursor:pointer;";
+    processBtn.textContent = t("fwProcess");
+    processBtn.onclick = () => fwProcessFile(idx);
+    const skipBtn = document.createElement("button");
+    skipBtn.style.cssText = "font-size:0.78rem;padding:2px 8px;background:#f5f5f5;color:#666;border:1px solid #ddd;border-radius:4px;cursor:pointer;";
+    skipBtn.textContent = t("fwSkip");
+    skipBtn.onclick = () => fwSkipFile(idx);
+    btnGroup.append(processBtn, skipBtn);
+    row.append(nameSpan, folderSpan, btnGroup);
+    list.appendChild(row);
+  });
+}
+
+function fwProcessFile(idx) {
+  const item = _pendingFolderFiles[idx]; if(!item) return;
+  manualProcessFolderFile(item.config, item.file);
+  markFileSeen(item.config.id, item.file);
+  _pendingFolderFiles.splice(idx,1);
+  renderDetectedFiles(_pendingFolderFiles);
+}
+function fwSkipFile(idx) {
+  const item = _pendingFolderFiles[idx]; if(!item) return;
+  markFileSeen(item.config.id, item.file);
+  _pendingFolderFiles.splice(idx,1);
+  renderDetectedFiles(_pendingFolderFiles);
+}
+
+function queueFolderFile(config, file) {
+  const asrVendor = config.asrVendor || document.getElementById("asr-vendor").value;
+  const llmVendor = config.llmVendor || document.getElementById("llm-vendor").value;
+  const llmModel  = config.llmModel  || document.getElementById("llm-model").value;
+  const llmPrompt = config.llmPrompt || document.getElementById("llm-prompt").value.trim();
+  if (!asrVendor || !llmVendor) return;
+  const qid = Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+  taskQueue[qid] = { fileName:file.name, file, status:"waiting", percent:0,
+    message:t("queuing"), asrVendor, llmVendor, llmModel, llmPrompt,
+    token_usage:null, taskIdServer:null, fromFolder:config.id };
+  updateQueueUI();
+  scheduleQueuedTask(qid);
+}
+
+function manualProcessFolderFile(config, file) {
+  const asrVendor = config.asrVendor || document.getElementById("asr-vendor").value;
+  const llmVendor = config.llmVendor || document.getElementById("llm-vendor").value;
+  if (!asrVendor || !llmVendor) { alert(t("fwSelectVendorFirst")); return; }
+  queueFolderFile(config, file);
+}
 </script>
 </body>
 </html>
