@@ -56,16 +56,6 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
   <!-- Upload & Process (FIRST — core feature) -->
   <div class="card">
     <h2>📁 上传文件并处理</h2>
-    <!-- Folder Watch: Detected files badge area -->
-    <div id="fw-detected-area" style="display:none;margin-bottom:12px;padding:10px 14px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-size:0.88rem;font-weight:600;color:#2e7d32;">
-          📂 <span id="fw-detected-count">0</span> <span id="fw-detected-label">new files detected</span>
-        </span>
-        <button onclick="runFolderScan()" style="font-size:0.78rem;padding:2px 8px;border:1px solid #c8e6c9;border-radius:4px;background:#fff;cursor:pointer;color:#2e7d32;">↻ <span id="fw-refresh-label">Refresh</span></button>
-      </div>
-      <div id="fw-detected-list"></div>
-    </div>
     <div class="form-row">
       <div class="form-group" style="flex:2;">
         <label id="file-label">选择音视频文件（可多选）</label>
@@ -98,23 +88,38 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
         </div>
       </div>
     </div>
-    <!-- Folder Watch Settings -->
-    <div id="fw-settings-section" style="margin-bottom:12px;border:1px solid #e9ecef;border-radius:8px;padding:12px 14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <label style="font-size:0.9rem;font-weight:600;color:#555;display:flex;align-items:center;gap:6px;">
-          <span id="fw-section-title">📂 Folder Watch</span>
-          <button onclick="showFolderWatchCompatInfo()" title="Browser Compatibility" style="background:none;border:1px solid #ccc;border-radius:50%;width:18px;height:18px;font-size:0.7rem;cursor:pointer;color:#888;padding:0;line-height:1;">i</button>
-        </label>
-        <label style="font-size:0.82rem;color:#888;display:flex;align-items:center;gap:6px;cursor:pointer;">
+    <button id="process-btn" onclick="processFiles()" style="width:100%;padding:12px;background:#4361ee;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;transition:background 0.2s;">
+      🚀 开始处理
+    </button>
+  </div>
+
+  <!-- Folder Watch Card -->
+  <div class="card" id="fw-card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <h2 style="cursor:pointer;user-select:none;margin:0;flex:1;" onclick="toggleFwCard()">
+        📂 <span id="fw-section-title">文件夹监控</span>
+        <span id="fw-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▼ 展开</span>
+      </h2>
+      <button onclick="showFolderWatchCompatInfo();" title="Browser Compatibility" style="background:none;border:1px solid #ccc;border-radius:50%;width:20px;height:20px;font-size:0.7rem;cursor:pointer;color:#888;padding:0;line-height:1;flex-shrink:0;">i</button>
+    </div>
+    <div id="fw-body" style="display:none;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <label style="font-size:0.88rem;color:#555;display:flex;align-items:center;gap:6px;cursor:pointer;">
           <input type="checkbox" id="fw-master-toggle" onchange="toggleFolderWatchMaster(this.checked)">
           <span id="fw-master-label">Enable</span>
         </label>
       </div>
-      <div id="fw-folders-container"></div>
+      <div id="fw-detected-area" style="display:none;margin-bottom:12px;padding:10px 14px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:0.88rem;font-weight:600;color:#2e7d32;">
+            📂 <span id="fw-detected-count">0</span> <span id="fw-detected-label">new files detected</span>
+          </span>
+          <button onclick="runFolderScan()" style="font-size:0.78rem;padding:2px 8px;border:1px solid #c8e6c9;border-radius:4px;background:#fff;cursor:pointer;color:#2e7d32;">↻ <span id="fw-refresh-label">Refresh</span></button>
+        </div>
+        <div id="fw-detected-list"></div>
+      </div>
+      <div id="fw-folders-container" style="display:none;"></div>
     </div>
-    <button id="process-btn" onclick="processFiles()" style="width:100%;padding:12px;background:#4361ee;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;transition:background 0.2s;">
-      🚀 开始处理
-    </button>
   </div>
 
   <!-- Task Queue (collapsible) -->
@@ -553,8 +558,9 @@ async function init() {
   if (!localStorage.getItem("tip_dismissed")) {
     document.getElementById("tip-banner").style.display = "flex";
   }
-  document.getElementById("fw-master-toggle").checked =
-    localStorage.getItem("folder_watch_enabled") === "1";
+  const fwEnabled = localStorage.getItem("folder_watch_enabled") === "1";
+  document.getElementById("fw-master-toggle").checked = fwEnabled;
+  document.getElementById("fw-folders-container").style.display = fwEnabled ? "" : "none";
   renderFolderWatchSettings();
   await requestPermissionsForStoredHandles();
   setInterval(runFolderScan, 10000);
@@ -1541,6 +1547,8 @@ function applyLanguage() {
   if (fwDetLabel) fwDetLabel.textContent = t("fwDetectedCount");
   const fwRefreshLabel = document.getElementById("fw-refresh-label");
   if (fwRefreshLabel) fwRefreshLabel.textContent = t("fwRefresh");
+  const fwToggle = document.getElementById("fw-toggle");
+  if (fwToggle) fwToggle.textContent = fwCardExpanded ? t("collapseText") : t("expandText");
   renderFolderWatchSettings();
 }
 
@@ -1694,7 +1702,19 @@ function _fwFP(file) { return `${file.name}::${file.size}::${file.lastModified}`
 function isFileSeen(fid, file) { return (getSeenFiles()[fid]||[]).includes(_fwFP(file)); }
 function markFileSeen(fid, file) { const s=getSeenFiles(); if(!s[fid])s[fid]=[]; if(!s[fid].includes(_fwFP(file)))s[fid].push(_fwFP(file)); saveSeenFiles(s); }
 
-function toggleFolderWatchMaster(enabled) { localStorage.setItem("folder_watch_enabled", enabled?"1":"0"); }
+function toggleFolderWatchMaster(enabled) {
+  localStorage.setItem("folder_watch_enabled", enabled ? "1" : "0");
+  document.getElementById("fw-folders-container").style.display = enabled ? "" : "none";
+  if (enabled) renderFolderWatchSettings();
+}
+
+let fwCardExpanded = false;
+
+function toggleFwCard() {
+  fwCardExpanded = !fwCardExpanded;
+  document.getElementById("fw-body").style.display = fwCardExpanded ? "block" : "none";
+  document.getElementById("fw-toggle").textContent = fwCardExpanded ? t("collapseText") : t("expandText");
+}
 
 function saveFolderSetting(id, key, value) {
   const configs = getFolderConfigs();
@@ -1851,28 +1871,35 @@ async function removeFolderWatch(id) {
 async function reauthorizeFolder(id) {
   if (!window.showDirectoryPicker) { showFolderWatchCompatInfo(); return; }
   let handle;
-  try { handle = await window.showDirectoryPicker({ mode:"read" }); } catch(e) { return; }
+  try { handle = await idbGetHandle(id); } catch(e) {}
+  if (handle) {
+    try {
+      const perm = await handle.requestPermission({ mode: "read" });
+      if (perm === "granted") {
+        _folderHandles.set(id, handle);
+        hidePermBadge(id);
+        if (localStorage.getItem("folder_watch_enabled") === "1") runFolderScan();
+        return;
+      }
+    } catch(e) {}
+  }
+  try { handle = await window.showDirectoryPicker({ mode: "read" }); } catch(e) { return; }
   await idbSaveHandle(id, handle);
   _folderHandles.set(id, handle);
   hidePermBadge(id);
   renderFolderWatchSettings();
-  if (localStorage.getItem("folder_watch_enabled")==="1") runFolderScan();
+  if (localStorage.getItem("folder_watch_enabled") === "1") runFolderScan();
 }
 
 async function requestPermissionsForStoredHandles() {
   let records = [];
   try { records = await idbGetAllHandles(); } catch(e) { return; }
   const configs = getFolderConfigs();
-  for (const { id, handle } of records) {
-    if (!configs.find(c=>c.id===id)) continue;
-    try {
-      let perm = await handle.queryPermission({ mode:"read" });
-      if (perm === "prompt") { try { perm = await handle.requestPermission({ mode:"read" }); } catch(e) {} }
-      if (perm === "granted") { _folderHandles.set(id, handle); } else { showPermBadge(id); }
-    } catch(e) { showPermBadge(id); }
+  for (const { id } of records) {
+    if (!configs.find(c => c.id === id)) continue;
+    showPermBadge(id);
   }
   renderFolderWatchSettings();
-  if (localStorage.getItem("folder_watch_enabled")==="1") runFolderScan();
 }
 
 async function scanFolder(config, handle) {

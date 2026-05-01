@@ -314,7 +314,7 @@
 
 ---
 
-## Conversation 10 (current)
+## Conversation 10 
 
 ### Task 1: 删除未使用的 ASR_prompt.txt + 清理死代码
 - 删除 `data/ASR_prompt.txt`（ASR 供应商不接受文本 prompt）
@@ -426,7 +426,7 @@
 
 ---
 
-## Conversation 11 (current)
+## Conversation 11 
 
 ### Task 1: 新增 3 个供应商（FishAudio, BytePlus, 阶跃星辰）
 - `app/config.py` 新增 VENDORS 配置：
@@ -470,4 +470,50 @@
 - `import_keys.py` — 新增 JSON 导入 + 新供应商映射
 - `static/index.html` — 新增翻译函数 + vendorNames
 - `tests/test_new_vendors.py` — 新建测试文件
+
+---
+
+## Conversation 12 (current)
+
+### Task 1: 文件夹监控（Folder Watch）功能实现
+
+完整实现文件夹监控自动处理功能，仅修改 `static/index.html`：
+
+- **Browser File System Access API**：`showDirectoryPicker()`，最多 3 个监控文件夹
+- **IndexedDB 持久化**：DB `vibemeet_folderwatch`，存储 `FileSystemDirectoryHandle`
+- **localStorage 配置**：`folder_watch_configs`（每文件夹配置）、`folder_seen_files`（已处理文件指纹）、`folder_watch_enabled`（主开关）
+- **自动扫描**：`init()` 时启动 + `setInterval(runFolderScan, 10000)` 每 10 秒轮询
+- **检测区域**：新文件以绿色 badge 展示在上传卡片中，含处理/跳过按钮
+- **自动处理**：每个文件夹可独立配置 `autoProcess`，检测到新文件时自动入队
+- **并发队列**：提取 `scheduleQueuedTask` + `drainQueue`，文件夹文件复用同一并发逻辑
+- **浏览器兼容**：Chrome/Edge 完整支持；`i` 按钮显示 Firefox 不支持 / Safari 受限提示
+- **i18n**：新增 20+ 个 Folder Watch 相关翻译 key，`applyLanguage()` 完整覆盖
+
+### Task 2: 折叠/展开控件修复
+
+- 原始实现：展开按钮（`<button>`）嵌套在 `<label>` 内，浏览器 label 拦截点击导致无响应
+- 修复：将外层 `<label>` 改为 `<div onclick="toggleFwExpand()">`，展开标记改为 `<span>`，"i" 按钮加 `event.stopPropagation()`
+- 最终重构（仿 history-toggle）：整个区域移出 Upload 卡片，成为独立卡片；h2 持有 `onclick`，展开标记 `<span>` 在 h2 内；`<button>` 移到 h2 **外侧**，彻底规避嵌套交互元素问题
+
+### Task 3: 页面刷新后文件夹丢失修复
+
+- **根因**：`requestPermission()` 需要用户手势，在 `init()` 中静默调用必然失败（Chrome 抛 DOMException，被 `catch` 吞掉），`_folderHandles` 始终为空，文件夹显示「⚠ 需要授权」
+- **修复**：移除启动时的静默 `queryPermission/requestPermission` 流程；页面加载时对所有已存储文件夹**始终**显示 Re-authorize badge
+- **重授权 UX 改进**：`reauthorizeFolder()` 先尝试对 IDB 中的原 handle 调用 `handle.requestPermission()`（无需重新选择文件夹），失败时才回退到 `showDirectoryPicker()`
+
+### Task 4: 文件夹监控迁移为独立卡片
+
+- 从 Upload & Process 卡片中移除 `#fw-detected-area` 和 `#fw-settings-section`
+- 新增独立 `#fw-card`，位置在 Upload 卡片与 Task Queue 卡片之间
+- 卡片结构：h2（可点击折叠）+ `#fw-body`（含 Enable 复选框、检测区域、文件夹列表）
+- `toggleFwCard()` 完全仿照 `toggleHistory()` 实现，使用 `fwCardExpanded` 布尔变量
+
+### Task 5: Chrome 缓存修复
+
+- `send_from_directory` 默认设置 12 小时缓存，导致普通刷新仍加载旧文件
+- `app/routes.py` 根路由新增响应头：`Cache-Control: no-cache, no-store, must-revalidate`
+
+### 文件变更汇总
+- `static/index.html` — Folder Watch 功能全实现 + 折叠修复 + 迁移为独立卡片
+- `app/routes.py` — 根路由新增 no-cache 响应头
 

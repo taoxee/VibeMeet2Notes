@@ -49,7 +49,11 @@ _task_queue = OrderedDict()
 @bp.route("/")
 def index():
     from app.config import BASE_DIR
-    return send_from_directory(os.path.join(BASE_DIR, "static"), "index.html")
+    resp = send_from_directory(os.path.join(BASE_DIR, "static"), "index.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 @bp.route("/api/vendors")
