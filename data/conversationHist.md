@@ -513,7 +513,12 @@
 - `send_from_directory` 默认设置 12 小时缓存，导致普通刷新仍加载旧文件
 - `app/routes.py` 根路由新增响应头：`Cache-Control: no-cache, no-store, must-revalidate`
 
+### Task 6: 修复 Folder Watch 折叠展开 TDZ 错误
+
+- **根因**：`let _fwDB`, `_folderHandles`, `_pendingFolderFiles`, `FW_ALLOWED_EXT`, `fwCardExpanded` 均声明在 `init()` 和 `applyLanguage()` 调用之后（行 ~1670–1711），`let` 的 temporal dead zone 导致调用时抛出 `ReferenceError: Cannot access '...' before initialization`
+- **修复**：将全部 5 个模块级变量声明移至 `init()` / `applyLanguage()` 调用行之前（行 1629–1633）
+
 ### 文件变更汇总
-- `static/index.html` — Folder Watch 功能全实现 + 折叠修复 + 迁移为独立卡片
+- `static/index.html` — Folder Watch 功能全实现 + 折叠修复 + 迁移为独立卡片 + TDZ 修复
 - `app/routes.py` — 根路由新增 no-cache 响应头
 

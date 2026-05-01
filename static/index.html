@@ -1625,6 +1625,13 @@ document.getElementById("llm-vendor").addEventListener("change", function() {
   fetchModels(this.value);
 });
 
+// Folder Watch module-level state (must be before init() + applyLanguage())
+let _fwDB = null;
+let _folderHandles = new Map();
+let _pendingFolderFiles = [];
+const FW_ALLOWED_EXT = new Set(["mp3","mp4","wav","m4a","webm","ogg","flac","mpeg","mpga"]);
+let fwCardExpanded = false;
+
 init();
 applyLanguage();
 // Fetch models for initially selected vendor
@@ -1667,11 +1674,6 @@ loadDefaultPrompt();
 
 // ── Folder Watch ────────────────────────────────────────────────────
 
-let _fwDB = null;
-let _folderHandles = new Map();
-let _pendingFolderFiles = [];
-const FW_ALLOWED_EXT = new Set(["mp3","mp4","wav","m4a","webm","ogg","flac","mpeg","mpga"]);
-
 function openFolderWatchDB() {
   if (_fwDB) return Promise.resolve(_fwDB);
   return new Promise((resolve, reject) => {
@@ -1707,8 +1709,6 @@ function toggleFolderWatchMaster(enabled) {
   document.getElementById("fw-folders-container").style.display = enabled ? "" : "none";
   if (enabled) renderFolderWatchSettings();
 }
-
-let fwCardExpanded = false;
 
 function toggleFwCard() {
   fwCardExpanded = !fwCardExpanded;
