@@ -53,6 +53,13 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
 
   <div id="save-toast" style="display:none;position:fixed;top:20px;right:20px;background:#2e7d32;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;z-index:999;transition:opacity 0.3s;">✅ 已自动保存</div>
 
+  <!-- Onboarding banner for first-time users -->
+  <div id="onboarding-banner" style="display:none;background:#e3f2fd;border:1px solid #bbdefb;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+    <div style="font-size:1.05rem;font-weight:600;color:#1565c0;margin-bottom:8px;">👋 <span id="onboarding-title">欢迎使用 VibeMeet2Notes！</span></div>
+    <p id="onboarding-msg" style="font-size:0.88rem;color:#555;margin-bottom:14px;line-height:1.6;">开始使用前，请先配置 ASR 和 LLM 供应商凭证。凭证仅保存在浏览器本地，输入后自动保存。</p>
+    <button onclick="scrollToCreds()" id="onboarding-btn" style="padding:10px 22px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;">🔑 立即配置凭证 →</button>
+  </div>
+
   <!-- Upload & Process (FIRST — core feature) -->
   <div class="card">
     <h2>📁 上传文件并处理</h2>
@@ -196,7 +203,11 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     <h2 style="cursor:pointer;user-select:none;" onclick="toggleHistory()">
       📂 历史任务 <span id="history-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▼ 展开</span>
     </h2>
-    <div id="task-history" style="display:none;"></div>
+    <div id="history-content" style="display:none;">
+      <input type="text" id="history-search" placeholder="搜索历史记录..." oninput="filterHistory(this.value)"
+        style="width:100%;padding:8px 12px;border:1px solid #d9d9d9;border-radius:8px;font-size:0.88rem;margin-bottom:10px;box-sizing:border-box;">
+      <div id="task-history"></div>
+    </div>
   </div>
 
   <!-- Vendor Key Management (collapsible) -->
@@ -472,7 +483,13 @@ const i18n = {
     rerunSubmit: "生成",
     rerunLlmLabel: "LLM 供应商",
     rerunModelLabel: "模型",
-    rerunPromptToggle: "自定义提示词"
+    rerunPromptToggle: "自定义提示词",
+    onboardingTitle: "欢迎使用 VibeMeet2Notes！",
+    onboardingMsg: "开始使用前，请先配置 ASR（语音识别）和 LLM（会议纪要）供应商凭证。凭证仅保存在浏览器本地，输入后自动保存。",
+    onboardingBtn: "🔑 立即配置凭证 →",
+    historySearch: "搜索历史记录...",
+    deleteBtn: "删除",
+    confirmDelete: "确认删除此条历史记录？删除后无法恢复。"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -595,7 +612,13 @@ const i18n = {
     rerunSubmit: "Generate",
     rerunLlmLabel: "LLM Vendor",
     rerunModelLabel: "Model",
-    rerunPromptToggle: "Custom Prompt"
+    rerunPromptToggle: "Custom Prompt",
+    onboardingTitle: "Welcome to VibeMeet2Notes!",
+    onboardingMsg: "To get started, configure at least one ASR (speech-to-text) and one LLM (meeting notes) vendor below. Credentials are saved only in your browser.",
+    onboardingBtn: "🔑 Set Up Credentials →",
+    historySearch: "Search history...",
+    deleteBtn: "Delete",
+    confirmDelete: "Delete this history entry? This cannot be undone."
   }
 };
 
@@ -784,6 +807,9 @@ function populateSelects() {
 
   document.getElementById("asr-no-vendor").style.display = asrCount === 0 ? "block" : "none";
   document.getElementById("llm-no-vendor").style.display = llmCount === 0 ? "block" : "none";
+
+  const banner = document.getElementById("onboarding-banner");
+  if (banner) banner.style.display = (asrCount === 0 && llmCount === 0) ? "block" : "none";
 }
 
 function renderVendorTable() {
@@ -1044,7 +1070,7 @@ async function processFiles() {
   drainQueue();
 }
 
-async function processSingleFile(qid) {
+function processSingleFile(qid) {
   const task = taskQueue[qid];
   const formData = new FormData();
   formData.append("file", task.file);
@@ -1055,36 +1081,57 @@ async function processSingleFile(qid) {
   formData.append("llm_model", task.llmModel || "");
   formData.append("llm_prompt", task.llmPrompt || "");
 
-  try {
-    const resp = await fetch("/api/process", { method: "POST", body: formData });
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/process");
+    xhr.responseType = "text";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+    // Upload phase progress (maps to 0–8% in queue)
+    xhr.upload.addEventListener("progress", (e) => {
+      if (!e.lengthComputable) return;
+      const pct = Math.round((e.loaded / e.total) * 8);
+      const loaded = (e.loaded / 1024 / 1024).toFixed(1);
+      const total = (e.total / 1024 / 1024).toFixed(1);
+      task.percent = pct;
+      task.message = currentLang === "zh"
+        ? `上传中... ${loaded}/${total} MB`
+        : `Uploading... ${loaded}/${total} MB`;
+      updateQueueUI();
+    });
 
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
+    // SSE streaming response (fires incrementally as server writes events)
+    let sseBuffer = "";
+    let lastLen = 0;
+    xhr.addEventListener("progress", () => {
+      const newText = xhr.response.slice(lastLen);
+      lastLen = xhr.response.length;
+      sseBuffer += newText;
+      const lines = sseBuffer.split("\n");
+      sseBuffer = lines.pop() || "";
       let eventType = "";
       for (const line of lines) {
         if (line.startsWith("event: ")) {
           eventType = line.slice(7).trim();
         } else if (line.startsWith("data: ") && eventType) {
-          const data = JSON.parse(line.slice(6));
-          handleQueueSSE(qid, eventType, data);
+          try {
+            const data = JSON.parse(line.slice(6));
+            handleQueueSSE(qid, eventType, data);
+          } catch(e) {}
           eventType = "";
         }
       }
-    }
-  } catch (e) {
-    taskQueue[qid].status = "error";
-    taskQueue[qid].message = t("requestFailed") + ": " + e.message;
-    updateQueueUI();
-  }
+    });
+
+    xhr.addEventListener("load", resolve);
+    xhr.addEventListener("error", () => {
+      task.status = "error";
+      task.message = t("requestFailed");
+      updateQueueUI();
+      resolve();
+    });
+
+    xhr.send(formData);
+  });
 }
 
 function handleQueueSSE(qid, event, data) {
@@ -1365,46 +1412,78 @@ let historyExpanded = false;
 
 function toggleHistory() {
   historyExpanded = !historyExpanded;
-  document.getElementById("task-history").style.display = historyExpanded ? "block" : "none";
+  document.getElementById("history-content").style.display = historyExpanded ? "block" : "none";
   document.getElementById("history-toggle").textContent = historyExpanded ? t("collapseText") : t("expandText");
   if (historyExpanded) loadTaskHistory();
 }
+
+let _historyTasks = [];
 
 async function loadTaskHistory() {
   const container = document.getElementById("task-history");
   try {
     const resp = await fetch("/api/tasks");
-    const tasks = await resp.json();
-    if (tasks.length === 0) {
-      container.innerHTML = `<p style="color:#999;font-size:0.85rem;padding:8px 0;">${t("noHistory")}</p>`;
-      return;
-    }
-    container.innerHTML = tasks.map(task => {
-      const status = task.error ? t("statusError") : t("success");
-      const statusColor = task.error ? '#e65100' : '#2e7d32';
-      const asrVendorName = getVendorDisplayName(task.asr_vendor);
-      const llmVendorName = getVendorDisplayName(task.llm_vendor);
-      const timeStr = task.created_at ? new Date(task.created_at).toLocaleString() : '';
-      const tokenHtml = task.token_usage && task.token_usage.total_tokens
-        ? `<div style="font-size:0.72rem;color:#7b1fa2;margin-top:2px;">🔢 ${task.token_usage.model || llmVendorName}: ${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`
-        : '';
-      return `<div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;" onclick="loadTask('${task.task_id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-weight:500;font-size:0.9rem;">${task.source_file || '—'}</span>
-          <span style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:0.78rem;color:${statusColor};">${status}</span>
-            <span style="font-size:0.7rem;color:#aaa;">${timeStr}</span>
-          </span>
-        </div>
-        <div style="font-size:0.78rem;color:#999;margin-top:4px;">
-          ASR: ${asrVendorName} · LLM: ${llmVendorName}
-        </div>
-        ${tokenHtml}
-      </div>`;
-    }).join("");
+    _historyTasks = await resp.json();
+    renderHistory(document.getElementById("history-search")?.value || "");
   } catch (e) {
     container.innerHTML = `<p style="color:#e65100;font-size:0.85rem;">${t("loadFailed")}</p>`;
   }
+}
+
+function filterHistory(text) {
+  renderHistory(text);
+}
+
+function renderHistory(filterText) {
+  const container = document.getElementById("task-history");
+  const query = (filterText || "").toLowerCase().trim();
+  const tasks = query
+    ? _historyTasks.filter(t => (t.source_file || "").toLowerCase().includes(query))
+    : _historyTasks;
+
+  if (tasks.length === 0) {
+    container.innerHTML = `<p style="color:#999;font-size:0.85rem;padding:8px 0;">${t("noHistory")}</p>`;
+    return;
+  }
+  container.innerHTML = tasks.map(task => {
+    const status = task.error ? t("statusError") : t("success");
+    const statusColor = task.error ? '#e65100' : '#2e7d32';
+    const asrVendorName = getVendorDisplayName(task.asr_vendor);
+    const llmVendorName = getVendorDisplayName(task.llm_vendor);
+    const timeStr = task.created_at ? new Date(task.created_at).toLocaleString() : '';
+    const tokenHtml = task.token_usage && task.token_usage.total_tokens
+      ? `<div style="font-size:0.72rem;color:#7b1fa2;margin-top:2px;">🔢 ${task.token_usage.model || llmVendorName}: ${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`
+      : '';
+    return `<div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;position:relative;" onclick="loadTask('${task.task_id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:500;font-size:0.9rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(task.source_file || '—')}</span>
+        <span style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:8px;">
+          <span style="font-size:0.78rem;color:${statusColor};">${status}</span>
+          <span style="font-size:0.7rem;color:#aaa;">${timeStr}</span>
+          <button onclick="deleteTask('${task.task_id}',event)" style="font-size:0.72rem;padding:2px 8px;border:1px solid #ffcdd2;border-radius:4px;background:#fff;color:#e53935;cursor:pointer;" title="${t('deleteBtn')}">🗑️</button>
+        </span>
+      </div>
+      <div style="font-size:0.78rem;color:#999;margin-top:4px;">
+        ASR: ${escapeHtml(asrVendorName)} · LLM: ${escapeHtml(llmVendorName)}
+      </div>
+      ${tokenHtml}
+    </div>`;
+  }).join("");
+}
+
+async function deleteTask(taskId, event) {
+  event.stopPropagation();
+  if (!confirm(t("confirmDelete"))) return;
+  try {
+    await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+    _historyTasks = _historyTasks.filter(task => task.task_id !== taskId);
+    renderHistory(document.getElementById("history-search")?.value || "");
+  } catch (e) {}
+}
+
+function scrollToCreds() {
+  if (!credsExpanded) toggleCreds();
+  document.getElementById("creds-card").scrollIntoView({ behavior: "smooth" });
 }
 
 async function loadTask(taskId) {
@@ -1721,8 +1800,19 @@ function applyLanguage() {
     }
   }
   
+  // Onboarding banner
+  const obTitle = document.getElementById("onboarding-title");
+  if (obTitle) obTitle.textContent = t("onboardingTitle");
+  const obMsg = document.getElementById("onboarding-msg");
+  if (obMsg) obMsg.textContent = t("onboardingMsg");
+  const obBtn = document.getElementById("onboarding-btn");
+  if (obBtn) obBtn.textContent = t("onboardingBtn");
+  // History search placeholder
+  const histSearch = document.getElementById("history-search");
+  if (histSearch) histSearch.placeholder = t("historySearch");
+
   // History title
-  const historyH2 = document.querySelector("#task-history").closest(".card").querySelector("h2");
+  const historyH2 = document.querySelector("#history-content").closest(".card").querySelector("h2");
   if (historyH2) {
     const toggleSpan = document.getElementById("history-toggle");
     historyH2.innerHTML = "";

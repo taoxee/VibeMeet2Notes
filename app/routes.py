@@ -433,4 +433,13 @@ def rerun_llm(task_id):
         except Exception as e:
             yield sse_event("error", {"message": f"处理失败: {str(e)}"})
 
+
+@bp.route("/api/tasks/<task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    task_dir = os.path.join(OUTPUT_DIR, secure_filename(task_id))
+    if not os.path.isdir(task_dir):
+        return jsonify({"error": "任务不存在"}), 404
+    shutil.rmtree(task_dir, ignore_errors=True)
+    return jsonify({"ok": True})
+
     return Response(stream_with_context(generate()), mimetype="text/event-stream")
