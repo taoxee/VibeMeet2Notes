@@ -522,3 +522,86 @@
 - `static/index.html` — Folder Watch 功能全实现 + 折叠修复 + 迁移为独立卡片 + TDZ 修复
 - `app/routes.py` — 根路由新增 no-cache 响应头
 
+---
+
+## Conversation 13
+
+### Task 1: OpenAI 5.x API 兼容修复
+- **max_tokens 不支持**：检测 400 错误消息同时含 "max_tokens" 和 "max_completion_tokens" 时，将 `max_tokens` 替换为 `max_completion_tokens: 4096` 并重试
+- **temperature 不支持**：检测 400 错误消息含 "temperature" 时，移除参数后重试
+- 两种修复合并为一次重试（避免双重请求）
+- 位置：`app/services.py` `summarize_openai_compatible()` 的 400 错误处理块
+
+### Task 2: 双分支 Git 策略
+- `main` = 稳定版（仅接收 bug fix cherry-pick）
+- `dev` = 活跃开发分支（所有新功能）
+- Folder Watch 在 dev 上隐藏（`display:none`），等待成熟后上线
+
+### Task 3: 产品审计 + P0 功能实现
+
+**产品审计**：以 PM/销售视角梳理核心上传→处理→查看循环，发现缺失功能，保存为 `data/feature-list.md`（P0~P3 分级）
+
+**P0 — 复制/下载按钮（`33e6fa8`）**
+- 转录和会议纪要标题行新增 📋 复制 / ⬇️ 下载按钮
+- 复制：JSON 格式转录输出 `[Speaker] text`，纯文本直接复制
+- 下载：`_transcript.txt` / `_notes.md`，`URL.createObjectURL(new Blob(...))`
+- 新增 `_flashBtn()` 工具函数，复制后临时显示"✅ 已复制"
+
+**P0 — 供应商选择跨刷新记忆（`33e6fa8`）**
+- ASR/LLM `<select>` 新增 `onchange` 写 `localStorage`
+- `populateSelects()` 恢复时优先用当前 session 值，其次 localStorage
+
+**P0 — Re-run Notes 面板（`b302259`）**
+- 后端：`POST /api/tasks/<task_id>/rerun-llm` — 读取缓存 `transcript.txt`，流式 SSE，覆写 `summary.txt` + `meta.json`
+- 前端：结果卡片底部「重新生成纪要」按钮，展开面板含 LLM 供应商/模型/自定义提示词选择
+- 生成中按钮文字改为 "⏳ 处理中..." 并禁用，完成后恢复
+
+### Task 4: P1 — 上传进度条（`9a836d4`）
+- `processSingleFile` 从 `fetch` 改为 `XMLHttpRequest`
+- `xhr.upload.addEventListener("progress")` 更新 `task.percent`（0–8%）和"上传中... X/Y MB"消息
+- `xhr.addEventListener("progress")` 增量读取 `xhr.response` 解析 SSE 流，行为与原 fetch 版完全一致
+
+### Task 5: P1 — 新用户引导横幅（`9a836d4`）
+- 当 ASR 和 LLM 均无已配置供应商时，页面顶部显示蓝色横幅
+- 包含说明文字 + "🔑 立即配置凭证 →" 按钮
+- 按钮调用 `scrollToCreds()`：展开凭证区域并平滑滚动到位
+- 任意供应商配置完成后横幅自动隐藏（`populateSelects()` 驱动）
+- 完整 zh/en i18n
+
+### Task 6: P1 — 历史记录搜索 + 删除（`9a836d4`）
+- 历史区域新增搜索输入框，按文件名实时过滤（客户端，无需重新请求）
+- 每条历史记录新增 🗑️ 删除按钮
+- 删除调用 `DELETE /api/tasks/<task_id>`（新后端端点，`shutil.rmtree`），立即从内存列表中移除并重渲染
+- `_historyTasks` 模块变量存储已获取的任务列表，`renderHistory(filterText)` 统一渲染逻辑
+
+### Task 7: P1 — 会议纪要可编辑（`289095c`）
+- 会议纪要标题行新增 ✏️ 编辑 / ✅ 保存 / ✕ 取消 按钮
+- 编辑模式：隐藏渲染 div，显示 `<textarea>` 填充原始 Markdown
+- 保存：更新 `_currentSummaryRaw`，重新渲染 Markdown，调用 `PUT /api/tasks/<task_id>/summary` 持久化到 `summary.txt`
+- 取消：不修改，恢复渲染视图
+- 新 LLM 结果到来（队列处理或 re-run）时自动退出编辑模式
+- 完整 zh/en i18n
+
+### Task 8: P2 — 批量处理可见性（`686f4e5`）
+- **自动展开队列**：上传 >1 个文件时，队列卡片自动展开（无需手动点击）
+- **批次计数器**：队列标题显示 "批次: X/N"，随任务完成实时更新
+- **批量完成通知**：最后一个文件完成时触发独立 toast（区别于每文件单独 toast）
+- **"查看结果"提示**：已完成任务条目右下角显示 "👁 查看结果"，提示可点击
+- `_batchIds` (Set) + `_batchNotified` (bool) 追踪当前批次状态，`processFiles()` 每次提交重置
+
+### Task 9: 安装第三方技能插件
+- 来源：`https://github.com/KKKKhazix/khazix-skills`
+- 无 marketplace manifest，手动安装
+- 创建插件目录：`~/.claude/plugins/cache/khazix/khazix-skills/1.0.0/`
+- 写入 `package.json`（name + version），创建 `skills/neat-freak/` 和 `skills/khazix-writer/` 子目录
+- 从 GitHub raw URL 下载各 `SKILL.md` 及 `references/` 文件
+- 在 `~/.claude/plugins/installed_plugins.json` 手动追加 `khazix-skills@khazix` 条目
+- 重启 Claude Code 后 `/neat-freak` 和 `/khazix-writer` 即可使用
+
+### Git 提交记录（dev 分支）
+- `33e6fa8`：`feat: P0 copy/download buttons + remember vendor selection`
+- `b302259`：`feat: P0 re-run notes panel + backend endpoint + button feedback`
+- `9a836d4`：`feat: P1 upload progress bar, onboarding banner, history search + delete`
+- `289095c`：`feat: P1 editable meeting notes`
+- `686f4e5`：`feat: P2 multi-file batch visibility`
+
