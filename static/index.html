@@ -65,12 +65,12 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     <div class="form-row">
       <div class="form-group">
         <label id="asr-label">ASR 供应商（语音转文字 + 说话人分离）</label>
-        <select id="asr-vendor"><option value="">-- 请选择 --</option></select>
+        <select id="asr-vendor" onchange="localStorage.setItem('last_asr_vendor',this.value)"><option value="">-- 请选择 --</option></select>
         <div id="asr-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">⚠️ 暂无已配置的 ASR 供应商，请先在下方配置凭证</div>
       </div>
       <div class="form-group">
         <label id="llm-label">LLM 供应商（会议纪要）</label>
-        <select id="llm-vendor"><option value="">-- 请选择 --</option></select>
+        <select id="llm-vendor" onchange="localStorage.setItem('last_llm_vendor',this.value);fetchModels(this.value)"><option value="">-- 请选择 --</option></select>
         <div id="llm-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">⚠️ 暂无已配置的 LLM 供应商，请先在下方配置凭证</div>
       </div>
       <div class="form-group">
@@ -139,12 +139,24 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     <div id="result-filename" style="font-size:0.95rem;font-weight:500;color:#1a1a2e;margin-bottom:6px;"></div>
     <div id="task-id-display" style="font-size:0.82rem;color:#888;margin-bottom:12px;"></div>
     <div id="transcript-section" style="margin-bottom:16px;display:none;">
-      <label style="font-weight:600;color:#555;display:block;margin-bottom:8px;cursor:pointer;user-select:none;" onclick="toggleTranscript()">转录文本 <span id="asr-vendor-tag" style="font-size:0.78rem;color:#2e7d32;"></span> <span id="transcript-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label style="font-weight:600;color:#555;cursor:pointer;user-select:none;margin:0;" onclick="toggleTranscript()">转录文本 <span id="asr-vendor-tag" style="font-size:0.78rem;color:#2e7d32;"></span> <span id="transcript-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
+        <div style="display:flex;gap:6px;">
+          <button id="copy-transcript-btn" onclick="copyTranscript()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">📋 <span id="copy-transcript-label">复制</span></button>
+          <button onclick="downloadTranscript()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">⬇️ <span id="download-transcript-label">下载</span></button>
+        </div>
+      </div>
       <div id="transcript-meta" style="display:none;font-size:0.82rem;color:#666;margin-bottom:8px;padding:6px 12px;background:#e8f5e9;border-radius:6px;"></div>
       <div id="transcript-output" style="background:#f8f9fa;padding:16px;border-radius:8px;max-height:500px;overflow-y:auto;font-size:0.9rem;line-height:1.6;border:1px solid #e9ecef;"></div>
     </div>
     <div id="summary-section" style="display:none;">
-      <label style="font-weight:600;color:#555;display:block;margin-bottom:8px;cursor:pointer;user-select:none;" onclick="toggleSummary()">会议纪要 <span id="llm-vendor-tag" style="font-size:0.78rem;color:#1565c0;"></span> <span id="summary-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label style="font-weight:600;color:#555;cursor:pointer;user-select:none;margin:0;" onclick="toggleSummary()">会议纪要 <span id="llm-vendor-tag" style="font-size:0.78rem;color:#1565c0;"></span> <span id="summary-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
+        <div style="display:flex;gap:6px;">
+          <button id="copy-summary-btn" onclick="copySummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">📋 <span id="copy-summary-label">复制</span></button>
+          <button onclick="downloadSummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">⬇️ <span id="download-summary-label">下载</span></button>
+        </div>
+      </div>
       <div id="summary-output" style="background:#f0f4ff;padding:16px;border-radius:8px;max-height:600px;overflow-y:auto;font-size:0.9rem;line-height:1.6;border:1px solid #d6e0ff;"></div>
     </div>
     <div id="error-section" style="display:none;margin-bottom:12px;padding:12px 14px;background:#fff5f5;border-radius:8px;border:1px solid #ffcdd2;">
@@ -279,6 +291,11 @@ let credsExpanded = false;
 let taskQueue = {}; // taskId -> {file, status, percent, message, token_usage, ...}
 let activeTaskCount = 0;
 const MAX_PARALLEL = 3;
+// Current result state (for copy/download)
+let _currentTranscriptRaw = "";
+let _currentSummaryRaw = "";
+let _currentTaskId = "";
+let _currentFileName = "";
 
 // i18n - Language setting (must be before init)
 let currentLang = localStorage.getItem("app_lang") || "zh";
@@ -425,7 +442,10 @@ const i18n = {
     fwClose: "关闭",
     fwNotSupported: "您的浏览器不支持文件夹监控功能",
     fwMaxFolders: "最多支持 3 个文件夹",
-    fwHowItWorks: "原理：浏览器通过文件系统权限直接读取本地文件夹，每 10 秒检测是否有新录音文件，无需安装任何插件或本地程序。"
+    fwHowItWorks: "原理：浏览器通过文件系统权限直接读取本地文件夹，每 10 秒检测是否有新录音文件，无需安装任何插件或本地程序。",
+    copyBtn: "复制",
+    downloadBtn: "下载",
+    copied: "✅ 已复制"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -540,7 +560,10 @@ const i18n = {
     fwClose: "Close",
     fwNotSupported: "Your browser doesn't support Folder Watch",
     fwMaxFolders: "Maximum 3 folders supported",
-    fwHowItWorks: "How it works: the browser reads your local folders directly via file system permissions, checking every 10 seconds for new recordings — no plugin or local app required."
+    fwHowItWorks: "How it works: the browser reads your local folders directly via file system permissions, checking every 10 seconds for new recordings — no plugin or local app required.",
+    copyBtn: "Copy",
+    downloadBtn: "Download",
+    copied: "✅ Copied"
   }
 };
 
@@ -717,9 +740,11 @@ function populateSelects() {
     }
   });
 
-  // Restore previous selection if still available
-  if (asrPrev) asrSel.value = asrPrev;
-  if (llmPrev) llmSel.value = llmPrev;
+  // Restore previous selection — in-session first, then localStorage
+  const asrRestore = asrPrev || localStorage.getItem("last_asr_vendor") || "";
+  const llmRestore = llmPrev || localStorage.getItem("last_llm_vendor") || "";
+  if (asrRestore) asrSel.value = asrRestore;
+  if (llmRestore) llmSel.value = llmRestore;
   // If LLM vendor changed, refresh model list
   if (llmSel.value !== llmPrev) {
     fetchModels(llmSel.value);
@@ -753,6 +778,7 @@ function getVendorCreds(vendor) {
 let _lastTranscriptMeta = null;
 
 function renderTranscript(text) {
+  _currentTranscriptRaw = text;
   const output = document.getElementById("transcript-output");
   const meta = document.getElementById("transcript-meta");
   _lastTranscriptMeta = null;
@@ -1062,6 +1088,7 @@ function handleQueueSSE(qid, event, data) {
     document.getElementById("asr-vendor-tag").textContent = `(${getVendorDisplayName(task.asrVendor)})`;
   } else if (event === "summary") {
     task.summary = data.text;
+    _currentSummaryRaw = data.text;
     document.getElementById("summary-section").style.display = "block";
     document.getElementById("summary-output").innerHTML = renderMarkdown(data.text);
     document.getElementById("llm-vendor-tag").textContent = `(${getVendorDisplayName(task.llmVendor)})`;
@@ -1071,6 +1098,7 @@ function handleQueueSSE(qid, event, data) {
     task.message = t("statusDone");
     task.currentStep = "done";
     task.taskIdServer = data.task_id;
+    _currentTaskId = data.task_id;
     task.completedAt = new Date().toLocaleString();
     if (data.token_usage) task.token_usage = data.token_usage;
     updateQueueUI();
@@ -1092,6 +1120,7 @@ function handleQueueSSE(qid, event, data) {
 function showResultForTask(qid, asrVendor, llmVendor) {
   const task = taskQueue[qid];
   task._viewing = true;
+  _currentFileName = task.fileName;
   document.getElementById("results-card").style.display = "block";
   document.getElementById("result-filename").textContent = "📄 " + task.fileName;
   document.getElementById("transcript-section").style.display = "none";
@@ -1126,6 +1155,58 @@ function toggleTranscript() {
   transcriptExpanded = !transcriptExpanded;
   document.getElementById("transcript-output").style.display = transcriptExpanded ? "block" : "none";
   document.getElementById("transcript-toggle").textContent = transcriptExpanded ? t("collapseText") : t("expandText");
+}
+
+function _textFilename(suffix) {
+  const base = _currentFileName.replace(/\.[^.]+$/, "") || "result";
+  return base + suffix;
+}
+
+function _flashBtn(btnId, originalHtml) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.innerHTML = t("copied");
+  setTimeout(() => { btn.innerHTML = originalHtml; }, 1800);
+}
+
+function copyTranscript() {
+  if (!_currentTranscriptRaw) return;
+  let text = _currentTranscriptRaw;
+  try {
+    const parsed = JSON.parse(_currentTranscriptRaw);
+    if (parsed.segments) text = parsed.segments.map(s => `[${s.speaker}] ${s.text}`).join("\n");
+  } catch(e) {}
+  navigator.clipboard.writeText(text).then(() => {
+    _flashBtn("copy-transcript-btn", `📋 <span id="copy-transcript-label">${t("copyBtn")}</span>`);
+  });
+}
+
+function copySummary() {
+  if (!_currentSummaryRaw) return;
+  navigator.clipboard.writeText(_currentSummaryRaw).then(() => {
+    _flashBtn("copy-summary-btn", `📋 <span id="copy-summary-label">${t("copyBtn")}</span>`);
+  });
+}
+
+function downloadTranscript() {
+  if (!_currentTranscriptRaw) return;
+  let text = _currentTranscriptRaw;
+  try {
+    const parsed = JSON.parse(_currentTranscriptRaw);
+    if (parsed.segments) text = parsed.segments.map(s => `[${s.speaker}] (${s.start_time}→${s.end_time}) ${s.text}`).join("\n");
+  } catch(e) {}
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+  a.download = _textFilename("_transcript.txt");
+  a.click();
+}
+
+function downloadSummary() {
+  if (!_currentSummaryRaw) return;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([_currentSummaryRaw], { type: "text/plain;charset=utf-8" }));
+  a.download = _textFilename("_notes.md");
+  a.click();
 }
 
 let historyExpanded = false;
@@ -1178,8 +1259,12 @@ async function loadTask(taskId) {
   try {
     const resp = await fetch(`/api/tasks/${taskId}`);
     const data = await resp.json();
+    _currentTaskId = taskId;
+    _currentFileName = data.meta ? (data.meta.source_file || '') : '';
+    _currentTranscriptRaw = "";
+    _currentSummaryRaw = "";
     document.getElementById("task-id-display").textContent = `${t("taskIdLabel")}: ${taskId}`;
-    document.getElementById("result-filename").textContent = data.meta ? "📄 " + (data.meta.source_file || '') : '';
+    document.getElementById("result-filename").textContent = _currentFileName ? "📄 " + _currentFileName : '';
     document.getElementById("transcript-section").style.display = "none";
     document.getElementById("summary-section").style.display = "none";
     document.getElementById("token-usage-section").style.display = "none";
@@ -1192,6 +1277,7 @@ async function loadTask(taskId) {
       document.getElementById("asr-vendor-tag").textContent = asrVendorName ? `(${asrVendorName})` : '';
     }
     if (data.summary) {
+      _currentSummaryRaw = data.summary;
       document.getElementById("summary-section").style.display = "block";
       document.getElementById("summary-output").innerHTML = renderMarkdown(data.summary);
       document.getElementById("llm-vendor-tag").textContent = data.meta ? `(${getVendorDisplayName(data.meta.llm_vendor)})` : '';
@@ -1550,6 +1636,15 @@ function applyLanguage() {
   const fwToggle = document.getElementById("fw-toggle");
   if (fwToggle) fwToggle.textContent = fwCardExpanded ? t("collapseText") : t("expandText");
   renderFolderWatchSettings();
+  // Copy/download button labels
+  const copyTLabel = document.getElementById("copy-transcript-label");
+  if (copyTLabel) copyTLabel.textContent = t("copyBtn");
+  const dlTLabel = document.getElementById("download-transcript-label");
+  if (dlTLabel) dlTLabel.textContent = t("downloadBtn");
+  const copySLabel = document.getElementById("copy-summary-label");
+  if (copySLabel) copySLabel.textContent = t("copyBtn");
+  const dlSLabel = document.getElementById("download-summary-label");
+  if (dlSLabel) dlSLabel.textContent = t("downloadBtn");
 }
 
 // Override updateCredsSummary to use i18n
