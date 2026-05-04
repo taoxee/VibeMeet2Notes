@@ -328,6 +328,9 @@ let credsExpanded = false;
 let taskQueue = {}; // taskId -> {file, status, percent, message, token_usage, ...}
 let activeTaskCount = 0;
 const MAX_PARALLEL = 3;
+// Batch tracking (most recent processFiles() call)
+let _batchIds = new Set();
+let _batchNotified = false;
 // Current result state (for copy/download)
 let _currentTranscriptRaw = "";
 let _currentSummaryRaw = "";
@@ -491,6 +494,9 @@ const i18n = {
     editBtn: "编辑",
     saveBtn: "保存",
     cancelBtn: "取消",
+    batchProgress: "批次",
+    batchAllDone: "全部 {n} 个文件处理完成",
+    viewResult: "查看结果",
     onboardingTitle: "欢迎使用 VibeMeet2Notes！",
     onboardingMsg: "开始使用前，请先配置 ASR（语音识别）和 LLM（会议纪要）供应商凭证。凭证仅保存在浏览器本地，输入后自动保存。",
     onboardingBtn: "🔑 立即配置凭证 →",
@@ -623,6 +629,9 @@ const i18n = {
     editBtn: "Edit",
     saveBtn: "Save",
     cancelBtn: "Cancel",
+    batchProgress: "Batch",
+    batchAllDone: "All {n} files complete",
+    viewResult: "View results",
     onboardingTitle: "Welcome to VibeMeet2Notes!",
     onboardingMsg: "To get started, configure at least one ASR (speech-to-text) and one LLM (meeting notes) vendor below. Credentials are saved only in your browser.",
     onboardingBtn: "🔑 Set Up Credentials →",
@@ -963,7 +972,12 @@ function updateQueueUI() {
   card.style.display = "block";
   const running = ids.filter(id => taskQueue[id].status === "running" || taskQueue[id].status === "waiting").length;
   const done = ids.filter(id => taskQueue[id].status === "done").length;
-  document.getElementById("queue-count").textContent = `(${running} ${t("queueRunning")} / ${done} ${t("queueDone")} / ${t("queueTotal")} ${ids.length})`;
+  let countText = `(${running} ${t("queueRunning")} / ${done} ${t("queueDone")} / ${t("queueTotal")} ${ids.length})`;
+  if (_batchIds.size > 1) {
+    const batchDone = [..._batchIds].filter(id => taskQueue[id] && (taskQueue[id].status === "done" || taskQueue[id].status === "error")).length;
+    countText = `${t("batchProgress")}: ${batchDone}/${_batchIds.size} · ` + countText;
+  }
+  document.getElementById("queue-count").textContent = countText;
   container.innerHTML = ids.map(tid => {
     const task = taskQueue[tid];
     const statusMap = {waiting: t("statusWaiting"), running: t("statusRunning"), done: t("statusDone"), error: t("statusError")};
@@ -974,6 +988,10 @@ function updateQueueUI() {
     if (task.token_usage && task.token_usage.total_tokens) {
       extraHtml = ` · 🔢 ${task.token_usage.total_tokens} ${t("tokensUnit")}`;
     }
+    const isTerminal = task.status === "done" || task.status === "error";
+    const viewHint = isTerminal
+      ? `<div style="font-size:0.7rem;color:#4361ee;text-align:right;margin-top:3px;">👁 ${t("viewResult")}</div>`
+      : '';
     return `<div class="queue-item ${task.status}" onclick="viewQueueTask('${tid}')">
       <div class="qi-header">
         <span class="qi-file">${escapeHtml(task.fileName)}</span>
@@ -983,6 +1001,7 @@ function updateQueueUI() {
         </span>
       </div>
       ${task.status === 'running' || task.status === 'waiting' ? renderQueueProgress(task) : ''}
+      ${viewHint}
     </div>`;
   }).join("");
 }
@@ -1010,6 +1029,31 @@ function showTaskNotification(qid, isError) {
   <span class="tn-close" onclick="event.stopPropagation();dismissNotify('${nid}')">✕</span>`;
   container.appendChild(el);
   setTimeout(() => dismissNotify(nid), 10000);
+}
+
+function _checkBatchComplete() {
+  if (_batchNotified || _batchIds.size < 2) return;
+  const allDone = [..._batchIds].every(id =>
+    taskQueue[id] && (taskQueue[id].status === "done" || taskQueue[id].status === "error")
+  );
+  if (!allDone) return;
+  _batchNotified = true;
+  showBatchNotification(_batchIds.size);
+}
+
+function showBatchNotification(count) {
+  const container = document.getElementById("task-notifications");
+  const nid = "notify-batch-" + Date.now();
+  const el = document.createElement("div");
+  el.id = nid;
+  el.className = "task-notify";
+  el.innerHTML = `<div class="tn-body">
+    <div class="tn-title">${t("batchAllDone").replace("{n}", count)}</div>
+    <div class="tn-file" style="color:#666;">${t("viewResult")} ↑</div>
+  </div>
+  <span class="tn-close" onclick="event.stopPropagation();dismissNotify('${nid}')">✕</span>`;
+  container.appendChild(el);
+  setTimeout(() => dismissNotify(nid), 12000);
 }
 
 function dismissNotify(nid) {
@@ -1070,12 +1114,24 @@ async function processFiles() {
   const llmModel = document.getElementById("llm-model").value;
   const llmPrompt = document.getElementById("llm-prompt").value.trim();
   const files = Array.from(fileInput.files);
+  const newQids = [];
 
   for (const f of files) {
     const qid = Date.now() + "_" + Math.random().toString(36).slice(2, 6);
     taskQueue[qid] = { fileName: f.name, file: f, status: "waiting", percent: 0, message: t("queuing"),
                         asrVendor, llmVendor, llmModel, llmPrompt, token_usage: null, taskIdServer: null };
+    newQids.push(qid);
   }
+
+  _batchIds = new Set(newQids);
+  _batchNotified = false;
+
+  if (files.length > 1 && !queueExpanded) {
+    queueExpanded = true;
+    document.getElementById("task-queue-list").style.display = "block";
+    document.getElementById("queue-toggle").textContent = t("queueCollapse");
+  }
+
   updateQueueUI();
   drainQueue();
 }
@@ -1197,6 +1253,7 @@ function handleQueueSSE(qid, event, data) {
     document.getElementById("task-id-display").textContent = `${t("taskIdLabel")}: ${data.task_id}`;
     setStep("step-done", "done");
     loadTaskHistory();
+    _checkBatchComplete();
   } else if (event === "error") {
     task.status = "error";
     task.message = "❌ " + translateError(data.message);
@@ -1204,6 +1261,7 @@ function handleQueueSSE(qid, event, data) {
     updateQueueUI();
     showTaskNotification(qid, true);
     loadTaskHistory();
+    _checkBatchComplete();
   }
 }
 
