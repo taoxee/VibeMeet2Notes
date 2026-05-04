@@ -167,6 +167,28 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
       <div style="font-weight:600;font-size:0.85rem;color:#7b1fa2;margin-bottom:6px;">🔢 Token 用量</div>
       <div id="token-usage-content" style="font-size:0.82rem;color:#555;"></div>
     </div>
+    <div style="margin-top:14px;text-align:right;">
+      <button id="rerun-toggle-btn" onclick="toggleRerunPanel()" style="font-size:0.82rem;padding:5px 14px;border:1px solid #4361ee;border-radius:6px;background:#fff;color:#4361ee;cursor:pointer;">🔄 <span id="rerun-toggle-label">重新生成纪要</span></button>
+    </div>
+    <div id="rerun-panel" style="display:none;margin-top:10px;padding:14px;background:#f8f9fa;border:1px solid #e0e4ff;border-radius:8px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+        <div style="flex:1;min-width:140px;">
+          <label style="font-size:0.8rem;color:#555;display:block;margin-bottom:4px;" id="rerun-llm-label">LLM 供应商</label>
+          <select id="rerun-llm-vendor" onchange="fetchRerunModels(this.value)" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:5px;font-size:0.85rem;"></select>
+        </div>
+        <div style="flex:1;min-width:120px;">
+          <label style="font-size:0.8rem;color:#555;display:block;margin-bottom:4px;" id="rerun-model-label">模型</label>
+          <select id="rerun-llm-model" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:5px;font-size:0.85rem;"><option value="">-- 默认 --</option></select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label id="rerun-prompt-toggle-label" style="font-size:0.82rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="toggleRerunPrompt()">▶ <span id="rerun-prompt-toggle-text">自定义提示词</span></label>
+        <div id="rerun-prompt-editor" style="display:none;margin-top:6px;">
+          <textarea id="rerun-llm-prompt" rows="5" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ddd;border-radius:5px;font-size:0.82rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
+        </div>
+      </div>
+      <button onclick="doRerunLlm()" id="rerun-submit-btn" style="width:100%;padding:10px;background:#4361ee;color:#fff;border:none;border-radius:7px;font-size:0.9rem;cursor:pointer;">🔄 <span id="rerun-submit-label">生成</span></button>
+    </div>
   </div>
 
   <!-- Task History (collapsible) -->
@@ -445,7 +467,12 @@ const i18n = {
     fwHowItWorks: "原理：浏览器通过文件系统权限直接读取本地文件夹，每 10 秒检测是否有新录音文件，无需安装任何插件或本地程序。",
     copyBtn: "复制",
     downloadBtn: "下载",
-    copied: "✅ 已复制"
+    copied: "✅ 已复制",
+    rerunBtn: "重新生成纪要",
+    rerunSubmit: "生成",
+    rerunLlmLabel: "LLM 供应商",
+    rerunModelLabel: "模型",
+    rerunPromptToggle: "自定义提示词"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -563,7 +590,12 @@ const i18n = {
     fwHowItWorks: "How it works: the browser reads your local folders directly via file system permissions, checking every 10 seconds for new recordings — no plugin or local app required.",
     copyBtn: "Copy",
     downloadBtn: "Download",
-    copied: "✅ Copied"
+    copied: "✅ Copied",
+    rerunBtn: "Re-run Notes",
+    rerunSubmit: "Generate",
+    rerunLlmLabel: "LLM Vendor",
+    rerunModelLabel: "Model",
+    rerunPromptToggle: "Custom Prompt"
   }
 };
 
@@ -1209,6 +1241,126 @@ function downloadSummary() {
   a.click();
 }
 
+// ── Re-run LLM panel ──────────────────────────────────────────────────
+let rerunPanelOpen = false;
+let rerunPromptOpen = false;
+
+function toggleRerunPanel() {
+  rerunPanelOpen = !rerunPanelOpen;
+  document.getElementById("rerun-panel").style.display = rerunPanelOpen ? "block" : "none";
+  if (rerunPanelOpen) _initRerunPanel();
+}
+
+function toggleRerunPrompt() {
+  rerunPromptOpen = !rerunPromptOpen;
+  document.getElementById("rerun-prompt-editor").style.display = rerunPromptOpen ? "block" : "none";
+  const label = document.getElementById("rerun-prompt-toggle-label");
+  label.childNodes[0].textContent = (rerunPromptOpen ? "▼ " : "▶ ");
+}
+
+function _initRerunPanel() {
+  const sel = document.getElementById("rerun-llm-vendor");
+  sel.innerHTML = "";
+  Object.entries(VENDORS).forEach(([name, info]) => {
+    if (info.types.includes("LLM") && isVendorReady(name)) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = getVendorDisplayName(name);
+      sel.appendChild(opt);
+    }
+  });
+  // Pre-select last used LLM vendor
+  const last = localStorage.getItem("last_llm_vendor");
+  if (last && sel.querySelector(`option[value="${CSS.escape(last)}"]`)) sel.value = last;
+  fetchRerunModels(sel.value);
+  // Pre-fill prompt from main editor
+  const mainPrompt = document.getElementById("llm-prompt").value;
+  document.getElementById("rerun-llm-prompt").value = mainPrompt;
+}
+
+async function fetchRerunModels(vendor) {
+  const sel = document.getElementById("rerun-llm-model");
+  sel.innerHTML = `<option value="">-- ${t("modelDefault")} --</option>`;
+  if (!vendor) return;
+  try {
+    const creds = getVendorCreds(vendor);
+    const resp = await fetch("/api/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vendor, creds })
+    });
+    const data = await resp.json();
+    (data.models || []).forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m; opt.textContent = m;
+      sel.appendChild(opt);
+    });
+    const saved = localStorage.getItem("llm_model_" + vendor);
+    if (saved && sel.querySelector(`option[value="${CSS.escape(saved)}"]`)) sel.value = saved;
+  } catch(e) {}
+}
+
+async function doRerunLlm() {
+  if (!_currentTaskId) return;
+  const vendor = document.getElementById("rerun-llm-vendor").value;
+  const model = document.getElementById("rerun-llm-model").value;
+  const prompt = document.getElementById("rerun-llm-prompt").value.trim();
+  if (!vendor) { alert(t("selectLlmAlert")); return; }
+  const creds = getVendorCreds(vendor);
+  const credsError = validateVendorCreds(vendor);
+  if (credsError) { alert(credsError); return; }
+
+  const btn = document.getElementById("rerun-submit-btn");
+  const labelEl = document.getElementById("rerun-submit-label");
+
+  btn.disabled = true;
+  labelEl.textContent = currentLang === "zh" ? "⏳ 处理中..." : "⏳ Processing...";
+  document.getElementById("summary-section").style.display = "none";
+
+  try {
+    const resp = await fetch(`/api/tasks/${_currentTaskId}/rerun-llm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ llm_vendor: vendor, llm_model: model, llm_prompt: prompt, llm_creds: creds })
+    });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split("\n\n");
+      buf = parts.pop();
+      for (const part of parts) {
+        const lines = part.split("\n");
+        const eventLine = lines.find(l => l.startsWith("event:"));
+        const dataLine = lines.find(l => l.startsWith("data:"));
+        if (!eventLine || !dataLine) continue;
+        const event = eventLine.slice(7).trim();
+        const data = JSON.parse(dataLine.slice(5).trim());
+        if (event === "summary") {
+          _currentSummaryRaw = data.text;
+          document.getElementById("summary-section").style.display = "block";
+          document.getElementById("summary-output").innerHTML = renderMarkdown(data.text);
+          document.getElementById("llm-vendor-tag").textContent = `(${getVendorDisplayName(vendor)})`;
+        } else if (event === "done") {
+          showTokenUsageInResults(data.token_usage);
+          rerunPanelOpen = false;
+          document.getElementById("rerun-panel").style.display = "none";
+        } else if (event === "error") {
+          alert(data.message);
+        }
+      }
+    }
+  } catch(e) {
+    alert("Re-run failed: " + e.message);
+  } finally {
+    btn.disabled = false;
+    labelEl.textContent = t("rerunSubmit");
+  }
+}
+
 let historyExpanded = false;
 
 function toggleHistory() {
@@ -1645,6 +1797,16 @@ function applyLanguage() {
   if (copySLabel) copySLabel.textContent = t("copyBtn");
   const dlSLabel = document.getElementById("download-summary-label");
   if (dlSLabel) dlSLabel.textContent = t("downloadBtn");
+  const rerunToggleLabel = document.getElementById("rerun-toggle-label");
+  if (rerunToggleLabel) rerunToggleLabel.textContent = t("rerunBtn");
+  const rerunSubmitLabel = document.getElementById("rerun-submit-label");
+  if (rerunSubmitLabel) rerunSubmitLabel.textContent = t("rerunSubmit");
+  const rerunLlmLabel = document.getElementById("rerun-llm-label");
+  if (rerunLlmLabel) rerunLlmLabel.textContent = t("rerunLlmLabel");
+  const rerunModelLabel = document.getElementById("rerun-model-label");
+  if (rerunModelLabel) rerunModelLabel.textContent = t("rerunModelLabel");
+  const rerunPTText = document.getElementById("rerun-prompt-toggle-text");
+  if (rerunPTText) rerunPTText.textContent = t("rerunPromptToggle");
 }
 
 // Override updateCredsSummary to use i18n
