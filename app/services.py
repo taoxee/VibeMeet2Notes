@@ -1217,13 +1217,25 @@ def summarize_openai_compatible(creds, text, base_url, model, system_prompt=""):
     }
     resp = http.post(f"{base_url}/chat/completions", headers=headers, json=payload, timeout=300)
 
-    # Some models (e.g. qwen-mt-*) don't support system role — retry with prompt folded into user message
+    # Retry on 400 errors for known parameter incompatibilities
     if resp.status_code == 400:
         try:
             err = resp.json()
             err_msg = err.get("error", {}).get("message", "")
-            if "role" in err_msg.lower() and "system" not in err_msg.lower().split("in")[0]:
-                pass  # not a role error
+            needs_retry = False
+            # OpenAI o-series / 5.x use max_completion_tokens instead of max_tokens
+            if "max_tokens" in err_msg and "max_completion_tokens" in err_msg:
+                payload.pop("max_tokens", None)
+                payload["max_completion_tokens"] = 4096
+                needs_retry = True
+            # OpenAI reasoning models don't support temperature != 1
+            if "temperature" in err_msg:
+                payload.pop("temperature", None)
+                needs_retry = True
+            if needs_retry:
+                resp = http.post(f"{base_url}/chat/completions", headers=headers, json=payload, timeout=300)
+                err_msg = resp.json().get("error", {}).get("message", "") if resp.status_code == 400 else ""
+            # Some models (e.g. qwen-mt-*) don't support system role
             if "role" in err_msg.lower():
                 payload["messages"] = [
                     {"role": "user", "content": f"{prompt}\n\n---\n\n{text}"},
