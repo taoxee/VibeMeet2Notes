@@ -162,9 +162,13 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
         <div style="display:flex;gap:6px;">
           <button id="copy-summary-btn" onclick="copySummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">📋 <span id="copy-summary-label">复制</span></button>
           <button onclick="downloadSummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">⬇️ <span id="download-summary-label">下载</span></button>
+          <button id="edit-summary-btn" onclick="enterSummaryEdit()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">✏️ <span id="edit-summary-label">编辑</span></button>
+          <button id="save-summary-btn" onclick="saveSummaryEdit()" style="display:none;font-size:0.78rem;padding:3px 10px;border:1px solid #c8e6c9;border-radius:5px;background:#e8f5e9;cursor:pointer;color:#2e7d32;">✅ <span id="save-summary-label">保存</span></button>
+          <button id="cancel-summary-btn" onclick="cancelSummaryEdit()" style="display:none;font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#888;">✕ <span id="cancel-summary-label">取消</span></button>
         </div>
       </div>
       <div id="summary-output" style="background:#f0f4ff;padding:16px;border-radius:8px;max-height:600px;overflow-y:auto;font-size:0.9rem;line-height:1.6;border:1px solid #d6e0ff;"></div>
+      <textarea id="summary-edit-area" style="display:none;width:100%;box-sizing:border-box;padding:16px;border:1px solid #4361ee;border-radius:8px;font-size:0.9rem;font-family:inherit;resize:vertical;line-height:1.6;min-height:300px;"></textarea>
     </div>
     <div id="error-section" style="display:none;margin-bottom:12px;padding:12px 14px;background:#fff5f5;border-radius:8px;border:1px solid #ffcdd2;">
       <div style="font-weight:600;font-size:0.85rem;color:#c62828;margin-bottom:6px;">⚠️ <span id="error-label">错误信息</span></div>
@@ -484,6 +488,9 @@ const i18n = {
     rerunLlmLabel: "LLM 供应商",
     rerunModelLabel: "模型",
     rerunPromptToggle: "自定义提示词",
+    editBtn: "编辑",
+    saveBtn: "保存",
+    cancelBtn: "取消",
     onboardingTitle: "欢迎使用 VibeMeet2Notes！",
     onboardingMsg: "开始使用前，请先配置 ASR（语音识别）和 LLM（会议纪要）供应商凭证。凭证仅保存在浏览器本地，输入后自动保存。",
     onboardingBtn: "🔑 立即配置凭证 →",
@@ -613,6 +620,9 @@ const i18n = {
     rerunLlmLabel: "LLM Vendor",
     rerunModelLabel: "Model",
     rerunPromptToggle: "Custom Prompt",
+    editBtn: "Edit",
+    saveBtn: "Save",
+    cancelBtn: "Cancel",
     onboardingTitle: "Welcome to VibeMeet2Notes!",
     onboardingMsg: "To get started, configure at least one ASR (speech-to-text) and one LLM (meeting notes) vendor below. Credentials are saved only in your browser.",
     onboardingBtn: "🔑 Set Up Credentials →",
@@ -1168,6 +1178,7 @@ function handleQueueSSE(qid, event, data) {
   } else if (event === "summary") {
     task.summary = data.text;
     _currentSummaryRaw = data.text;
+    if (_summaryEditMode) exitSummaryEdit();
     document.getElementById("summary-section").style.display = "block";
     document.getElementById("summary-output").innerHTML = renderMarkdown(data.text);
     document.getElementById("llm-vendor-tag").textContent = `(${getVendorDisplayName(task.llmVendor)})`;
@@ -1288,6 +1299,49 @@ function downloadSummary() {
   a.click();
 }
 
+// ── Edit meeting notes ────────────────────────────────────────────────
+let _summaryEditMode = false;
+
+function enterSummaryEdit() {
+  _summaryEditMode = true;
+  document.getElementById("summary-edit-area").value = _currentSummaryRaw;
+  document.getElementById("summary-output").style.display = "none";
+  document.getElementById("summary-edit-area").style.display = "block";
+  document.getElementById("edit-summary-btn").style.display = "none";
+  document.getElementById("save-summary-btn").style.display = "";
+  document.getElementById("cancel-summary-btn").style.display = "";
+  document.getElementById("summary-edit-area").focus();
+}
+
+async function saveSummaryEdit() {
+  const text = document.getElementById("summary-edit-area").value;
+  _currentSummaryRaw = text;
+  document.getElementById("summary-output").innerHTML = renderMarkdown(text);
+  exitSummaryEdit();
+  if (_currentTaskId) {
+    try {
+      await fetch(`/api/tasks/${_currentTaskId}/summary`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+    } catch(e) {}
+  }
+}
+
+function cancelSummaryEdit() {
+  exitSummaryEdit();
+}
+
+function exitSummaryEdit() {
+  _summaryEditMode = false;
+  document.getElementById("summary-output").style.display = "";
+  document.getElementById("summary-edit-area").style.display = "none";
+  document.getElementById("edit-summary-btn").style.display = "";
+  document.getElementById("save-summary-btn").style.display = "none";
+  document.getElementById("cancel-summary-btn").style.display = "none";
+}
+
 // ── Re-run LLM panel ──────────────────────────────────────────────────
 let rerunPanelOpen = false;
 let rerunPromptOpen = false;
@@ -1388,6 +1442,7 @@ async function doRerunLlm() {
         const data = JSON.parse(dataLine.slice(5).trim());
         if (event === "summary") {
           _currentSummaryRaw = data.text;
+          if (_summaryEditMode) exitSummaryEdit();
           document.getElementById("summary-section").style.display = "block";
           document.getElementById("summary-output").innerHTML = renderMarkdown(data.text);
           document.getElementById("llm-vendor-tag").textContent = `(${getVendorDisplayName(vendor)})`;
@@ -1887,6 +1942,12 @@ function applyLanguage() {
   if (copySLabel) copySLabel.textContent = t("copyBtn");
   const dlSLabel = document.getElementById("download-summary-label");
   if (dlSLabel) dlSLabel.textContent = t("downloadBtn");
+  const editSLabel = document.getElementById("edit-summary-label");
+  if (editSLabel) editSLabel.textContent = t("editBtn");
+  const saveSLabel = document.getElementById("save-summary-label");
+  if (saveSLabel) saveSLabel.textContent = t("saveBtn");
+  const cancelSLabel = document.getElementById("cancel-summary-label");
+  if (cancelSLabel) cancelSLabel.textContent = t("cancelBtn");
   const rerunToggleLabel = document.getElementById("rerun-toggle-label");
   if (rerunToggleLabel) rerunToggleLabel.textContent = t("rerunBtn");
   const rerunSubmitLabel = document.getElementById("rerun-submit-label");

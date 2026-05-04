@@ -434,6 +434,18 @@ def rerun_llm(task_id):
             yield sse_event("error", {"message": f"处理失败: {str(e)}"})
 
 
+@bp.route("/api/tasks/<task_id>/summary", methods=["PUT"])
+def update_summary(task_id):
+    task_dir = os.path.join(OUTPUT_DIR, secure_filename(task_id))
+    if not os.path.isdir(task_dir):
+        return jsonify({"error": "任务不存在"}), 404
+    body = request.get_json(force=True, silent=True) or {}
+    text = body.get("text", "")
+    with open(os.path.join(task_dir, "summary.txt"), "w", encoding="utf-8") as f:
+        f.write(text)
+    return jsonify({"ok": True})
+
+
 @bp.route("/api/tasks/<task_id>", methods=["DELETE"])
 def delete_task(task_id):
     task_dir = os.path.join(OUTPUT_DIR, secure_filename(task_id))
