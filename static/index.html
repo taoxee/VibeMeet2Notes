@@ -44,12 +44,21 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
       <option value="en">🌐 English</option>
     </select>
   </div>
+  <!-- EN Banner Logo (hidden by default, toggled in applyLanguage() based on language) -->
   <div style="display:flex;justify-content:center;margin-bottom:24px;">
+    <!-- To adjust size: change max-height value (e.g., 200px for smaller, 400px for larger) -->
+    <!-- margin-bottom controls spacing below logo (24px = current space to subtitle) -->
     <img id="banner-logo-en"
          src="/logos/banner-logo.png"
          onerror="this.src='/logos/backup-banner-logo.png'"
          alt="VibeMeet2Notes"
          style="display:none;max-height:300px;width:auto;object-fit:contain;">
+    <!-- Style breakdown:
+         - display:none = hidden initially (shown when language = EN in applyLanguage())
+         - max-height:300px = size control (ADJUST THIS to change logo size)
+         - width:auto = maintains aspect ratio
+         - object-fit:contain = ensures whole image visible without cropping
+    -->
   </div>
   <h1>🎙️ 灵感纪要 · VibeMeet2Notes</h1>
   <p class="subtitle">上传音视频文件 → ASR 语音识别（说话人分离）→ LLM 会议纪要</p>
@@ -1843,14 +1852,15 @@ function applyLanguage() {
   document.querySelector("h1").innerHTML = t("title");
 
   // Toggle banner logo visibility by language
+  // EN: show logo image, hide h1 text | CN: hide logo image, show h1 text
   const enLogo = document.getElementById("banner-logo-en");
   const h1 = document.querySelector("h1");
   if (currentLang === "en") {
-    enLogo.style.display = "block";
-    h1.style.display = "none";
+    enLogo.style.display = "block";  // Show EN logo when English selected
+    h1.style.display = "none";       // Hide h1 text
   } else {
-    enLogo.style.display = "none";
-    h1.style.display = "";
+    enLogo.style.display = "none";   // Hide EN logo when Chinese selected
+    h1.style.display = "";           // Show h1 text (emoji + Chinese title)
   }
 
   document.querySelector(".subtitle").textContent = t("subtitle");
