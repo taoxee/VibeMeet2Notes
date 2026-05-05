@@ -589,14 +589,6 @@
 - **"查看结果"提示**：已完成任务条目右下角显示 "👁 查看结果"，提示可点击
 - `_batchIds` (Set) + `_batchNotified` (bool) 追踪当前批次状态，`processFiles()` 每次提交重置
 
-### Task 9: 安装第三方技能插件
-- 来源：`https://github.com/KKKKhazix/khazix-skills`
-- 无 marketplace manifest，手动安装
-- 创建插件目录：`~/.claude/plugins/cache/khazix/khazix-skills/1.0.0/`
-- 写入 `package.json`（name + version），创建 `skills/neat-freak/` 和 `skills/khazix-writer/` 子目录
-- 从 GitHub raw URL 下载各 `SKILL.md` 及 `references/` 文件
-- 在 `~/.claude/plugins/installed_plugins.json` 手动追加 `khazix-skills@khazix` 条目
-- 重启 Claude Code 后 `/neat-freak` 和 `/khazix-writer` 即可使用
 
 ### Git 提交记录（dev 分支）
 - `33e6fa8`：`feat: P0 copy/download buttons + remember vendor selection`
@@ -604,4 +596,53 @@
 - `9a836d4`：`feat: P1 upload progress bar, onboarding banner, history search + delete`
 - `289095c`：`feat: P1 editable meeting notes`
 - `686f4e5`：`feat: P2 multi-file batch visibility`
+
+---
+
+## Conversation 14 (current)
+
+### Task 1: Logo 集成 + Prompt 文件重组织
+
+**问题描述**：用户添加了 3 个 logo 文件到 `data/logos/`，需要集成到 UI 中；同时建立 `custom-prompts/` 目录用于后续自定义 prompt 功能
+
+**实现方案**：
+
+**初始方案（两次迭代）**：
+1. 第一版：直接复制 logo 文件到 `static/logos/`，HTML 引用 `/static/logos/xxx.png`
+   - 提交 `db3a6a5`：`feat: add logos and reorganize prompts`
+   - 添加 favicon：`<link rel="icon" href="/static/logos/web-tab-logo.png">`
+   - 添加 EN banner logo，初始隐藏，via `applyLanguage()` 基于语言切换显示/隐藏
+   - `app/config.py` line 73 更新：`LLM_PROMPT = _load_prompt("custom-prompts/meetingminutes-prompt.txt")`
+   - 移动 `data/LLM_prompt.txt` → `data/custom-prompts/meetingminutes-prompt.txt`
+   
+2. 用户反馈：logo 太小且位置不对（左对齐）
+   - 第二版：调整 `max-height: 300px`，改用 flexbox 实现中心对齐 `display:flex; justify-content:center`
+
+**最终优化（消除重复）**：
+3. 用户提问：为何 `/static/logos/` 存在，本不需要在此复制文件
+   - 分析：单一真实源原则 — logo 来源是 `data/logos/`，不应在 `static/` 中复制
+   - 提交 `956ceeb`：`refactor: serve logos from data/ via Flask route instead of static duplication`
+   - `app/routes.py` 新增路由：`@bp.route("/logos/<filename>")` → `send_from_directory(os.path.join(BASE_DIR, "data", "logos"), ...)`
+   - HTML 更新：`/static/logos/xxx` → `/logos/xxx`
+   - 删除 `static/logos/` 目录
+
+**logo 尺寸调整说明**：
+- 用户要求 logo 尺寸可调
+- 提交 `2035d8d`：`docs: add logo size adjustment comments`
+- HTML 中添加详细注释说明如何调整：
+  - `max-height:300px` 控制大小（改为 200px 缩小，改为 400px 放大）
+  - `margin-bottom:24px` 控制与下方内容的距离
+  - 包含 EN/CN 语言切换逻辑说明
+
+**文件变更汇总**：
+- `static/index.html` — favicon + EN logo 标记 + `applyLanguage()` 切换逻辑 + 尺寸调整注释
+- `app/config.py` — prompt 路径 update
+- `app/routes.py` — logo 服务路由 + 文件移动处理
+- `data/LLM_prompt.txt` → `data/custom-prompts/meetingminutes-prompt.txt`
+
+### Git 提交记录（dev 分支 + 最新）
+- `686f4e5`：`feat: P2 multi-file batch visibility`
+- `db3a6a5`：`feat: add logos and reorganize prompts`
+- `956ceeb`：`refactor: serve logos from data/ via Flask route instead of static duplication`
+- `2035d8d`：`docs: add logo size adjustment comments`
 
