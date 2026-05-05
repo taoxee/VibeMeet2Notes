@@ -87,6 +87,14 @@ def get_default_prompt():
     return jsonify({"prompt": LLM_PROMPT})
 
 
+@bp.route("/logos/<filename>")
+def serve_logo(filename):
+    """Serve logo files from data/logos/."""
+    from app.config import BASE_DIR
+    logos_dir = os.path.join(BASE_DIR, "data", "logos")
+    return send_from_directory(logos_dir, secure_filename(filename))
+
+
 @bp.route("/api/models", methods=["POST"])
 def list_models():
     """Query available models from an LLM vendor using the user's credentials."""
