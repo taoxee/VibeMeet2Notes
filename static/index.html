@@ -104,6 +104,26 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
       </div>
     </div>
     <div style="margin-bottom:12px;">
+      <!-- Prompt Template selector (always visible) -->
+      <div style="margin-bottom:10px;padding:10px 12px;background:#f8f9ff;border:1px solid #e0e4ff;border-radius:8px;">
+        <label id="template-section-label" style="font-size:0.85rem;font-weight:600;color:#333;display:block;margin-bottom:8px;">📋 提示词模板</label>
+        <select id="template-select" onchange="onTemplateSelect(this.value)" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;margin-bottom:8px;background:#fff;">
+          <option value="">── 选择模板 ──</option>
+        </select>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button id="save-template-btn" onclick="showSaveTemplateInput()" style="padding:4px 12px;font-size:0.78rem;background:#f0f4ff;border:1px solid #4361ee;border-radius:4px;cursor:pointer;color:#4361ee;">另存为模板</button>
+          <button id="delete-template-btn" onclick="deleteCurrentTemplate()" style="display:none;padding:4px 12px;font-size:0.78rem;background:#fff0f0;border:1px solid #e53935;border-radius:4px;cursor:pointer;color:#e53935;">删除模板</button>
+        </div>
+        <div id="save-template-input-area" style="display:none;margin-top:8px;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" id="save-template-name" placeholder="模板名称..." maxlength="80" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;">
+            <button onclick="confirmSaveTemplate()" style="padding:5px 12px;font-size:0.78rem;background:#4361ee;color:#fff;border:none;border-radius:4px;cursor:pointer;">保存</button>
+            <button onclick="cancelSaveTemplate()" style="padding:5px 10px;font-size:0.78rem;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;color:#666;">取消</button>
+          </div>
+          <div id="save-template-error" style="display:none;font-size:0.78rem;color:#e53935;margin-top:4px;"></div>
+        </div>
+      </div>
+      <!-- Existing collapsible prompt editor (unchanged) -->
       <label id="prompt-toggle-label" style="font-size:0.85rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="togglePromptEditor()">▶ 自定义提示词</label>
       <div id="prompt-editor" style="display:none;margin-top:8px;">
         <textarea id="llm-prompt" rows="8" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
@@ -210,6 +230,9 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
         </div>
       </div>
       <div style="margin-bottom:10px;">
+        <select id="rerun-template-select" onchange="onRerunTemplateSelect(this.value)" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:0.82rem;margin-bottom:8px;background:#fff;">
+          <option value="">── 选择模板 ──</option>
+        </select>
         <label id="rerun-prompt-toggle-label" style="font-size:0.82rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="toggleRerunPrompt()">▶ <span id="rerun-prompt-toggle-text">自定义提示词</span></label>
         <div id="rerun-prompt-editor" style="display:none;margin-top:6px;">
           <textarea id="rerun-llm-prompt" rows="5" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ddd;border-radius:5px;font-size:0.82rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
@@ -519,7 +542,15 @@ const i18n = {
     onboardingBtn: "🔑 立即配置凭证 →",
     historySearch: "搜索历史记录...",
     deleteBtn: "删除",
-    confirmDelete: "确认删除此条历史记录？删除后无法恢复。"
+    confirmDelete: "确认删除此条历史记录？删除后无法恢复。",
+    promptTemplateLabel: "提示词模板",
+    selectTemplatePlaceholder: "── 选择模板 ──",
+    saveAsTemplate: "另存为模板",
+    deleteTemplate: "删除模板",
+    templateNamePlaceholder: "模板名称...",
+    templateBuiltinGroup: "内置模板",
+    templateUserGroup: "我的模板",
+    templateNameRequired: "请输入模板名称"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -654,7 +685,15 @@ const i18n = {
     onboardingBtn: "🔑 Set Up Credentials →",
     historySearch: "Search history...",
     deleteBtn: "Delete",
-    confirmDelete: "Delete this history entry? This cannot be undone."
+    confirmDelete: "Delete this history entry? This cannot be undone.",
+    promptTemplateLabel: "Prompt Template",
+    selectTemplatePlaceholder: "── Select a template ──",
+    saveAsTemplate: "Save as Template",
+    deleteTemplate: "Delete Template",
+    templateNamePlaceholder: "Template name...",
+    templateBuiltinGroup: "Built-in",
+    templateUserGroup: "My Templates",
+    templateNameRequired: "Name required"
   }
 };
 
