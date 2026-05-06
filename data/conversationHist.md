@@ -646,3 +646,286 @@
 - `956ceeb`：`refactor: serve logos from data/ via Flask route instead of static duplication`
 - `2035d8d`：`docs: add logo size adjustment comments`
 
+---
+
+## Conversation 15
+
+### 主题：Prompt Templates 功能（从头设计到实现）
+
+**流程**：brainstorming → writing-plans → subagent-driven-development（含 spec + quality 双阶段审查）→ finishing-a-development-branch（选择 keep as-is）
+
+---
+
+### 阶段 1：Brainstorming（设计讨论）
+
+用户需求：让用户从预设 LLM 提示词模板中选择，而不是每次从默认的 meeting-minutes 开始。典型场景：HR 面试分析、销售购买意向判断。
+
+**4 个关键设计决策（问答）**：
+1. 用户能否自定义 prompt？→ **B：能保存自定义模板**
+2. 用户模板存储方式？→ **B：服务端持久化**（JSON 文件，不存 DB）
+3. 模板 UI 位置？→ **B：独立可见区域**（从折叠 toggle 升级为常驻 section）
+4. 内置模板语言？→ **A：仅英文**（LLM 有 language-mirror 指令，中英皆可用）
+
+**3 个方案对比**（推荐方案 B）：
+- A：前端硬编码模板（简单但不可扩展）
+- **B：后端 .txt 文件 + JSON 用户模板**（推荐，灵活且易维护）
+- C：数据库存储（过度设计）
+
+用户补充关键 API 要求：
+- 响应必须包含 `is_builtin` 字段（前端据此显示/隐藏 Delete 按钮）
+- 内置模板 ID 采用确定性规则：`builtin_` + 文件名（连字符换下划线）
+- 用户模板 ID 采用 `uuid4()`
+
+---
+
+### 阶段 2：设计规格（Spec）
+
+文档：`docs/superpowers/specs/2026-05-06-prompt-templates-design.md`（提交 `67034e3`）
+
+**核心设计**：
+
+新增文件结构：
+```
+data/custom-prompts/builtin/
+  01-meeting-minutes.txt    ← 从 meetingminutes-prompt.txt 移入
+  02-interview-analysis.txt ← 新建
+  03-sales-purchase-indication.txt ← 新建
+data/custom-prompts/user-templates.json  ← 首次保存时创建，不提交 git
+```
+
+API：
+- `GET /api/prompt-templates` → 返回内置 + 用户模板列表（内置优先）
+- `POST /api/prompt-templates` → 创建用户模板（name ≤80 chars）
+- `DELETE /api/prompt-templates/<id>` → 删除用户模板（内置返回 403）
+
+UI：Prompt 区域升级为常驻 section，含模板下拉 + Save as Template + Delete 按钮（仅用户模板可见）
+
+---
+
+### 阶段 3：实现计划（Plan）
+
+文档：`docs/superpowers/plans/2026-05-06-prompt-templates.md`（提交 `46e5bea`）
+
+**4 个任务**：
+- Task 1：内置模板文件 + config 常量
+- Task 2：后端 API 端点（GET / POST / DELETE）
+- Task 3：前端 HTML 结构
+- Task 4：前端 JS 逻辑
+
+---
+
+### 阶段 4：实现（Subagent-Driven Development）
+
+每个任务由独立 subagent 实现，后经 spec compliance → code quality 双阶段审查。
+
+**Task 1（提交 `d69766c`）**：
+- 创建 3 个内置模板文件（meeting-minutes、interview-analysis、sales-purchase-indication）
+- `app/config.py` 新增 `BUILTIN_TEMPLATES_DIR`、`USER_TEMPLATES_FILE` 常量
+- 更新 `LLM_PROMPT` 加载路径至 `builtin/01-meeting-minutes.txt`
+
+**Task 2（提交 `cbab278`，质量修复后 `737e258`）**：
+- `app/routes.py` 新增：
+  - `_templates_lock = threading.Lock()`（并发保护）
+  - `_load_builtin_templates()`、`_load_user_templates()`、`_save_user_templates()` 三个辅助函数
+  - 三个 API 端点：GET / POST / DELETE
+- 质量审查修复：
+  - POST 缺少 content 长度上限（磁盘耗尽风险）→ 加 50,000 字符限制
+  - POST + DELETE 读-改-写无锁保护 → 加 `with _templates_lock:`
+  - `_save_user_templates` 异常时 `.tmp` 文件泄漏 → 加 `os.unlink(tmp_path)` 清理
+
+**Task 3（提交 `8b9e367`）**：
+- `static/index.html` HTML 结构：主表单 Prompt 区域升级为常驻 section
+  - `#template-select`、`#save-template-btn`、`#delete-template-btn`（默认隐藏）
+  - `#save-template-input-area`（隐藏）、`#save-template-name`、`#save-template-error`
+- Rerun 对话框新增 `#rerun-template-select`
+
+**Task 4（提交 `d00a12a`，质量修复后 `82c2f01`）**：
+- `static/index.html` JS 新增 ~170 行逻辑：
+  - `loadPromptTemplates()`、`_buildTemplateSelect(sel)`（XSS 安全：使用 `createElement` + `textContent`，禁止 `innerHTML` 处理用户数据）
+  - `populateTemplateDropdown()`、`onTemplateSelect()`、`onRerunTemplateSelect()`
+  - `showSaveTemplateInput()`、`cancelSaveTemplate()`、`confirmSaveTemplate()`、`deleteCurrentTemplate()`
+- i18n 键新增（zh + en）：`promptTemplateLabel`、`selectTemplatePlaceholder`、`saveAsTemplate`、`deleteTemplate`、`templateNamePlaceholder`、`templateBuiltinGroup`、`templateUserGroup`、`templateNameRequired`
+- `applyTranslations()` 扩展以更新模板 section 标签并调用 `populateTemplateDropdown()`
+- 质量审查修复：
+  - `resp.json()` 在非 OK 响应时无防御 → 加 try/catch，默认错误信息兜底
+  - `.find()` 回调参数 `tpl` 与外层变量同名 → 重命名为 `item`
+  - `sel.options[0]` 脆弱访问 → 加 null guard（`if (sel.options.length > 0)`）
+
+**`.gitignore` 更新（提交 `9f08474`）**：
+- 添加 `data/custom-prompts/user-templates.json`（用户数据不提交 git）
+
+---
+
+### 发现并修复的预存在 Bug
+
+**`rerun_llm` 路由死代码**（最终代码审查发现）：
+- SSE `return Response(stream_with_context(...))` 位于 `delete_task` 路由的 `return` 语句之后，永远不可达
+- 导致所有 Re-run LLM 请求均返回 None 并触发 500 错误
+- 最终审查 subagent 修复：将 return 移入 `rerun_llm` 函数体内（包含在上述提交中）
+
+---
+
+### Git 提交记录（本次会话）
+- `67034e3`：`docs: add prompt templates feature design spec`
+- `46e5bea`：`docs: add prompt templates implementation plan`
+- `d69766c`：`feat: add builtin prompt template files and update config constants`
+- `cbab278`：`feat: add /api/prompt-templates GET, POST, DELETE endpoints`
+- `737e258`：`fix: add content cap, threading lock, and tmp cleanup to template endpoints`
+- `8b9e367`：`feat: add prompt template selector HTML to main form and rerun dialog`
+- `d00a12a`：`feat: add prompt template JS logic, i18n keys, and applyTranslations wiring`
+- `82c2f01`：`fix: defensive JSON parsing, null-guard, and shadow variable cleanup in template JS`
+- `9f08474`：`chore: gitignore user-templates.json`
+
+---
+
+## Conversation 16
+
+### 主题：Template Browser — 从凌乱下拉框到分域浏览面板
+
+**流程**：brainstorming（含 visual companion）→ writing-plans → subagent-driven-development（4 个任务）
+
+---
+
+### 背景
+
+随着内置模板从 3 个增长到 13 个（新增学习、产品、销售方法论等），原有的单层 `<select>` 下拉框已不可用。本次会话完整走完 brainstorm → spec → plan → implement 全流程，设计并实现了分域模板浏览面板。
+
+---
+
+### 阶段 1：Brainstorming + Visual Companion
+
+**关键决策（逐问对话）**：
+1. 预期规模？→ 每个领域 5–10 个模板，约 6 个领域（会议、销售、HR、产品、学习、法律），共 30–60 个
+2. 选模板时是精确选取还是浏览对比？→ 3–4 个「常用」一键选，其余按领域浏览并查看描述
+3. 选模板后立即应用还是先预览？→ 常用模板直接应用，领域模板先预览再确认
+4. 用户自定义模板放哪里？→ 独立的「我的模板」分区
+
+**3 个方案对比**（通过 visual companion 在浏览器展示）：
+- A：常用 chips + 展开面板（inline）
+- **B：下拉栏 + 内嵌浏览面板（推荐）** ← 用户选择
+- C：Modal 弹窗画廊
+
+**用户追加要求**：卡片更紧凑，1–3 列自适应宽度；所有内置模板从 `.txt` 文件迁移至单个 JSON 文件，包含 domain、featured、uuid、description、content 等字段。
+
+---
+
+### 阶段 2：设计规格（Spec）
+
+文档：`docs/superpowers/specs/2026-05-06-template-browser-design.md`（提交 `9f4c6a6`）
+
+**核心设计**：
+
+**UI 三态**：
+1. **紧凑栏**：当前模板名称 + "浏览 ▾" 按钮
+2. **浏览面板**（展开）：
+   - ⭐ 常用模板：pill chips，一键应用并关闭
+   - 🗂 按领域：filter chips（Meeting/Sales/HR/Product/Study/Law + 紫色「我的模板」）
+   - 卡片网格：`grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))`，每卡展示名称 + 一行描述
+3. **预览态**：点击领域卡片进入，显示完整 prompt（只读）+ Back / 使用此模板
+
+**数据层**：
+- `data/custom-prompts/builtin-templates.json`（新）替代所有 `.txt` 文件
+- 每条记录：`id`（uuid4，永久稳定）、`name`、`domain`、`featured`、`description`、`content`
+- 用户模板沿用 `user-templates.json`，独立展示
+
+**新增状态变量**：`_templateBrowserOpen`、`_activeDomain`、`_previewTemplateId`
+
+**Re-run 对话框**：保留原有 `<select>`，`populateTemplateDropdown()` 仅更新 `#rerun-template-select`
+
+---
+
+### 阶段 3：实现计划（Plan）
+
+文档：`docs/superpowers/plans/2026-05-06-template-browser.md`（提交 `f992c0f`）
+
+**4 个任务**：
+- Task 1：创建 `builtin-templates.json` + 更新 backend（config、routes）
+- Task 2：前端 HTML 骨架（紧凑栏 + 面板结构 + i18n keys + 状态变量）
+- Task 3：前端 JS 核心（open/close、featured chips、domain filter、card grid）
+- Task 4：前端 JS 集成（preview state、save/delete/applyLanguage 适配新面板）
+
+---
+
+### 阶段 4：实现（Subagent-Driven Development）
+
+每个任务由独立 subagent 实现，经 spec compliance review 通过后完成。
+
+**Task 1（提交 `2715c9e`）**：
+- Python 迁移脚本：从 13 个 `.txt` 文件读取内容，写入 `builtin-templates.json`（含稳定 UUID、domain、featured、description）
+- `app/config.py`：添加 `import json`，`BUILTIN_TEMPLATES_DIR` → `BUILTIN_TEMPLATES_FILE`，`LLM_PROMPT` 改为 `_load_default_prompt()` 从 JSON 读取第一个 featured 模板
+- `app/routes.py`：`_load_builtin_templates()` 改为 JSON 读取，移除 `import glob`
+- 删除 `data/custom-prompts/builtin/` 目录及 13 个 `.txt` 文件
+
+**Task 2（提交 `d3e0b7e`）**：
+- `static/index.html` HTML 替换：移除 `<select id="template-select">`，新增紧凑栏（`#template-bar-label`、`#template-browse-btn`）+ 浏览面板（featured/domain/card/preview 容器）
+- 新增 13 个 i18n keys（zh + en）：`browseBtnOpen`、`browseBtnClose`、`sectionCommonUse`、`sectionDomain`、域名标签、`previewBack`、`previewUse`
+- 新增状态变量：`_templateBrowserOpen`、`_activeDomain`、`_previewTemplateId`
+
+**Task 3（提交 `0e21cab`）**：
+- 新增辅助函数：`_getAvailableDomains()`、`_domainLabel(domain)`
+- 新增 `_applyTemplate(id)`：设置 prompt 内容、更新紧凑栏标签、控制删除按钮，关闭面板
+- 新增面板控制：`toggleTemplateBrowser()`、`openBrowserPanel()`、`closeBrowserPanel()`
+- 新增渲染函数：`renderBrowserPanel()`、`renderFeaturedChips()`、`renderDomainChips()`、`renderTemplateCards()`、`onDomainChipClick(domain)`
+- 更新 `loadPromptTemplates()`：优先选首个 featured 模板，更新 bar label，不再引用 `#template-select`
+
+**Task 4（提交 `bbb09f3`）**：
+- 新增 `showTemplatePreview(id)`、`applyPreviewedTemplate()`、`cancelPreview()`
+- `confirmSaveTemplate()`：移除 `template-select.value` 引用，改用 `_applyTemplate(newTpl.id)`
+- `deleteCurrentTemplate()`：移除 `template-select.value = ""`，改为重置 bar label
+- `populateTemplateDropdown()`：缩减为仅调用 `_buildTemplateSelect(#rerun-template-select)`
+- `applyLanguage()`：新增 `#template-browse-btn` / `#template-bar-label` 更新，移除旧 `template-select` 引用，新增 `if (_templateBrowserOpen) renderBrowserPanel()`
+- 删除孤立函数 `onTemplateSelect()`（原由 `<select onchange>` 触发，现已无调用方）
+
+---
+
+### 本次会话杂项提交
+
+- `afa30d7`：`feat: add 10 new prompt templates (study, brainstorm, sales analysis)`（会话开始时提交）
+- `34c050c`：`fix: rerun SSE response placement, template init order, auto-select, and UI polish`（UI 修复）
+- `9f4c6a6`：`docs: add template browser design spec`
+- `f992c0f`：`docs: add template browser implementation plan`
+
+---
+
+### Git 提交记录（本次会话）
+- `afa30d7`：`feat: add 10 new prompt templates (study, brainstorm, sales analysis)`
+- `34c050c`：`fix: rerun SSE response placement, template init order, auto-select, and UI polish`
+- `9f4c6a6`：`docs: add template browser design spec`
+- `f992c0f`：`docs: add template browser implementation plan`
+- `2715c9e`：`feat: consolidate builtin templates into single JSON file, remove .txt files`
+- `d3e0b7e`：`feat: replace template select with compact bar + browser panel HTML skeleton`
+- `0e21cab`：`feat: add template browser panel core — open/close, featured chips, domain filter, card grid`
+- `bbb09f3`：`feat: add template preview state, wire up save/delete/applyLanguage to new browser panel`
+
+
+---
+
+## Conversation 17
+
+### 主题：Delete 按钮位置调整（UX 修复）
+
+**变更**：将 `#delete-template-btn` 从浏览面板外部移入预览操作行，与 Cancel / Use This Template 同层。
+
+---
+
+### 修改详情
+
+**HTML（`static/index.html`）**
+
+修改前：`#delete-template-btn` 在 `#template-browser` div 外，作为独立元素。
+修改后：移入预览操作行 `div`（`display:flex;justify-content:flex-end;margin-top:8px;gap:6px;`），作为第一个子元素，设 `margin-right:auto` 使其靠左，Cancel / Use This Template 靠右。按钮尺寸对齐 `font-size:0.82rem`，`border-radius:6px`。
+
+**JS 逻辑调整（`static/index.html`）**
+
+- `showTemplatePreview(id)`：新增 delete 按钮显隐逻辑——用户模板显示，内置模板隐藏，并更新按钮文本
+- `cancelPreview()`：返回卡片列表时隐藏 delete 按钮
+- `deleteCurrentTemplate()`：
+  - 原先读取 `_selectedTemplateId`（未预览时为 null，会静默失败）
+  - 现改为优先读 `_previewTemplateId`，回退 `_selectedTemplateId`
+  - 成功删除后调用 `closeBrowserPanel()`，清除 `_previewTemplateId`
+  - 仅当删除的是当前已应用模板时才重置 bar label
+- `_applyTemplate(id)`：移除孤立的 delete 按钮显隐代码（面板关闭后按钮不可见，逻辑无意义）
+- `applyLanguage()`：移除对 delete 按钮的文本更新（现由 `showTemplatePreview()` 按需设置）
+
+### Git 提交记录（本次会话）
+- 无独立提交（变更包含在未提交的 `static/index.html` diff 中）

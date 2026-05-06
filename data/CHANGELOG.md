@@ -2,6 +2,19 @@
 
 All notable changes to VibeMeet2Notes are documented here.
 
+## 2026-05-06
+
+### Features
+- Prompt template system — select from built-in templates or save your own custom templates server-side; user templates persisted to `data/custom-prompts/user-templates.json` with atomic writes and concurrent-access protection
+- Template selector in main form and re-run LLM dialog, with i18n support (EN/CN)
+- Template Browser — compact bar + expandable inline panel replaces flat dropdown; featured one-click pills for common use cases, domain-filtered card grid (Meeting, Sales, HR, Product, Study, Law), preview pane before applying
+- 13 builtin templates consolidated from `.txt` files into single `data/custom-prompts/builtin-templates.json` with stable UUIDs, domain, featured, and description fields
+- 10 new builtin templates added: Study Lecture Note, Product Requirement Review, Brainstorming, Team Meeting, Customer Requirement Analysis, SPIN Selling, BANT/MEDDIC Analysis, GPCT Sales Summary, MEDDIC Sales Report, FAINT Sales Opportunities
+
+### Bug Fixes
+- Fixed pre-existing bug where Re-run LLM always returned 500 due to unreachable SSE response statement
+- Delete template button moved into preview action row (alongside Cancel / Use This Template); delete now operates on the previewed template and closes the panel on success
+
 ## 2026-05-05
 
 ### Features
