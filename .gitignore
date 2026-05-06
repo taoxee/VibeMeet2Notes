@@ -16,3 +16,4 @@ static/tmp/
 .vscode/
 .qoder/
 tests/
+data/custom-prompts/user-templates.json
