@@ -2,7 +2,6 @@
 import os
 import json
 import uuid
-import glob
 import shutil
 import hashlib
 import threading
@@ -50,24 +49,21 @@ _templates_lock = threading.Lock()
 
 # ── Prompt template helpers ───────────────────────────────────────────
 def _load_builtin_templates():
-    from app.config import BUILTIN_TEMPLATES_DIR
-    templates = []
-    if not os.path.isdir(BUILTIN_TEMPLATES_DIR):
-        print(f"[Templates] builtin dir not found: {BUILTIN_TEMPLATES_DIR}")
+    from app.config import BUILTIN_TEMPLATES_FILE
+    if not os.path.isfile(BUILTIN_TEMPLATES_FILE):
+        print(f"[Templates] builtin-templates.json not found: {BUILTIN_TEMPLATES_FILE}")
+        return []
+    try:
+        with open(BUILTIN_TEMPLATES_FILE, "r", encoding="utf-8") as f:
+            templates = json.load(f)
+        if not isinstance(templates, list):
+            return []
+        for t in templates:
+            t["is_builtin"] = True
         return templates
-    for path in sorted(glob.glob(os.path.join(BUILTIN_TEMPLATES_DIR, "*.txt"))):
-        stem = os.path.splitext(os.path.basename(path))[0]
-        tid = "builtin_" + stem.replace("-", "_")
-        parts = stem.split("-")
-        name_parts = parts[1:] if parts and parts[0].isdigit() else parts
-        name = " ".join(w.capitalize() for w in name_parts)
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read().strip()
-            templates.append({"id": tid, "name": name, "content": content, "is_builtin": True})
-        except Exception as e:
-            print(f"[Templates] Failed to load {path}: {e}")
-    return templates
+    except Exception as e:
+        print(f"[Templates] Failed to load builtin-templates.json: {e}")
+        return []
 
 
 def _load_user_templates():
