@@ -110,25 +110,23 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
         <select id="template-select" onchange="onTemplateSelect(this.value)" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;margin-bottom:8px;background:#fff;">
           <option value="">── 选择模板 ──</option>
         </select>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button id="delete-template-btn" onclick="deleteCurrentTemplate()" style="display:none;padding:4px 12px;font-size:0.78rem;background:#fff0f0;border:1px solid #e53935;border-radius:4px;cursor:pointer;color:#e53935;">删除模板</button>
+      </div>
+      <!-- Collapsible custom prompt editor -->
+      <label id="prompt-toggle-label" style="font-size:0.85rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="togglePromptEditor()">▶ 自定义提示词</label>
+      <div id="prompt-editor" style="display:none;margin-top:8px;">
+        <textarea id="llm-prompt" rows="8" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
           <button id="save-template-btn" onclick="showSaveTemplateInput()" style="padding:4px 12px;font-size:0.78rem;background:#f0f4ff;border:1px solid #4361ee;border-radius:4px;cursor:pointer;color:#4361ee;">另存为模板</button>
-          <button id="delete-template-btn" onclick="deleteCurrentTemplate()" style="display:none;padding:4px 12px;font-size:0.78rem;background:#fff0f0;border:1px solid #e53935;border-radius:4px;cursor:pointer;color:#e53935;">删除模板</button>
+          <button id="prompt-reset-btn" onclick="resetPrompt()" style="padding:4px 12px;font-size:0.78rem;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;color:#666;">恢复默认</button>
         </div>
         <div id="save-template-input-area" style="display:none;margin-top:8px;">
           <div style="display:flex;gap:6px;align-items:center;">
             <input type="text" id="save-template-name" placeholder="模板名称..." maxlength="80" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;">
-            <button onclick="confirmSaveTemplate()" style="padding:5px 12px;font-size:0.78rem;background:#4361ee;color:#fff;border:none;border-radius:4px;cursor:pointer;">保存</button>
-            <button onclick="cancelSaveTemplate()" style="padding:5px 10px;font-size:0.78rem;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;color:#666;">取消</button>
+            <button id="save-template-confirm-btn" onclick="confirmSaveTemplate()" style="padding:5px 12px;font-size:0.78rem;background:#4361ee;color:#fff;border:none;border-radius:4px;cursor:pointer;">保存</button>
+            <button id="save-template-cancel-btn" onclick="cancelSaveTemplate()" style="padding:5px 10px;font-size:0.78rem;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;color:#666;">取消</button>
           </div>
           <div id="save-template-error" style="display:none;font-size:0.78rem;color:#e53935;margin-top:4px;"></div>
-        </div>
-      </div>
-      <!-- Existing collapsible prompt editor (unchanged) -->
-      <label id="prompt-toggle-label" style="font-size:0.85rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="togglePromptEditor()">▶ 自定义提示词</label>
-      <div id="prompt-editor" style="display:none;margin-top:8px;">
-        <textarea id="llm-prompt" rows="8" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
-          <button id="prompt-reset-btn" onclick="resetPrompt()" style="padding:4px 12px;font-size:0.78rem;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;color:#666;">恢复默认</button>
         </div>
       </div>
     </div>
@@ -550,7 +548,9 @@ const i18n = {
     templateNamePlaceholder: "模板名称...",
     templateBuiltinGroup: "内置模板",
     templateUserGroup: "我的模板",
-    templateNameRequired: "请输入模板名称"
+    templateNameRequired: "请输入模板名称",
+    templateSaveConfirm: "保存",
+    templateSaveCancel: "取消"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -693,7 +693,9 @@ const i18n = {
     templateNamePlaceholder: "Template name...",
     templateBuiltinGroup: "Built-in",
     templateUserGroup: "My Templates",
-    templateNameRequired: "Name required"
+    templateNameRequired: "Name required",
+    templateSaveConfirm: "Save",
+    templateSaveCancel: "Cancel"
   }
 };
 
@@ -2096,9 +2098,17 @@ function applyLanguage() {
   const saveTplBtn = document.getElementById("save-template-btn");
   if (saveTplBtn) saveTplBtn.textContent = t("saveAsTemplate");
   const deleteTplBtn = document.getElementById("delete-template-btn");
-  if (deleteTplBtn && deleteTplBtn.style.display !== "none") deleteTplBtn.textContent = t("deleteTemplate");
+  if (deleteTplBtn) deleteTplBtn.textContent = t("deleteTemplate");
   const tplNameInput = document.getElementById("save-template-name");
   if (tplNameInput) tplNameInput.placeholder = t("templateNamePlaceholder");
+  const saveTplConfirmBtn = document.getElementById("save-template-confirm-btn");
+  if (saveTplConfirmBtn) saveTplConfirmBtn.textContent = t("templateSaveConfirm");
+  const saveTplCancelBtn = document.getElementById("save-template-cancel-btn");
+  if (saveTplCancelBtn) saveTplCancelBtn.textContent = t("templateSaveCancel");
+  ["template-select", "rerun-template-select"].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel && sel.options[0] && sel.options[0].value === "") sel.options[0].textContent = t("selectTemplatePlaceholder");
+  });
   if (_promptTemplates.length) populateTemplateDropdown();
 }
 
@@ -2181,6 +2191,9 @@ let _folderHandles = new Map();
 let _pendingFolderFiles = [];
 const FW_ALLOWED_EXT = new Set(["mp3","mp4","wav","m4a","webm","ogg","flac","mpeg","mpga"]);
 let fwCardExpanded = false;
+// Prompt template state (must be before applyLanguage())
+let _promptTemplates = [];
+let _selectedTemplateId = null;
 
 init();
 applyLanguage();
@@ -2190,15 +2203,17 @@ if (_initLlmVendor) fetchModels(_initLlmVendor);
 
 // ── Prompt Templates ────────────────────────────────────────────────
 
-let _promptTemplates = [];
-let _selectedTemplateId = null;
-
 async function loadPromptTemplates() {
   try {
     const resp = await fetch("/api/prompt-templates");
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     _promptTemplates = await resp.json();
     populateTemplateDropdown();
+    const firstBuiltin = _promptTemplates.find(item => item.is_builtin);
+    if (firstBuiltin) {
+      document.getElementById("template-select").value = firstBuiltin.id;
+      _selectedTemplateId = firstBuiltin.id;
+    }
   } catch (e) {
     console.warn("Failed to load prompt templates", e);
     const sel = document.getElementById("template-select");
@@ -2257,8 +2272,11 @@ function onTemplateSelect(id) {
   if (tpl) {
     document.getElementById("llm-prompt").value = tpl.content;
     localStorage.setItem("llm_custom_prompt", tpl.content);
-    if (!_promptExpanded) togglePromptEditor();
-    if (deleteBtn) deleteBtn.style.display = tpl.is_builtin ? "none" : "";
+    if (deleteBtn) {
+      const showDelete = !tpl.is_builtin;
+      deleteBtn.style.display = showDelete ? "" : "none";
+      if (showDelete) deleteBtn.textContent = t("deleteTemplate");
+    }
   } else {
     if (deleteBtn) deleteBtn.style.display = "none";
   }

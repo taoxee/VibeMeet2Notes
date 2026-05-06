@@ -2,6 +2,16 @@
 
 All notable changes to VibeMeet2Notes are documented here.
 
+## 2026-05-06
+
+### Features
+- Prompt template system — select from built-in templates (Meeting Minutes, Interview Analysis, Sales Purchase Indication) or save your own custom templates server-side
+- Template selector in main form and re-run LLM dialog, with i18n support (EN/CN)
+- User templates persisted to `data/custom-prompts/user-templates.json` with atomic writes and concurrent-access protection
+
+### Bug Fixes
+- Fixed pre-existing bug where Re-run LLM always returned 500 due to unreachable SSE response statement
+
 ## 2026-05-05
 
 ### Features

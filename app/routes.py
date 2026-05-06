@@ -538,6 +538,8 @@ def rerun_llm(task_id):
         except Exception as e:
             yield sse_event("error", {"message": f"处理失败: {str(e)}"})
 
+    return Response(stream_with_context(generate()), mimetype="text/event-stream")
+
 
 @bp.route("/api/tasks/<task_id>/summary", methods=["PUT"])
 def update_summary(task_id):
@@ -558,5 +560,3 @@ def delete_task(task_id):
         return jsonify({"error": "任务不存在"}), 404
     shutil.rmtree(task_dir, ignore_errors=True)
     return jsonify({"ok": True})
-
-    return Response(stream_with_context(generate()), mimetype="text/event-stream")

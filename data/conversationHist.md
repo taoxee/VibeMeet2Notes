@@ -646,3 +646,133 @@
 - `956ceeb`：`refactor: serve logos from data/ via Flask route instead of static duplication`
 - `2035d8d`：`docs: add logo size adjustment comments`
 
+---
+
+## Conversation 15
+
+### 主题：Prompt Templates 功能（从头设计到实现）
+
+**流程**：brainstorming → writing-plans → subagent-driven-development（含 spec + quality 双阶段审查）→ finishing-a-development-branch（选择 keep as-is）
+
+---
+
+### 阶段 1：Brainstorming（设计讨论）
+
+用户需求：让用户从预设 LLM 提示词模板中选择，而不是每次从默认的 meeting-minutes 开始。典型场景：HR 面试分析、销售购买意向判断。
+
+**4 个关键设计决策（问答）**：
+1. 用户能否自定义 prompt？→ **B：能保存自定义模板**
+2. 用户模板存储方式？→ **B：服务端持久化**（JSON 文件，不存 DB）
+3. 模板 UI 位置？→ **B：独立可见区域**（从折叠 toggle 升级为常驻 section）
+4. 内置模板语言？→ **A：仅英文**（LLM 有 language-mirror 指令，中英皆可用）
+
+**3 个方案对比**（推荐方案 B）：
+- A：前端硬编码模板（简单但不可扩展）
+- **B：后端 .txt 文件 + JSON 用户模板**（推荐，灵活且易维护）
+- C：数据库存储（过度设计）
+
+用户补充关键 API 要求：
+- 响应必须包含 `is_builtin` 字段（前端据此显示/隐藏 Delete 按钮）
+- 内置模板 ID 采用确定性规则：`builtin_` + 文件名（连字符换下划线）
+- 用户模板 ID 采用 `uuid4()`
+
+---
+
+### 阶段 2：设计规格（Spec）
+
+文档：`docs/superpowers/specs/2026-05-06-prompt-templates-design.md`（提交 `67034e3`）
+
+**核心设计**：
+
+新增文件结构：
+```
+data/custom-prompts/builtin/
+  01-meeting-minutes.txt    ← 从 meetingminutes-prompt.txt 移入
+  02-interview-analysis.txt ← 新建
+  03-sales-purchase-indication.txt ← 新建
+data/custom-prompts/user-templates.json  ← 首次保存时创建，不提交 git
+```
+
+API：
+- `GET /api/prompt-templates` → 返回内置 + 用户模板列表（内置优先）
+- `POST /api/prompt-templates` → 创建用户模板（name ≤80 chars）
+- `DELETE /api/prompt-templates/<id>` → 删除用户模板（内置返回 403）
+
+UI：Prompt 区域升级为常驻 section，含模板下拉 + Save as Template + Delete 按钮（仅用户模板可见）
+
+---
+
+### 阶段 3：实现计划（Plan）
+
+文档：`docs/superpowers/plans/2026-05-06-prompt-templates.md`（提交 `46e5bea`）
+
+**4 个任务**：
+- Task 1：内置模板文件 + config 常量
+- Task 2：后端 API 端点（GET / POST / DELETE）
+- Task 3：前端 HTML 结构
+- Task 4：前端 JS 逻辑
+
+---
+
+### 阶段 4：实现（Subagent-Driven Development）
+
+每个任务由独立 subagent 实现，后经 spec compliance → code quality 双阶段审查。
+
+**Task 1（提交 `d69766c`）**：
+- 创建 3 个内置模板文件（meeting-minutes、interview-analysis、sales-purchase-indication）
+- `app/config.py` 新增 `BUILTIN_TEMPLATES_DIR`、`USER_TEMPLATES_FILE` 常量
+- 更新 `LLM_PROMPT` 加载路径至 `builtin/01-meeting-minutes.txt`
+
+**Task 2（提交 `cbab278`，质量修复后 `737e258`）**：
+- `app/routes.py` 新增：
+  - `_templates_lock = threading.Lock()`（并发保护）
+  - `_load_builtin_templates()`、`_load_user_templates()`、`_save_user_templates()` 三个辅助函数
+  - 三个 API 端点：GET / POST / DELETE
+- 质量审查修复：
+  - POST 缺少 content 长度上限（磁盘耗尽风险）→ 加 50,000 字符限制
+  - POST + DELETE 读-改-写无锁保护 → 加 `with _templates_lock:`
+  - `_save_user_templates` 异常时 `.tmp` 文件泄漏 → 加 `os.unlink(tmp_path)` 清理
+
+**Task 3（提交 `8b9e367`）**：
+- `static/index.html` HTML 结构：主表单 Prompt 区域升级为常驻 section
+  - `#template-select`、`#save-template-btn`、`#delete-template-btn`（默认隐藏）
+  - `#save-template-input-area`（隐藏）、`#save-template-name`、`#save-template-error`
+- Rerun 对话框新增 `#rerun-template-select`
+
+**Task 4（提交 `d00a12a`，质量修复后 `82c2f01`）**：
+- `static/index.html` JS 新增 ~170 行逻辑：
+  - `loadPromptTemplates()`、`_buildTemplateSelect(sel)`（XSS 安全：使用 `createElement` + `textContent`，禁止 `innerHTML` 处理用户数据）
+  - `populateTemplateDropdown()`、`onTemplateSelect()`、`onRerunTemplateSelect()`
+  - `showSaveTemplateInput()`、`cancelSaveTemplate()`、`confirmSaveTemplate()`、`deleteCurrentTemplate()`
+- i18n 键新增（zh + en）：`promptTemplateLabel`、`selectTemplatePlaceholder`、`saveAsTemplate`、`deleteTemplate`、`templateNamePlaceholder`、`templateBuiltinGroup`、`templateUserGroup`、`templateNameRequired`
+- `applyTranslations()` 扩展以更新模板 section 标签并调用 `populateTemplateDropdown()`
+- 质量审查修复：
+  - `resp.json()` 在非 OK 响应时无防御 → 加 try/catch，默认错误信息兜底
+  - `.find()` 回调参数 `tpl` 与外层变量同名 → 重命名为 `item`
+  - `sel.options[0]` 脆弱访问 → 加 null guard（`if (sel.options.length > 0)`）
+
+**`.gitignore` 更新（提交 `9f08474`）**：
+- 添加 `data/custom-prompts/user-templates.json`（用户数据不提交 git）
+
+---
+
+### 发现并修复的预存在 Bug
+
+**`rerun_llm` 路由死代码**（最终代码审查发现）：
+- SSE `return Response(stream_with_context(...))` 位于 `delete_task` 路由的 `return` 语句之后，永远不可达
+- 导致所有 Re-run LLM 请求均返回 None 并触发 500 错误
+- 最终审查 subagent 修复：将 return 移入 `rerun_llm` 函数体内（包含在上述提交中）
+
+---
+
+### Git 提交记录（本次会话）
+- `67034e3`：`docs: add prompt templates feature design spec`
+- `46e5bea`：`docs: add prompt templates implementation plan`
+- `d69766c`：`feat: add builtin prompt template files and update config constants`
+- `cbab278`：`feat: add /api/prompt-templates GET, POST, DELETE endpoints`
+- `737e258`：`fix: add content cap, threading lock, and tmp cleanup to template endpoints`
+- `8b9e367`：`feat: add prompt template selector HTML to main form and rerun dialog`
+- `d00a12a`：`feat: add prompt template JS logic, i18n keys, and applyTranslations wiring`
+- `82c2f01`：`fix: defensive JSON parsing, null-guard, and shadow variable cleanup in template JS`
+- `9f08474`：`chore: gitignore user-templates.json`
+
