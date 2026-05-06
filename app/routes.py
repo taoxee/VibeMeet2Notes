@@ -45,6 +45,7 @@ LLM_DEFAULT_MODELS = {
 # ── Task queue for parallel processing ───────────────────────────────
 _task_lock = threading.Lock()
 _task_queue = OrderedDict()
+_templates_lock = threading.Lock()
 
 
 # ── Prompt template helpers ───────────────────────────────────────────
@@ -85,9 +86,14 @@ def _load_user_templates():
 def _save_user_templates(templates):
     from app.config import USER_TEMPLATES_FILE
     tmp_path = USER_TEMPLATES_FILE + ".tmp"
-    with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(templates, f, ensure_ascii=False, indent=2)
-    os.replace(tmp_path, USER_TEMPLATES_FILE)
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(templates, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, USER_TEMPLATES_FILE)
+    except OSError:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
 
 
 @bp.route("/")
@@ -149,15 +155,18 @@ def create_prompt_template():
         return jsonify({"error": "Name must be 80 characters or fewer"}), 400
     if not content:
         return jsonify({"error": "Content is required"}), 400
+    if len(content) > 50000:
+        return jsonify({"error": "Content must be 50,000 characters or fewer"}), 400
     template = {
         "id": str(uuid.uuid4()),
         "name": name,
         "content": content,
         "is_builtin": False,
     }
-    templates = _load_user_templates()
-    templates.append(template)
-    _save_user_templates(templates)
+    with _templates_lock:
+        templates = _load_user_templates()
+        templates.append(template)
+        _save_user_templates(templates)
     return jsonify(template), 201
 
 
@@ -166,11 +175,12 @@ def delete_prompt_template(template_id):
     """Delete a user-defined prompt template. Returns 403 for built-ins."""
     if template_id.startswith("builtin_"):
         return jsonify({"error": "Cannot delete built-in templates"}), 403
-    templates = _load_user_templates()
-    new_templates = [t for t in templates if t.get("id") != template_id]
-    if len(new_templates) == len(templates):
-        return jsonify({"error": "Template not found"}), 404
-    _save_user_templates(new_templates)
+    with _templates_lock:
+        templates = _load_user_templates()
+        new_templates = [t for t in templates if t.get("id") != template_id]
+        if len(new_templates) == len(templates):
+            return jsonify({"error": "Template not found"}), 404
+        _save_user_templates(new_templates)
     return jsonify({"ok": True})
 
 
