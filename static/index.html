@@ -2146,6 +2146,10 @@ function applyLanguage() {
 
   const tplLabel = document.getElementById("template-section-label");
   if (tplLabel) tplLabel.textContent = "📋 " + t("promptTemplateLabel");
+  const browseBtnEl = document.getElementById("template-browse-btn");
+  if (browseBtnEl) browseBtnEl.textContent = _templateBrowserOpen ? t("browseBtnClose") : t("browseBtnOpen");
+  const barLabelEl = document.getElementById("template-bar-label");
+  if (barLabelEl && !_selectedTemplateId) barLabelEl.textContent = t("selectTemplatePlaceholder");
   const saveTplBtn = document.getElementById("save-template-btn");
   if (saveTplBtn) saveTplBtn.textContent = t("saveAsTemplate");
   const deleteTplBtn = document.getElementById("delete-template-btn");
@@ -2156,11 +2160,10 @@ function applyLanguage() {
   if (saveTplConfirmBtn) saveTplConfirmBtn.textContent = t("templateSaveConfirm");
   const saveTplCancelBtn = document.getElementById("save-template-cancel-btn");
   if (saveTplCancelBtn) saveTplCancelBtn.textContent = t("templateSaveCancel");
-  ["template-select", "rerun-template-select"].forEach(id => {
-    const sel = document.getElementById(id);
-    if (sel && sel.options[0] && sel.options[0].value === "") sel.options[0].textContent = t("selectTemplatePlaceholder");
-  });
+  const rerunSel = document.getElementById("rerun-template-select");
+  if (rerunSel && rerunSel.options[0] && rerunSel.options[0].value === "") rerunSel.options[0].textContent = t("selectTemplatePlaceholder");
   if (_promptTemplates.length) populateTemplateDropdown();
+  if (_templateBrowserOpen) renderBrowserPanel();
 }
 
 // Override updateCredsSummary to use i18n
@@ -2396,6 +2399,33 @@ function onDomainChipClick(domain) {
   renderTemplateCards();
 }
 
+function showTemplatePreview(id) {
+  const tpl = _promptTemplates.find(item => item.id === id);
+  if (!tpl) return;
+  _previewTemplateId = id;
+  document.getElementById("template-card-grid").style.display = "none";
+  document.getElementById("template-preview-pane").style.display = "block";
+  document.getElementById("template-preview-name").textContent = tpl.name;
+  const domainStr = tpl.is_builtin
+    ? (_domainLabel(tpl.domain || "") + " · Built-in")
+    : t("domainMyTemplates");
+  document.getElementById("template-preview-meta").textContent = domainStr;
+  document.getElementById("template-preview-content").value = tpl.content;
+  document.getElementById("template-preview-back-btn").textContent = t("previewBack");
+  document.getElementById("template-preview-cancel-btn").textContent = t("templateSaveCancel");
+  document.getElementById("template-preview-use-btn").textContent = t("previewUse");
+}
+
+function applyPreviewedTemplate() {
+  if (_previewTemplateId) _applyTemplate(_previewTemplateId);
+}
+
+function cancelPreview() {
+  _previewTemplateId = null;
+  document.getElementById("template-preview-pane").style.display = "none";
+  document.getElementById("template-card-grid").style.display = "grid";
+}
+
 async function loadPromptTemplates() {
   try {
     const resp = await fetch("/api/prompt-templates");
@@ -2455,25 +2485,7 @@ function _buildTemplateSelect(sel) {
 }
 
 function populateTemplateDropdown() {
-  _buildTemplateSelect(document.getElementById("template-select"));
   _buildTemplateSelect(document.getElementById("rerun-template-select"));
-}
-
-function onTemplateSelect(id) {
-  _selectedTemplateId = id || null;
-  const tpl = _promptTemplates.find(item => item.id === id);
-  const deleteBtn = document.getElementById("delete-template-btn");
-  if (tpl) {
-    document.getElementById("llm-prompt").value = tpl.content;
-    localStorage.setItem("llm_custom_prompt", tpl.content);
-    if (deleteBtn) {
-      const showDelete = !tpl.is_builtin;
-      deleteBtn.style.display = showDelete ? "" : "none";
-      if (showDelete) deleteBtn.textContent = t("deleteTemplate");
-    }
-  } else {
-    if (deleteBtn) deleteBtn.style.display = "none";
-  }
 }
 
 function onRerunTemplateSelect(id) {
@@ -2522,10 +2534,7 @@ async function confirmSaveTemplate() {
     const newTpl = await resp.json();
     _promptTemplates.push(newTpl);
     populateTemplateDropdown();
-    document.getElementById("template-select").value = newTpl.id;
-    _selectedTemplateId = newTpl.id;
-    const deleteBtn = document.getElementById("delete-template-btn");
-    if (deleteBtn) deleteBtn.style.display = "";
+    _applyTemplate(newTpl.id);
     cancelSaveTemplate();
   } catch (e) {
     errorEl.textContent = "Save failed: " + e.message;
@@ -2550,7 +2559,8 @@ async function deleteCurrentTemplate() {
     _promptTemplates = _promptTemplates.filter(item => item.id !== _selectedTemplateId);
     _selectedTemplateId = null;
     populateTemplateDropdown();
-    document.getElementById("template-select").value = "";
+    const barLabel = document.getElementById("template-bar-label");
+    if (barLabel) { barLabel.textContent = t("selectTemplatePlaceholder"); barLabel.style.color = "#888"; }
     const deleteBtn = document.getElementById("delete-template-btn");
     if (deleteBtn) deleteBtn.style.display = "none";
   } catch (e) {
