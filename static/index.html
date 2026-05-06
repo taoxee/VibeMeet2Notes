@@ -104,15 +104,40 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
       </div>
     </div>
     <div style="margin-bottom:12px;">
-      <!-- Prompt Template selector (always visible) -->
       <div style="margin-bottom:10px;padding:10px 12px;background:#f8f9ff;border:1px solid #e0e4ff;border-radius:8px;">
         <label id="template-section-label" style="font-size:0.85rem;font-weight:600;color:#333;display:block;margin-bottom:8px;">📋 提示词模板</label>
-        <select id="template-select" onchange="onTemplateSelect(this.value)" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;margin-bottom:8px;background:#fff;">
-          <option value="">── 选择模板 ──</option>
-        </select>
-        <button id="delete-template-btn" onclick="deleteCurrentTemplate()" style="display:none;padding:4px 12px;font-size:0.78rem;background:#fff0f0;border:1px solid #e53935;border-radius:4px;cursor:pointer;color:#e53935;">删除模板</button>
+        <!-- Compact bar -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="template-bar-label" style="flex:1;background:#fff;border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:0.85rem;color:#888;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">── 选择模板 ──</div>
+          <button id="template-browse-btn" onclick="toggleTemplateBrowser()" style="background:#4361ee;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:0.82rem;cursor:pointer;white-space:nowrap;">浏览 ▾</button>
+        </div>
+        <!-- Browse panel -->
+        <div id="template-browser" style="display:none;margin-top:10px;background:#fff;border:1px solid #e0e4ff;border-radius:8px;padding:12px;">
+          <div id="template-featured-label" style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:7px;">⭐ 常用模板</div>
+          <div id="template-featured-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
+          <div id="template-domain-label" style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:7px;">🗂 按领域浏览</div>
+          <div id="template-domain-chips" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;"></div>
+          <div id="template-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:7px;"></div>
+          <!-- Preview pane (hidden until a domain card is clicked) -->
+          <div id="template-preview-pane" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div>
+                <div id="template-preview-name" style="font-size:0.88rem;font-weight:700;color:#1a237e;"></div>
+                <div id="template-preview-meta" style="font-size:0.75rem;color:#888;"></div>
+              </div>
+              <button id="template-preview-back-btn" onclick="cancelPreview()" style="background:#f5f5f5;border:1px solid #ddd;border-radius:4px;padding:3px 10px;font-size:0.75rem;cursor:pointer;">← 返回</button>
+            </div>
+            <textarea id="template-preview-content" rows="6" readonly style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #e0e4ff;border-radius:6px;font-size:0.78rem;font-family:inherit;resize:none;background:#fafbff;color:#333;"></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:6px;">
+              <button id="template-preview-cancel-btn" onclick="cancelPreview()" style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:0.82rem;cursor:pointer;color:#666;">取消</button>
+              <button id="template-preview-use-btn" onclick="applyPreviewedTemplate()" style="background:#4361ee;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:0.82rem;cursor:pointer;">✓ 使用此模板</button>
+            </div>
+          </div>
+        </div>
+        <!-- Delete button for user-saved templates -->
+        <button id="delete-template-btn" onclick="deleteCurrentTemplate()" style="display:none;margin-top:6px;padding:4px 12px;font-size:0.78rem;background:#fff0f0;border:1px solid #e53935;border-radius:4px;cursor:pointer;color:#e53935;">删除模板</button>
       </div>
-      <!-- Collapsible custom prompt editor -->
+      <!-- Collapsible custom prompt editor (unchanged) -->
       <label id="prompt-toggle-label" style="font-size:0.85rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="togglePromptEditor()">▶ 自定义提示词</label>
       <div id="prompt-editor" style="display:none;margin-top:8px;">
         <textarea id="llm-prompt" rows="8" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
@@ -550,7 +575,20 @@ const i18n = {
     templateUserGroup: "我的模板",
     templateNameRequired: "请输入模板名称",
     templateSaveConfirm: "保存",
-    templateSaveCancel: "取消"
+    templateSaveCancel: "取消",
+    browseBtnOpen: "浏览 ▾",
+    browseBtnClose: "收起 ▴",
+    sectionCommonUse: "⭐ 常用模板",
+    sectionDomain: "🗂 按领域浏览",
+    domainMeeting: "会议",
+    domainSales: "销售",
+    domainHr: "招聘",
+    domainProduct: "产品",
+    domainStudy: "学习",
+    domainLaw: "法律",
+    domainMyTemplates: "我的模板",
+    previewBack: "← 返回",
+    previewUse: "✓ 使用此模板"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -695,7 +733,20 @@ const i18n = {
     templateUserGroup: "My Templates",
     templateNameRequired: "Name required",
     templateSaveConfirm: "Save",
-    templateSaveCancel: "Cancel"
+    templateSaveCancel: "Cancel",
+    browseBtnOpen: "Browse ▾",
+    browseBtnClose: "Close ▴",
+    sectionCommonUse: "⭐ COMMON USE",
+    sectionDomain: "🗂 DOMAIN",
+    domainMeeting: "Meeting",
+    domainSales: "Sales",
+    domainHr: "HR",
+    domainProduct: "Product",
+    domainStudy: "Study",
+    domainLaw: "Law",
+    domainMyTemplates: "My Templates",
+    previewBack: "← Back",
+    previewUse: "✓ Use This Template"
   }
 };
 
@@ -2194,6 +2245,9 @@ let fwCardExpanded = false;
 // Prompt template state (must be before applyLanguage())
 let _promptTemplates = [];
 let _selectedTemplateId = null;
+let _templateBrowserOpen = false;
+let _activeDomain = null;
+let _previewTemplateId = null;
 
 init();
 applyLanguage();
