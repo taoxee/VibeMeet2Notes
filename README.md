@@ -16,6 +16,18 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 
 ---
 
+## 🆕 最新功能 / Recent Updates
+
+- ✏️ **可编辑纪要 / Editable Notes** — 直接在页面修改生成的会议纪要 / Modify generated summaries in-place
+- 🔁 **重新生成 / Re-run** — 换模型或提示词后无需重新转录，一键重跑 LLM / Re-run LLM with different model or prompt without re-transcribing
+- 📋 **复制与下载 / Copy & Download** — 一键复制或下载纪要结果 / One-click copy or download results
+- 🗂️ **历史搜索与删除 / History Search & Delete** — 在历史记录中搜索或删除任务 / Search or delete entries from task history
+- 🌐 **多语言界面 / Multi-language UI** — 中英文一键切换 / Chinese/English toggle
+
+[查看完整更新日志 / Full Changelog →](data/CHANGELOG.md)
+
+---
+
 ## 📸 截图
 
 ![VibeMeet2Notes CN](data/vibemeet2notes%20CN%20screenshot.png)
