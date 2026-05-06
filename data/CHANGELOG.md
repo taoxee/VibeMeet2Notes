@@ -5,7 +5,7 @@ All notable changes to VibeMeet2Notes are documented here.
 ## 2026-05-05
 
 ### Features
-- Enhanced vendor branding with logos and reorganized prompt templates
+- Enhanced vibemeet2note branding with logos and reorganized prompt templates
 
 ## 2026-05-04
 
@@ -25,12 +25,7 @@ All notable changes to VibeMeet2Notes are documented here.
 - Fixed temporal dead zone errors in Folder Watch feature
 
 ### Features
-- Folder Watch as dedicated card with improved caching controls
-
-## 2026-04-30
-
-### Features
-- Browser-side folder monitoring with automatic file processing
+- Folder Watch as dedicated card with improved caching controls (hidden now, since not stable)
 
 ## 2026-03-23
 
