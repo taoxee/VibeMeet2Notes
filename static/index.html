@@ -1491,6 +1491,11 @@ function _initRerunPanel() {
   // Pre-fill prompt from main editor
   const mainPrompt = document.getElementById("llm-prompt").value;
   document.getElementById("rerun-llm-prompt").value = mainPrompt;
+
+  // Sync rerun template dropdown from already-loaded templates
+  if (_promptTemplates.length) populateTemplateDropdown();
+  const rerunSel = document.getElementById("rerun-template-select");
+  if (rerunSel) rerunSel.value = "";
 }
 
 async function fetchRerunModels(vendor) {
@@ -2085,6 +2090,16 @@ function applyLanguage() {
   if (rerunModelLabel) rerunModelLabel.textContent = t("rerunModelLabel");
   const rerunPTText = document.getElementById("rerun-prompt-toggle-text");
   if (rerunPTText) rerunPTText.textContent = t("rerunPromptToggle");
+
+  const tplLabel = document.getElementById("template-section-label");
+  if (tplLabel) tplLabel.textContent = "📋 " + t("promptTemplateLabel");
+  const saveTplBtn = document.getElementById("save-template-btn");
+  if (saveTplBtn) saveTplBtn.textContent = t("saveAsTemplate");
+  const deleteTplBtn = document.getElementById("delete-template-btn");
+  if (deleteTplBtn && deleteTplBtn.style.display !== "none") deleteTplBtn.textContent = t("deleteTemplate");
+  const tplNameInput = document.getElementById("save-template-name");
+  if (tplNameInput) tplNameInput.placeholder = t("templateNamePlaceholder");
+  if (_promptTemplates.length) populateTemplateDropdown();
 }
 
 // Override updateCredsSummary to use i18n
@@ -2173,6 +2188,162 @@ applyLanguage();
 const _initLlmVendor = document.getElementById("llm-vendor").value;
 if (_initLlmVendor) fetchModels(_initLlmVendor);
 
+// ── Prompt Templates ────────────────────────────────────────────────
+
+let _promptTemplates = [];
+let _selectedTemplateId = null;
+
+async function loadPromptTemplates() {
+  try {
+    const resp = await fetch("/api/prompt-templates");
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    _promptTemplates = await resp.json();
+    populateTemplateDropdown();
+  } catch (e) {
+    console.warn("Failed to load prompt templates", e);
+    const sel = document.getElementById("template-select");
+    if (sel) {
+      sel.disabled = true;
+      sel.options[0].textContent = "Failed to load templates";
+    }
+  }
+}
+
+function _buildTemplateSelect(sel) {
+  if (!sel) return;
+  sel.textContent = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = t("selectTemplatePlaceholder");
+  sel.appendChild(placeholder);
+
+  const builtins = _promptTemplates.filter(tpl => tpl.is_builtin);
+  const userTpls = _promptTemplates.filter(tpl => !tpl.is_builtin);
+
+  if (builtins.length > 0) {
+    const grp = document.createElement("optgroup");
+    grp.label = t("templateBuiltinGroup");
+    builtins.forEach(tpl => {
+      const opt = document.createElement("option");
+      opt.value = tpl.id;
+      opt.textContent = tpl.name;
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
+  }
+
+  if (userTpls.length > 0) {
+    const grp = document.createElement("optgroup");
+    grp.label = t("templateUserGroup");
+    userTpls.forEach(tpl => {
+      const opt = document.createElement("option");
+      opt.value = tpl.id;
+      opt.textContent = tpl.name;
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
+  }
+}
+
+function populateTemplateDropdown() {
+  _buildTemplateSelect(document.getElementById("template-select"));
+  _buildTemplateSelect(document.getElementById("rerun-template-select"));
+}
+
+function onTemplateSelect(id) {
+  _selectedTemplateId = id || null;
+  const tpl = _promptTemplates.find(tpl => tpl.id === id);
+  const deleteBtn = document.getElementById("delete-template-btn");
+  if (tpl) {
+    document.getElementById("llm-prompt").value = tpl.content;
+    localStorage.setItem("llm_custom_prompt", tpl.content);
+    if (!_promptExpanded) togglePromptEditor();
+    if (deleteBtn) deleteBtn.style.display = tpl.is_builtin ? "none" : "";
+  } else {
+    if (deleteBtn) deleteBtn.style.display = "none";
+  }
+}
+
+function onRerunTemplateSelect(id) {
+  const tpl = _promptTemplates.find(tpl => tpl.id === id);
+  if (tpl) {
+    document.getElementById("rerun-llm-prompt").value = tpl.content;
+    if (!rerunPromptOpen) toggleRerunPrompt();
+  }
+}
+
+function showSaveTemplateInput() {
+  document.getElementById("save-template-input-area").style.display = "block";
+  document.getElementById("save-template-name").focus();
+  document.getElementById("save-template-error").style.display = "none";
+}
+
+function cancelSaveTemplate() {
+  document.getElementById("save-template-input-area").style.display = "none";
+  document.getElementById("save-template-name").value = "";
+  document.getElementById("save-template-error").style.display = "none";
+}
+
+async function confirmSaveTemplate() {
+  const nameEl = document.getElementById("save-template-name");
+  const errorEl = document.getElementById("save-template-error");
+  const name = nameEl.value.trim();
+  if (!name) {
+    errorEl.textContent = t("templateNameRequired");
+    errorEl.style.display = "block";
+    return;
+  }
+  const content = document.getElementById("llm-prompt").value;
+  try {
+    const resp = await fetch("/api/prompt-templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, content }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      errorEl.textContent = err.error || "Save failed";
+      errorEl.style.display = "block";
+      return;
+    }
+    const newTpl = await resp.json();
+    _promptTemplates.push(newTpl);
+    populateTemplateDropdown();
+    document.getElementById("template-select").value = newTpl.id;
+    _selectedTemplateId = newTpl.id;
+    const deleteBtn = document.getElementById("delete-template-btn");
+    if (deleteBtn) deleteBtn.style.display = "";
+    cancelSaveTemplate();
+  } catch (e) {
+    errorEl.textContent = "Save failed: " + e.message;
+    errorEl.style.display = "block";
+  }
+}
+
+async function deleteCurrentTemplate() {
+  if (!_selectedTemplateId) return;
+  const tpl = _promptTemplates.find(tpl => tpl.id === _selectedTemplateId);
+  if (!tpl || tpl.is_builtin) return;
+  try {
+    const resp = await fetch("/api/prompt-templates/" + encodeURIComponent(_selectedTemplateId), {
+      method: "DELETE",
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert(err.error || "Delete failed");
+      return;
+    }
+    _promptTemplates = _promptTemplates.filter(tpl => tpl.id !== _selectedTemplateId);
+    _selectedTemplateId = null;
+    populateTemplateDropdown();
+    document.getElementById("template-select").value = "";
+    const deleteBtn = document.getElementById("delete-template-btn");
+    if (deleteBtn) deleteBtn.style.display = "none";
+  } catch (e) {
+    alert("Delete failed: " + e.message);
+  }
+}
+
 // ── Custom LLM Prompt ───────────────────────────────────────────────
 
 async function loadDefaultPrompt() {
@@ -2206,6 +2377,7 @@ document.getElementById("llm-prompt").addEventListener("input", function() {
 });
 
 loadDefaultPrompt();
+loadPromptTemplates();
 
 // ── Folder Watch ────────────────────────────────────────────────────
 
