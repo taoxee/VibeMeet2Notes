@@ -104,53 +104,11 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
       </div>
     </div>
     <div style="margin-bottom:12px;">
-      <div style="margin-bottom:10px;padding:10px 12px;background:#f8f9ff;border:1px solid #e0e4ff;border-radius:8px;">
-        <label id="template-section-label" style="font-size:0.85rem;font-weight:600;color:#333;display:block;margin-bottom:8px;">📋 提示词模板</label>
-        <!-- Compact bar -->
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div id="template-bar-label" style="flex:1;background:#fff;border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:0.85rem;color:#888;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">── 选择模板 ──</div>
-          <button id="template-browse-btn" onclick="toggleTemplateBrowser()" style="background:#4361ee;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:0.82rem;cursor:pointer;white-space:nowrap;">浏览 ▾</button>
-        </div>
-        <!-- Browse panel -->
-        <div id="template-browser" style="display:none;margin-top:10px;background:#fff;border:1px solid #e0e4ff;border-radius:8px;padding:12px;">
-          <div id="template-featured-label" style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:7px;">⭐ 常用模板</div>
-          <div id="template-featured-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
-          <div id="template-domain-label" style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:7px;">🗂 按领域浏览</div>
-          <div id="template-domain-chips" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;"></div>
-          <div id="template-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:7px;"></div>
-          <!-- Preview pane (hidden until a domain card is clicked) -->
-          <div id="template-preview-pane" style="display:none;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div>
-                <div id="template-preview-name" style="font-size:0.88rem;font-weight:700;color:#1a237e;"></div>
-                <div id="template-preview-meta" style="font-size:0.75rem;color:#888;"></div>
-              </div>
-              <button id="template-preview-back-btn" onclick="cancelPreview()" style="background:#f5f5f5;border:1px solid #ddd;border-radius:4px;padding:3px 10px;font-size:0.75rem;cursor:pointer;">← 返回</button>
-            </div>
-            <textarea id="template-preview-content" rows="6" readonly style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #e0e4ff;border-radius:6px;font-size:0.78rem;font-family:inherit;resize:none;background:#fafbff;color:#333;"></textarea>
-            <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:6px;">
-              <button id="delete-template-btn" onclick="deleteCurrentTemplate()" style="display:none;margin-right:auto;padding:6px 14px;font-size:0.82rem;background:#fff0f0;border:1px solid #e53935;border-radius:6px;cursor:pointer;color:#e53935;">删除模板</button>
-              <button id="template-preview-cancel-btn" onclick="cancelPreview()" style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:0.82rem;cursor:pointer;color:#666;">取消</button>
-              <button id="template-preview-use-btn" onclick="applyPreviewedTemplate()" style="background:#4361ee;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:0.82rem;cursor:pointer;">✓ 使用此模板</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Collapsible custom prompt editor (unchanged) -->
       <label id="prompt-toggle-label" style="font-size:0.85rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="togglePromptEditor()">▶ 自定义提示词</label>
       <div id="prompt-editor" style="display:none;margin-top:8px;">
         <textarea id="llm-prompt" rows="8" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-          <button id="save-template-btn" onclick="showSaveTemplateInput()" style="padding:4px 12px;font-size:0.78rem;background:#f0f4ff;border:1px solid #4361ee;border-radius:4px;cursor:pointer;color:#4361ee;">另存为模板</button>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
           <button id="prompt-reset-btn" onclick="resetPrompt()" style="padding:4px 12px;font-size:0.78rem;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;color:#666;">恢复默认</button>
-        </div>
-        <div id="save-template-input-area" style="display:none;margin-top:8px;">
-          <div style="display:flex;gap:6px;align-items:center;">
-            <input type="text" id="save-template-name" placeholder="模板名称..." maxlength="80" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:0.82rem;">
-            <button id="save-template-confirm-btn" onclick="confirmSaveTemplate()" style="padding:5px 12px;font-size:0.78rem;background:#4361ee;color:#fff;border:none;border-radius:4px;cursor:pointer;">保存</button>
-            <button id="save-template-cancel-btn" onclick="cancelSaveTemplate()" style="padding:5px 10px;font-size:0.78rem;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;color:#666;">取消</button>
-          </div>
-          <div id="save-template-error" style="display:none;font-size:0.78rem;color:#e53935;margin-top:4px;"></div>
         </div>
       </div>
     </div>
@@ -252,9 +210,6 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
         </div>
       </div>
       <div style="margin-bottom:10px;">
-        <select id="rerun-template-select" onchange="onRerunTemplateSelect(this.value)" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:0.82rem;margin-bottom:8px;background:#fff;">
-          <option value="">── 选择模板 ──</option>
-        </select>
         <label id="rerun-prompt-toggle-label" style="font-size:0.82rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="toggleRerunPrompt()">▶ <span id="rerun-prompt-toggle-text">自定义提示词</span></label>
         <div id="rerun-prompt-editor" style="display:none;margin-top:6px;">
           <textarea id="rerun-llm-prompt" rows="5" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ddd;border-radius:5px;font-size:0.82rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
@@ -564,30 +519,7 @@ const i18n = {
     onboardingBtn: "🔑 立即配置凭证 →",
     historySearch: "搜索历史记录...",
     deleteBtn: "删除",
-    confirmDelete: "确认删除此条历史记录？删除后无法恢复。",
-    promptTemplateLabel: "提示词模板",
-    selectTemplatePlaceholder: "── 选择模板 ──",
-    saveAsTemplate: "另存为模板",
-    deleteTemplate: "删除模板",
-    templateNamePlaceholder: "模板名称...",
-    templateBuiltinGroup: "内置模板",
-    templateUserGroup: "我的模板",
-    templateNameRequired: "请输入模板名称",
-    templateSaveConfirm: "保存",
-    templateSaveCancel: "取消",
-    browseBtnOpen: "浏览 ▾",
-    browseBtnClose: "收起 ▴",
-    sectionCommonUse: "⭐ 常用模板",
-    sectionDomain: "🗂 按领域浏览",
-    domainMeeting: "会议",
-    domainSales: "销售",
-    domainHr: "招聘",
-    domainProduct: "产品",
-    domainStudy: "学习",
-    domainLaw: "法律",
-    domainMyTemplates: "我的模板",
-    previewBack: "← 返回",
-    previewUse: "✓ 使用此模板"
+    confirmDelete: "确认删除此条历史记录？删除后无法恢复。"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -722,30 +654,7 @@ const i18n = {
     onboardingBtn: "🔑 Set Up Credentials →",
     historySearch: "Search history...",
     deleteBtn: "Delete",
-    confirmDelete: "Delete this history entry? This cannot be undone.",
-    promptTemplateLabel: "Prompt Template",
-    selectTemplatePlaceholder: "── Select a template ──",
-    saveAsTemplate: "Save as Template",
-    deleteTemplate: "Delete Template",
-    templateNamePlaceholder: "Template name...",
-    templateBuiltinGroup: "Built-in",
-    templateUserGroup: "My Templates",
-    templateNameRequired: "Name required",
-    templateSaveConfirm: "Save",
-    templateSaveCancel: "Cancel",
-    browseBtnOpen: "Browse ▾",
-    browseBtnClose: "Close ▴",
-    sectionCommonUse: "⭐ COMMON USE",
-    sectionDomain: "🗂 DOMAIN",
-    domainMeeting: "Meeting",
-    domainSales: "Sales",
-    domainHr: "HR",
-    domainProduct: "Product",
-    domainStudy: "Study",
-    domainLaw: "Law",
-    domainMyTemplates: "My Templates",
-    previewBack: "← Back",
-    previewUse: "✓ Use This Template"
+    confirmDelete: "Delete this history entry? This cannot be undone."
   }
 };
 
@@ -1543,11 +1452,6 @@ function _initRerunPanel() {
   // Pre-fill prompt from main editor
   const mainPrompt = document.getElementById("llm-prompt").value;
   document.getElementById("rerun-llm-prompt").value = mainPrompt;
-
-  // Sync rerun template dropdown from already-loaded templates
-  if (_promptTemplates.length) populateTemplateDropdown();
-  const rerunSel = document.getElementById("rerun-template-select");
-  if (rerunSel) rerunSel.value = "";
 }
 
 async function fetchRerunModels(vendor) {
@@ -2142,25 +2046,6 @@ function applyLanguage() {
   if (rerunModelLabel) rerunModelLabel.textContent = t("rerunModelLabel");
   const rerunPTText = document.getElementById("rerun-prompt-toggle-text");
   if (rerunPTText) rerunPTText.textContent = t("rerunPromptToggle");
-
-  const tplLabel = document.getElementById("template-section-label");
-  if (tplLabel) tplLabel.textContent = "📋 " + t("promptTemplateLabel");
-  const browseBtnEl = document.getElementById("template-browse-btn");
-  if (browseBtnEl) browseBtnEl.textContent = _templateBrowserOpen ? t("browseBtnClose") : t("browseBtnOpen");
-  const barLabelEl = document.getElementById("template-bar-label");
-  if (barLabelEl && !_selectedTemplateId) barLabelEl.textContent = t("selectTemplatePlaceholder");
-  const saveTplBtn = document.getElementById("save-template-btn");
-  if (saveTplBtn) saveTplBtn.textContent = t("saveAsTemplate");
-  const tplNameInput = document.getElementById("save-template-name");
-  if (tplNameInput) tplNameInput.placeholder = t("templateNamePlaceholder");
-  const saveTplConfirmBtn = document.getElementById("save-template-confirm-btn");
-  if (saveTplConfirmBtn) saveTplConfirmBtn.textContent = t("templateSaveConfirm");
-  const saveTplCancelBtn = document.getElementById("save-template-cancel-btn");
-  if (saveTplCancelBtn) saveTplCancelBtn.textContent = t("templateSaveCancel");
-  const rerunSel = document.getElementById("rerun-template-select");
-  if (rerunSel && rerunSel.options[0] && rerunSel.options[0].value === "") rerunSel.options[0].textContent = t("selectTemplatePlaceholder");
-  if (_promptTemplates.length) populateTemplateDropdown();
-  if (_templateBrowserOpen) renderBrowserPanel();
 }
 
 // Override updateCredsSummary to use i18n
@@ -2242,333 +2127,12 @@ let _folderHandles = new Map();
 let _pendingFolderFiles = [];
 const FW_ALLOWED_EXT = new Set(["mp3","mp4","wav","m4a","webm","ogg","flac","mpeg","mpga"]);
 let fwCardExpanded = false;
-// Prompt template state (must be before applyLanguage())
-let _promptTemplates = [];
-let _selectedTemplateId = null;
-let _templateBrowserOpen = false;
-let _activeDomain = null;
-let _previewTemplateId = null;
 
 init();
 applyLanguage();
 // Fetch models for initially selected vendor
 const _initLlmVendor = document.getElementById("llm-vendor").value;
 if (_initLlmVendor) fetchModels(_initLlmVendor);
-
-// ── Prompt Templates ────────────────────────────────────────────────
-
-function _getAvailableDomains() {
-  const seen = new Set();
-  const domains = [];
-  _promptTemplates.filter(t => t.is_builtin).forEach(t => {
-    if (t.domain && !seen.has(t.domain)) { seen.add(t.domain); domains.push(t.domain); }
-  });
-  return domains;
-}
-
-function _domainLabel(domain) {
-  const map = { meeting: t("domainMeeting"), sales: t("domainSales"), hr: t("domainHr"), product: t("domainProduct"), study: t("domainStudy"), law: t("domainLaw") };
-  return map[domain] || domain;
-}
-
-function _applyTemplate(id) {
-  const tpl = _promptTemplates.find(item => item.id === id);
-  if (!tpl) return;
-  _selectedTemplateId = id;
-  document.getElementById("llm-prompt").value = tpl.content;
-  localStorage.setItem("llm_custom_prompt", tpl.content);
-  const barLabel = document.getElementById("template-bar-label");
-  if (barLabel) { barLabel.textContent = tpl.name; barLabel.style.color = "#333"; }
-  closeBrowserPanel();
-}
-
-function toggleTemplateBrowser() {
-  _templateBrowserOpen ? closeBrowserPanel() : openBrowserPanel();
-}
-
-function openBrowserPanel() {
-  _templateBrowserOpen = true;
-  _previewTemplateId = null;
-  document.getElementById("template-browser").style.display = "block";
-  document.getElementById("template-browse-btn").textContent = t("browseBtnClose");
-  if (_activeDomain === null) {
-    const cur = _promptTemplates.find(item => item.id === _selectedTemplateId);
-    _activeDomain = (cur && cur.domain) ? cur.domain : (_getAvailableDomains()[0] || null);
-  }
-  renderBrowserPanel();
-}
-
-function closeBrowserPanel() {
-  _templateBrowserOpen = false;
-  _previewTemplateId = null;
-  document.getElementById("template-browser").style.display = "none";
-  document.getElementById("template-browse-btn").textContent = t("browseBtnOpen");
-}
-
-function renderBrowserPanel() {
-  document.getElementById("template-featured-label").textContent = t("sectionCommonUse");
-  document.getElementById("template-domain-label").textContent = t("sectionDomain");
-  renderFeaturedChips();
-  renderDomainChips();
-  renderTemplateCards();
-}
-
-function renderFeaturedChips() {
-  const container = document.getElementById("template-featured-chips");
-  container.textContent = "";
-  _promptTemplates.filter(tpl => tpl.featured).forEach(tpl => {
-    const chip = document.createElement("div");
-    chip.style.cssText = "background:#fff7e6;border:1px solid #ffd591;border-radius:20px;padding:3px 11px;font-size:0.77rem;cursor:pointer;color:#ad6800;";
-    chip.textContent = tpl.name;
-    chip.onclick = () => _applyTemplate(tpl.id);
-    container.appendChild(chip);
-  });
-}
-
-function renderDomainChips() {
-  const container = document.getElementById("template-domain-chips");
-  container.textContent = "";
-  _getAvailableDomains().forEach(domain => {
-    const active = domain === _activeDomain;
-    const chip = document.createElement("div");
-    chip.style.cssText = active
-      ? "background:#4361ee;color:#fff;border-radius:20px;padding:3px 10px;font-size:0.73rem;cursor:pointer;"
-      : "background:#f0f4ff;color:#4361ee;border:1px solid #c5ceff;border-radius:20px;padding:3px 10px;font-size:0.73rem;cursor:pointer;";
-    chip.textContent = _domainLabel(domain);
-    chip.onclick = () => onDomainChipClick(domain);
-    container.appendChild(chip);
-  });
-  if (_promptTemplates.some(tpl => !tpl.is_builtin)) {
-    const active = _activeDomain === "__user__";
-    const chip = document.createElement("div");
-    chip.style.cssText = active
-      ? "background:#722ed1;color:#fff;border-radius:20px;padding:3px 10px;font-size:0.73rem;cursor:pointer;"
-      : "background:#f5f0ff;color:#722ed1;border:1px solid #d3adf7;border-radius:20px;padding:3px 10px;font-size:0.73rem;cursor:pointer;";
-    chip.textContent = t("domainMyTemplates");
-    chip.onclick = () => onDomainChipClick("__user__");
-    container.appendChild(chip);
-  }
-}
-
-function renderTemplateCards() {
-  document.getElementById("template-preview-pane").style.display = "none";
-  const grid = document.getElementById("template-card-grid");
-  grid.style.display = "grid";
-  grid.textContent = "";
-  const filtered = _activeDomain === "__user__"
-    ? _promptTemplates.filter(tpl => !tpl.is_builtin)
-    : _promptTemplates.filter(tpl => tpl.is_builtin && tpl.domain === _activeDomain);
-  if (filtered.length === 0) {
-    const empty = document.createElement("div");
-    empty.style.cssText = "color:#aaa;font-size:0.8rem;padding:8px;grid-column:1/-1;";
-    empty.textContent = "No templates in this domain.";
-    grid.appendChild(empty);
-    return;
-  }
-  filtered.forEach(tpl => {
-    const isSelected = tpl.id === _selectedTemplateId;
-    const card = document.createElement("div");
-    card.style.cssText = isSelected
-      ? "background:#e8edff;border:1.5px solid #4361ee;border-radius:7px;padding:8px 9px;cursor:pointer;"
-      : "background:#f8f9ff;border:1px solid #e0e4ff;border-radius:7px;padding:8px 9px;cursor:pointer;";
-    const name = document.createElement("div");
-    name.style.cssText = "font-size:0.8rem;font-weight:600;color:" + (isSelected ? "#1a237e" : "#333") + ";margin-bottom:2px;";
-    name.textContent = tpl.name;
-    const desc = document.createElement("div");
-    desc.style.cssText = "font-size:0.7rem;color:#555;line-height:1.3;";
-    desc.textContent = tpl.description || "";
-    card.appendChild(name);
-    card.appendChild(desc);
-    card.onclick = () => showTemplatePreview(tpl.id);
-    grid.appendChild(card);
-  });
-}
-
-function onDomainChipClick(domain) {
-  _activeDomain = domain;
-  _previewTemplateId = null;
-  renderDomainChips();
-  renderTemplateCards();
-}
-
-function showTemplatePreview(id) {
-  const tpl = _promptTemplates.find(item => item.id === id);
-  if (!tpl) return;
-  _previewTemplateId = id;
-  document.getElementById("template-card-grid").style.display = "none";
-  document.getElementById("template-preview-pane").style.display = "block";
-  document.getElementById("template-preview-name").textContent = tpl.name;
-  const domainStr = tpl.is_builtin
-    ? (_domainLabel(tpl.domain || "") + " · Built-in")
-    : t("domainMyTemplates");
-  document.getElementById("template-preview-meta").textContent = domainStr;
-  document.getElementById("template-preview-content").value = tpl.content;
-  document.getElementById("template-preview-back-btn").textContent = t("previewBack");
-  document.getElementById("template-preview-cancel-btn").textContent = t("templateSaveCancel");
-  document.getElementById("template-preview-use-btn").textContent = t("previewUse");
-  const deleteBtn = document.getElementById("delete-template-btn");
-  if (deleteBtn) {
-    deleteBtn.style.display = tpl.is_builtin ? "none" : "";
-    if (!tpl.is_builtin) deleteBtn.textContent = t("deleteTemplate");
-  }
-}
-
-function applyPreviewedTemplate() {
-  if (_previewTemplateId) _applyTemplate(_previewTemplateId);
-}
-
-function cancelPreview() {
-  _previewTemplateId = null;
-  document.getElementById("template-preview-pane").style.display = "none";
-  document.getElementById("template-card-grid").style.display = "grid";
-  const deleteBtn = document.getElementById("delete-template-btn");
-  if (deleteBtn) deleteBtn.style.display = "none";
-}
-
-async function loadPromptTemplates() {
-  try {
-    const resp = await fetch("/api/prompt-templates");
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
-    _promptTemplates = await resp.json();
-    populateTemplateDropdown();
-    const firstFeatured = _promptTemplates.find(item => item.is_builtin && item.featured);
-    const firstBuiltin  = firstFeatured || _promptTemplates.find(item => item.is_builtin);
-    if (firstBuiltin) {
-      _selectedTemplateId = firstBuiltin.id;
-      document.getElementById("llm-prompt").value = firstBuiltin.content;
-      localStorage.setItem("llm_custom_prompt", firstBuiltin.content);
-      const barLabel = document.getElementById("template-bar-label");
-      if (barLabel) { barLabel.textContent = firstBuiltin.name; barLabel.style.color = "#333"; }
-    }
-  } catch (e) {
-    console.warn("Failed to load prompt templates", e);
-    const browseBtn = document.getElementById("template-browse-btn");
-    if (browseBtn) browseBtn.disabled = true;
-  }
-}
-
-function _buildTemplateSelect(sel) {
-  if (!sel) return;
-  sel.textContent = "";
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = t("selectTemplatePlaceholder");
-  sel.appendChild(placeholder);
-
-  const builtins = _promptTemplates.filter(tpl => tpl.is_builtin);
-  const userTpls = _promptTemplates.filter(tpl => !tpl.is_builtin);
-
-  if (builtins.length > 0) {
-    const grp = document.createElement("optgroup");
-    grp.label = t("templateBuiltinGroup");
-    builtins.forEach(tpl => {
-      const opt = document.createElement("option");
-      opt.value = tpl.id;
-      opt.textContent = tpl.name;
-      grp.appendChild(opt);
-    });
-    sel.appendChild(grp);
-  }
-
-  if (userTpls.length > 0) {
-    const grp = document.createElement("optgroup");
-    grp.label = t("templateUserGroup");
-    userTpls.forEach(tpl => {
-      const opt = document.createElement("option");
-      opt.value = tpl.id;
-      opt.textContent = tpl.name;
-      grp.appendChild(opt);
-    });
-    sel.appendChild(grp);
-  }
-}
-
-function populateTemplateDropdown() {
-  _buildTemplateSelect(document.getElementById("rerun-template-select"));
-}
-
-function onRerunTemplateSelect(id) {
-  const tpl = _promptTemplates.find(item => item.id === id);
-  if (tpl) {
-    document.getElementById("rerun-llm-prompt").value = tpl.content;
-    if (!rerunPromptOpen) toggleRerunPrompt();
-  }
-}
-
-function showSaveTemplateInput() {
-  document.getElementById("save-template-input-area").style.display = "block";
-  document.getElementById("save-template-name").focus();
-  document.getElementById("save-template-error").style.display = "none";
-}
-
-function cancelSaveTemplate() {
-  document.getElementById("save-template-input-area").style.display = "none";
-  document.getElementById("save-template-name").value = "";
-  document.getElementById("save-template-error").style.display = "none";
-}
-
-async function confirmSaveTemplate() {
-  const nameEl = document.getElementById("save-template-name");
-  const errorEl = document.getElementById("save-template-error");
-  const name = nameEl.value.trim();
-  if (!name) {
-    errorEl.textContent = t("templateNameRequired");
-    errorEl.style.display = "block";
-    return;
-  }
-  const content = document.getElementById("llm-prompt").value;
-  try {
-    const resp = await fetch("/api/prompt-templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, content }),
-    });
-    if (!resp.ok) {
-      let errMsg = "Save failed";
-      try { const err = await resp.json(); errMsg = err.error || errMsg; } catch {}
-      errorEl.textContent = errMsg;
-      errorEl.style.display = "block";
-      return;
-    }
-    const newTpl = await resp.json();
-    _promptTemplates.push(newTpl);
-    populateTemplateDropdown();
-    _applyTemplate(newTpl.id);
-    cancelSaveTemplate();
-  } catch (e) {
-    errorEl.textContent = "Save failed: " + e.message;
-    errorEl.style.display = "block";
-  }
-}
-
-async function deleteCurrentTemplate() {
-  const idToDelete = _previewTemplateId || _selectedTemplateId;
-  if (!idToDelete) return;
-  const tpl = _promptTemplates.find(item => item.id === idToDelete);
-  if (!tpl || tpl.is_builtin) return;
-  try {
-    const resp = await fetch("/api/prompt-templates/" + encodeURIComponent(idToDelete), {
-      method: "DELETE",
-    });
-    if (!resp.ok) {
-      let errMsg = "Delete failed";
-      try { const err = await resp.json(); errMsg = err.error || errMsg; } catch {}
-      alert(errMsg);
-      return;
-    }
-    _promptTemplates = _promptTemplates.filter(item => item.id !== idToDelete);
-    if (_selectedTemplateId === idToDelete) {
-      _selectedTemplateId = null;
-      const barLabel = document.getElementById("template-bar-label");
-      if (barLabel) { barLabel.textContent = t("selectTemplatePlaceholder"); barLabel.style.color = "#888"; }
-    }
-    _previewTemplateId = null;
-    populateTemplateDropdown();
-    closeBrowserPanel();
-  } catch (e) {
-    alert("Delete failed: " + e.message);
-  }
-}
 
 // ── Custom LLM Prompt ───────────────────────────────────────────────
 
@@ -2603,7 +2167,6 @@ document.getElementById("llm-prompt").addEventListener("input", function() {
 });
 
 loadDefaultPrompt();
-loadPromptTemplates();
 
 // ── Folder Watch ────────────────────────────────────────────────────
 

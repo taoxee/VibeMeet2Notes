@@ -33,8 +33,7 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 - 🤖 **LLM Model Selection** — Choose specific models per LLM vendor, auto-fetches available model list
 - 📄 **Chunked Summarization** — Auto Map-Reduce for long transcripts, merges and deduplicates into complete minutes
 - 🔧 **Model Compatibility** — Auto-adapts for models that don't support system role (e.g. qwen-mt-lite)
-- 🗂️ **Template Browser** — Compact bar + inline expandable panel; browse 13 built-in templates across 6 domains (Meeting, Sales, HR, Product, Study, Law); featured one-click chips for common use; preview before applying; save your own custom templates
-- ✏️ **Custom Prompt Editor** — Expand editor to modify the LLM system prompt directly, auto-saved to browser, one-click reset to default
+- ✏️ **Custom Prompt** — Edit the LLM system prompt from the frontend, auto-saved to browser, one-click reset to default
 - 📝 **Editable Notes** — Modify generated meeting summaries in-place after processing
 - 🔁 **Re-run Notes** — Re-generate minutes with a different model or prompt without re-transcribing
 - 📋 **Copy & Download** — One-click copy or download of transcript and meeting notes
@@ -139,7 +138,7 @@ pip install 'requests[socks]'
 1. Fill in API keys under "Vendor Credentials" (auto-saved to browser)
 2. Upload audio/video file (mp3 / mp4 / wav / m4a / webm / ogg / flac)
 3. Select ASR & LLM vendors (only configured ones shown)
-4. Select a template from the Template Browser, or (optional) expand "Custom Prompt" to edit directly
+4. (Optional) Expand "Custom Prompt" to edit the LLM system prompt
 5. Click "Start" — transcript and meeting minutes stream in real-time
 
 ---
@@ -156,9 +155,7 @@ pip install 'requests[socks]'
 ├── static/             # Frontend static files
 │   └── index.html
 ├── data/               # Data files
-│   ├── custom-prompts/
-│   │   ├── builtin-templates.json  # Built-in templates (domain/featured/description/content)
-│   │   └── user-templates.json     # User-saved templates (local, gitignored)
+│   ├── LLM_prompt.txt
 │   ├── CHANGELOG.md
 │   └── vendor_keys.csv
 ├── import_keys.py      # Credential auto-detection script
