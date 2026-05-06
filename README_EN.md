@@ -34,6 +34,10 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 - 📄 **Chunked Summarization** — Auto Map-Reduce for long transcripts, merges and deduplicates into complete minutes
 - 🔧 **Model Compatibility** — Auto-adapts for models that don't support system role (e.g. qwen-mt-lite)
 - ✏️ **Custom Prompt** — Edit the LLM system prompt from the frontend, auto-saved to browser, one-click reset to default
+- 📝 **Editable Notes** — Modify generated meeting summaries in-place after processing
+- 🔁 **Re-run Notes** — Re-generate minutes with a different model or prompt without re-transcribing
+- 📋 **Copy & Download** — One-click copy or download of transcript and meeting notes
+- 🗂️ **History Search & Delete** — Search across task history and delete individual entries
 
 ---
 
@@ -152,7 +156,7 @@ pip install 'requests[socks]'
 │   └── index.html
 ├── data/               # Data files
 │   ├── LLM_prompt.txt
-│   ├── conversationHist.md
+│   ├── CHANGELOG.md
 │   └── vendor_keys.csv
 ├── import_keys.py      # Credential auto-detection script
 ├── run.py              # Project entry point
