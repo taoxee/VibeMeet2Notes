@@ -129,13 +129,12 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
             </div>
             <textarea id="template-preview-content" rows="6" readonly style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #e0e4ff;border-radius:6px;font-size:0.78rem;font-family:inherit;resize:none;background:#fafbff;color:#333;"></textarea>
             <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:6px;">
+              <button id="delete-template-btn" onclick="deleteCurrentTemplate()" style="display:none;margin-right:auto;padding:6px 14px;font-size:0.82rem;background:#fff0f0;border:1px solid #e53935;border-radius:6px;cursor:pointer;color:#e53935;">删除模板</button>
               <button id="template-preview-cancel-btn" onclick="cancelPreview()" style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:0.82rem;cursor:pointer;color:#666;">取消</button>
               <button id="template-preview-use-btn" onclick="applyPreviewedTemplate()" style="background:#4361ee;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:0.82rem;cursor:pointer;">✓ 使用此模板</button>
             </div>
           </div>
         </div>
-        <!-- Delete button for user-saved templates -->
-        <button id="delete-template-btn" onclick="deleteCurrentTemplate()" style="display:none;margin-top:6px;padding:4px 12px;font-size:0.78rem;background:#fff0f0;border:1px solid #e53935;border-radius:4px;cursor:pointer;color:#e53935;">删除模板</button>
       </div>
       <!-- Collapsible custom prompt editor (unchanged) -->
       <label id="prompt-toggle-label" style="font-size:0.85rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="togglePromptEditor()">▶ 自定义提示词</label>
@@ -2152,8 +2151,6 @@ function applyLanguage() {
   if (barLabelEl && !_selectedTemplateId) barLabelEl.textContent = t("selectTemplatePlaceholder");
   const saveTplBtn = document.getElementById("save-template-btn");
   if (saveTplBtn) saveTplBtn.textContent = t("saveAsTemplate");
-  const deleteTplBtn = document.getElementById("delete-template-btn");
-  if (deleteTplBtn) deleteTplBtn.textContent = t("deleteTemplate");
   const tplNameInput = document.getElementById("save-template-name");
   if (tplNameInput) tplNameInput.placeholder = t("templateNamePlaceholder");
   const saveTplConfirmBtn = document.getElementById("save-template-confirm-btn");
@@ -2282,11 +2279,6 @@ function _applyTemplate(id) {
   localStorage.setItem("llm_custom_prompt", tpl.content);
   const barLabel = document.getElementById("template-bar-label");
   if (barLabel) { barLabel.textContent = tpl.name; barLabel.style.color = "#333"; }
-  const deleteBtn = document.getElementById("delete-template-btn");
-  if (deleteBtn) {
-    deleteBtn.style.display = tpl.is_builtin ? "none" : "";
-    if (!tpl.is_builtin) deleteBtn.textContent = t("deleteTemplate");
-  }
   closeBrowserPanel();
 }
 
@@ -2414,6 +2406,11 @@ function showTemplatePreview(id) {
   document.getElementById("template-preview-back-btn").textContent = t("previewBack");
   document.getElementById("template-preview-cancel-btn").textContent = t("templateSaveCancel");
   document.getElementById("template-preview-use-btn").textContent = t("previewUse");
+  const deleteBtn = document.getElementById("delete-template-btn");
+  if (deleteBtn) {
+    deleteBtn.style.display = tpl.is_builtin ? "none" : "";
+    if (!tpl.is_builtin) deleteBtn.textContent = t("deleteTemplate");
+  }
 }
 
 function applyPreviewedTemplate() {
@@ -2424,6 +2421,8 @@ function cancelPreview() {
   _previewTemplateId = null;
   document.getElementById("template-preview-pane").style.display = "none";
   document.getElementById("template-card-grid").style.display = "grid";
+  const deleteBtn = document.getElementById("delete-template-btn");
+  if (deleteBtn) deleteBtn.style.display = "none";
 }
 
 async function loadPromptTemplates() {
@@ -2543,11 +2542,12 @@ async function confirmSaveTemplate() {
 }
 
 async function deleteCurrentTemplate() {
-  if (!_selectedTemplateId) return;
-  const tpl = _promptTemplates.find(item => item.id === _selectedTemplateId);
+  const idToDelete = _previewTemplateId || _selectedTemplateId;
+  if (!idToDelete) return;
+  const tpl = _promptTemplates.find(item => item.id === idToDelete);
   if (!tpl || tpl.is_builtin) return;
   try {
-    const resp = await fetch("/api/prompt-templates/" + encodeURIComponent(_selectedTemplateId), {
+    const resp = await fetch("/api/prompt-templates/" + encodeURIComponent(idToDelete), {
       method: "DELETE",
     });
     if (!resp.ok) {
@@ -2556,13 +2556,15 @@ async function deleteCurrentTemplate() {
       alert(errMsg);
       return;
     }
-    _promptTemplates = _promptTemplates.filter(item => item.id !== _selectedTemplateId);
-    _selectedTemplateId = null;
+    _promptTemplates = _promptTemplates.filter(item => item.id !== idToDelete);
+    if (_selectedTemplateId === idToDelete) {
+      _selectedTemplateId = null;
+      const barLabel = document.getElementById("template-bar-label");
+      if (barLabel) { barLabel.textContent = t("selectTemplatePlaceholder"); barLabel.style.color = "#888"; }
+    }
+    _previewTemplateId = null;
     populateTemplateDropdown();
-    const barLabel = document.getElementById("template-bar-label");
-    if (barLabel) { barLabel.textContent = t("selectTemplatePlaceholder"); barLabel.style.color = "#888"; }
-    const deleteBtn = document.getElementById("delete-template-btn");
-    if (deleteBtn) deleteBtn.style.display = "none";
+    closeBrowserPanel();
   } catch (e) {
     alert("Delete failed: " + e.message);
   }

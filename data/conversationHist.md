@@ -897,3 +897,35 @@ UI：Prompt 区域升级为常驻 section，含模板下拉 + Save as Template +
 - `0e21cab`：`feat: add template browser panel core — open/close, featured chips, domain filter, card grid`
 - `bbb09f3`：`feat: add template preview state, wire up save/delete/applyLanguage to new browser panel`
 
+
+---
+
+## Conversation 17
+
+### 主题：Delete 按钮位置调整（UX 修复）
+
+**变更**：将 `#delete-template-btn` 从浏览面板外部移入预览操作行，与 Cancel / Use This Template 同层。
+
+---
+
+### 修改详情
+
+**HTML（`static/index.html`）**
+
+修改前：`#delete-template-btn` 在 `#template-browser` div 外，作为独立元素。
+修改后：移入预览操作行 `div`（`display:flex;justify-content:flex-end;margin-top:8px;gap:6px;`），作为第一个子元素，设 `margin-right:auto` 使其靠左，Cancel / Use This Template 靠右。按钮尺寸对齐 `font-size:0.82rem`，`border-radius:6px`。
+
+**JS 逻辑调整（`static/index.html`）**
+
+- `showTemplatePreview(id)`：新增 delete 按钮显隐逻辑——用户模板显示，内置模板隐藏，并更新按钮文本
+- `cancelPreview()`：返回卡片列表时隐藏 delete 按钮
+- `deleteCurrentTemplate()`：
+  - 原先读取 `_selectedTemplateId`（未预览时为 null，会静默失败）
+  - 现改为优先读 `_previewTemplateId`，回退 `_selectedTemplateId`
+  - 成功删除后调用 `closeBrowserPanel()`，清除 `_previewTemplateId`
+  - 仅当删除的是当前已应用模板时才重置 bar label
+- `_applyTemplate(id)`：移除孤立的 delete 按钮显隐代码（面板关闭后按钮不可见，逻辑无意义）
+- `applyLanguage()`：移除对 delete 按钮的文本更新（现由 `showTemplatePreview()` 按需设置）
+
+### Git 提交记录（本次会话）
+- 无独立提交（变更包含在未提交的 `static/index.html` diff 中）
