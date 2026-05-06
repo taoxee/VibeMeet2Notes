@@ -2,6 +2,7 @@
 import os
 import json
 import uuid
+import glob
 import shutil
 import hashlib
 import threading
@@ -46,6 +47,49 @@ _task_lock = threading.Lock()
 _task_queue = OrderedDict()
 
 
+# ── Prompt template helpers ───────────────────────────────────────────
+def _load_builtin_templates():
+    from app.config import BUILTIN_TEMPLATES_DIR
+    templates = []
+    if not os.path.isdir(BUILTIN_TEMPLATES_DIR):
+        print(f"[Templates] builtin dir not found: {BUILTIN_TEMPLATES_DIR}")
+        return templates
+    for path in sorted(glob.glob(os.path.join(BUILTIN_TEMPLATES_DIR, "*.txt"))):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        tid = "builtin_" + stem.replace("-", "_")
+        parts = stem.split("-")
+        name_parts = parts[1:] if parts and parts[0].isdigit() else parts
+        name = " ".join(w.capitalize() for w in name_parts)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+            templates.append({"id": tid, "name": name, "content": content, "is_builtin": True})
+        except Exception as e:
+            print(f"[Templates] Failed to load {path}: {e}")
+    return templates
+
+
+def _load_user_templates():
+    from app.config import USER_TEMPLATES_FILE
+    if not os.path.isfile(USER_TEMPLATES_FILE):
+        return []
+    try:
+        with open(USER_TEMPLATES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        print(f"[Templates] Failed to load user templates: {e}")
+        return []
+
+
+def _save_user_templates(templates):
+    from app.config import USER_TEMPLATES_FILE
+    tmp_path = USER_TEMPLATES_FILE + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(templates, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, USER_TEMPLATES_FILE)
+
+
 @bp.route("/")
 def index():
     from app.config import BASE_DIR
@@ -85,6 +129,49 @@ def get_default_prompt():
     """Return the default LLM system prompt."""
     from app.config import LLM_PROMPT
     return jsonify({"prompt": LLM_PROMPT})
+
+
+@bp.route("/api/prompt-templates")
+def get_prompt_templates():
+    """Return all prompt templates: built-ins first, then user-saved."""
+    return jsonify(_load_builtin_templates() + _load_user_templates())
+
+
+@bp.route("/api/prompt-templates", methods=["POST"])
+def create_prompt_template():
+    """Save a new user-defined prompt template."""
+    body = request.get_json(force=True, silent=True) or {}
+    name = (body.get("name") or "").strip()
+    content = (body.get("content") or "").strip()
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+    if len(name) > 80:
+        return jsonify({"error": "Name must be 80 characters or fewer"}), 400
+    if not content:
+        return jsonify({"error": "Content is required"}), 400
+    template = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "content": content,
+        "is_builtin": False,
+    }
+    templates = _load_user_templates()
+    templates.append(template)
+    _save_user_templates(templates)
+    return jsonify(template), 201
+
+
+@bp.route("/api/prompt-templates/<template_id>", methods=["DELETE"])
+def delete_prompt_template(template_id):
+    """Delete a user-defined prompt template. Returns 403 for built-ins."""
+    if template_id.startswith("builtin_"):
+        return jsonify({"error": "Cannot delete built-in templates"}), 403
+    templates = _load_user_templates()
+    new_templates = [t for t in templates if t.get("id") != template_id]
+    if len(new_templates) == len(templates):
+        return jsonify({"error": "Template not found"}), 404
+    _save_user_templates(new_templates)
+    return jsonify({"ok": True})
 
 
 @bp.route("/logos/<filename>")
