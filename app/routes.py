@@ -44,52 +44,6 @@ LLM_DEFAULT_MODELS = {
 # ── Task queue for parallel processing ───────────────────────────────
 _task_lock = threading.Lock()
 _task_queue = OrderedDict()
-_templates_lock = threading.Lock()
-
-
-# ── Prompt template helpers ───────────────────────────────────────────
-def _load_builtin_templates():
-    from app.config import BUILTIN_TEMPLATES_FILE
-    if not os.path.isfile(BUILTIN_TEMPLATES_FILE):
-        print(f"[Templates] builtin-templates.json not found: {BUILTIN_TEMPLATES_FILE}")
-        return []
-    try:
-        with open(BUILTIN_TEMPLATES_FILE, "r", encoding="utf-8") as f:
-            templates = json.load(f)
-        if not isinstance(templates, list):
-            return []
-        for t in templates:
-            t["is_builtin"] = True
-        return templates
-    except Exception as e:
-        print(f"[Templates] Failed to load builtin-templates.json: {e}")
-        return []
-
-
-def _load_user_templates():
-    from app.config import USER_TEMPLATES_FILE
-    if not os.path.isfile(USER_TEMPLATES_FILE):
-        return []
-    try:
-        with open(USER_TEMPLATES_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, list) else []
-    except Exception as e:
-        print(f"[Templates] Failed to load user templates: {e}")
-        return []
-
-
-def _save_user_templates(templates):
-    from app.config import USER_TEMPLATES_FILE
-    tmp_path = USER_TEMPLATES_FILE + ".tmp"
-    try:
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(templates, f, ensure_ascii=False, indent=2)
-        os.replace(tmp_path, USER_TEMPLATES_FILE)
-    except OSError:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-        raise
 
 
 @bp.route("/")
@@ -131,53 +85,6 @@ def get_default_prompt():
     """Return the default LLM system prompt."""
     from app.config import LLM_PROMPT
     return jsonify({"prompt": LLM_PROMPT})
-
-
-@bp.route("/api/prompt-templates")
-def get_prompt_templates():
-    """Return all prompt templates: built-ins first, then user-saved."""
-    return jsonify(_load_builtin_templates() + _load_user_templates())
-
-
-@bp.route("/api/prompt-templates", methods=["POST"])
-def create_prompt_template():
-    """Save a new user-defined prompt template."""
-    body = request.get_json(force=True, silent=True) or {}
-    name = (body.get("name") or "").strip()
-    content = (body.get("content") or "").strip()
-    if not name:
-        return jsonify({"error": "Name is required"}), 400
-    if len(name) > 80:
-        return jsonify({"error": "Name must be 80 characters or fewer"}), 400
-    if not content:
-        return jsonify({"error": "Content is required"}), 400
-    if len(content) > 50000:
-        return jsonify({"error": "Content must be 50,000 characters or fewer"}), 400
-    template = {
-        "id": str(uuid.uuid4()),
-        "name": name,
-        "content": content,
-        "is_builtin": False,
-    }
-    with _templates_lock:
-        templates = _load_user_templates()
-        templates.append(template)
-        _save_user_templates(templates)
-    return jsonify(template), 201
-
-
-@bp.route("/api/prompt-templates/<template_id>", methods=["DELETE"])
-def delete_prompt_template(template_id):
-    """Delete a user-defined prompt template. Returns 403 for built-ins."""
-    if template_id.startswith("builtin_"):
-        return jsonify({"error": "Cannot delete built-in templates"}), 403
-    with _templates_lock:
-        templates = _load_user_templates()
-        new_templates = [t for t in templates if t.get("id") != template_id]
-        if len(new_templates) == len(templates):
-            return jsonify({"error": "Template not found"}), 404
-        _save_user_templates(new_templates)
-    return jsonify({"ok": True})
 
 
 @bp.route("/logos/<filename>")
@@ -534,8 +441,6 @@ def rerun_llm(task_id):
         except Exception as e:
             yield sse_event("error", {"message": f"处理失败: {str(e)}"})
 
-    return Response(stream_with_context(generate()), mimetype="text/event-stream")
-
 
 @bp.route("/api/tasks/<task_id>/summary", methods=["PUT"])
 def update_summary(task_id):
@@ -556,3 +461,5 @@ def delete_task(task_id):
         return jsonify({"error": "任务不存在"}), 404
     shutil.rmtree(task_dir, ignore_errors=True)
     return jsonify({"ok": True})
+
+    return Response(stream_with_context(generate()), mimetype="text/event-stream")

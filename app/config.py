@@ -1,6 +1,5 @@
 """Configuration: paths, proxy, vendor definitions, prompt templates."""
 import os
-import json
 import tempfile
 
 # ── Paths ────────────────────────────────────────────────────────────
@@ -71,19 +70,7 @@ def _load_prompt(filename, fallback=""):
     return fallback
 
 
-BUILTIN_TEMPLATES_FILE = os.path.join(DATA_DIR, "custom-prompts", "builtin-templates.json")
-USER_TEMPLATES_FILE    = os.path.join(DATA_DIR, "custom-prompts", "user-templates.json")
-
-def _load_default_prompt():
-    try:
-        with open(BUILTIN_TEMPLATES_FILE, "r", encoding="utf-8") as f:
-            templates = json.load(f)
-        first = next((t for t in templates if t.get("featured")), templates[0] if templates else None)
-        return first["content"] if first else ""
-    except Exception:
-        return ""
-
-LLM_PROMPT = _load_default_prompt()
+LLM_PROMPT = _load_prompt("custom-prompts/meetingminutes-prompt.txt")
 
 
 # ── Vendor definitions ───────────────────────────────────────────────
