@@ -17,3 +17,5 @@ static/tmp/
 .qoder/
 tests/
 data/custom-prompts/user-templates.json
+.superpowers/
+docs/superpowers
