@@ -18,4 +18,4 @@ static/tmp/
 tests/
 data/custom-prompts/user-templates.json
 .superpowers/
-docs/superpowers
+docs/
