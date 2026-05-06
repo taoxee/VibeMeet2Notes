@@ -2204,7 +2204,7 @@ async function loadPromptTemplates() {
     const sel = document.getElementById("template-select");
     if (sel) {
       sel.disabled = true;
-      sel.options[0].textContent = "Failed to load templates";
+      if (sel.options.length > 0) sel.options[0].textContent = "Failed to load templates";
     }
   }
 }
@@ -2252,7 +2252,7 @@ function populateTemplateDropdown() {
 
 function onTemplateSelect(id) {
   _selectedTemplateId = id || null;
-  const tpl = _promptTemplates.find(tpl => tpl.id === id);
+  const tpl = _promptTemplates.find(item => item.id === id);
   const deleteBtn = document.getElementById("delete-template-btn");
   if (tpl) {
     document.getElementById("llm-prompt").value = tpl.content;
@@ -2265,7 +2265,7 @@ function onTemplateSelect(id) {
 }
 
 function onRerunTemplateSelect(id) {
-  const tpl = _promptTemplates.find(tpl => tpl.id === id);
+  const tpl = _promptTemplates.find(item => item.id === id);
   if (tpl) {
     document.getElementById("rerun-llm-prompt").value = tpl.content;
     if (!rerunPromptOpen) toggleRerunPrompt();
@@ -2301,8 +2301,9 @@ async function confirmSaveTemplate() {
       body: JSON.stringify({ name, content }),
     });
     if (!resp.ok) {
-      const err = await resp.json();
-      errorEl.textContent = err.error || "Save failed";
+      let errMsg = "Save failed";
+      try { const err = await resp.json(); errMsg = err.error || errMsg; } catch {}
+      errorEl.textContent = errMsg;
       errorEl.style.display = "block";
       return;
     }
@@ -2322,18 +2323,19 @@ async function confirmSaveTemplate() {
 
 async function deleteCurrentTemplate() {
   if (!_selectedTemplateId) return;
-  const tpl = _promptTemplates.find(tpl => tpl.id === _selectedTemplateId);
+  const tpl = _promptTemplates.find(item => item.id === _selectedTemplateId);
   if (!tpl || tpl.is_builtin) return;
   try {
     const resp = await fetch("/api/prompt-templates/" + encodeURIComponent(_selectedTemplateId), {
       method: "DELETE",
     });
     if (!resp.ok) {
-      const err = await resp.json();
-      alert(err.error || "Delete failed");
+      let errMsg = "Delete failed";
+      try { const err = await resp.json(); errMsg = err.error || errMsg; } catch {}
+      alert(errMsg);
       return;
     }
-    _promptTemplates = _promptTemplates.filter(tpl => tpl.id !== _selectedTemplateId);
+    _promptTemplates = _promptTemplates.filter(item => item.id !== _selectedTemplateId);
     _selectedTemplateId = null;
     populateTemplateDropdown();
     document.getElementById("template-select").value = "";
