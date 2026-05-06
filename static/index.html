@@ -2257,24 +2257,164 @@ if (_initLlmVendor) fetchModels(_initLlmVendor);
 
 // ── Prompt Templates ────────────────────────────────────────────────
 
+function _getAvailableDomains() {
+  const seen = new Set();
+  const domains = [];
+  _promptTemplates.filter(t => t.is_builtin).forEach(t => {
+    if (t.domain && !seen.has(t.domain)) { seen.add(t.domain); domains.push(t.domain); }
+  });
+  return domains;
+}
+
+function _domainLabel(domain) {
+  const map = { meeting: t("domainMeeting"), sales: t("domainSales"), hr: t("domainHr"), product: t("domainProduct"), study: t("domainStudy"), law: t("domainLaw") };
+  return map[domain] || domain;
+}
+
+function _applyTemplate(id) {
+  const tpl = _promptTemplates.find(item => item.id === id);
+  if (!tpl) return;
+  _selectedTemplateId = id;
+  document.getElementById("llm-prompt").value = tpl.content;
+  localStorage.setItem("llm_custom_prompt", tpl.content);
+  const barLabel = document.getElementById("template-bar-label");
+  if (barLabel) { barLabel.textContent = tpl.name; barLabel.style.color = "#333"; }
+  const deleteBtn = document.getElementById("delete-template-btn");
+  if (deleteBtn) {
+    deleteBtn.style.display = tpl.is_builtin ? "none" : "";
+    if (!tpl.is_builtin) deleteBtn.textContent = t("deleteTemplate");
+  }
+  closeBrowserPanel();
+}
+
+function toggleTemplateBrowser() {
+  _templateBrowserOpen ? closeBrowserPanel() : openBrowserPanel();
+}
+
+function openBrowserPanel() {
+  _templateBrowserOpen = true;
+  _previewTemplateId = null;
+  document.getElementById("template-browser").style.display = "block";
+  document.getElementById("template-browse-btn").textContent = t("browseBtnClose");
+  if (_activeDomain === null) {
+    const cur = _promptTemplates.find(item => item.id === _selectedTemplateId);
+    _activeDomain = (cur && cur.domain) ? cur.domain : (_getAvailableDomains()[0] || null);
+  }
+  renderBrowserPanel();
+}
+
+function closeBrowserPanel() {
+  _templateBrowserOpen = false;
+  _previewTemplateId = null;
+  document.getElementById("template-browser").style.display = "none";
+  document.getElementById("template-browse-btn").textContent = t("browseBtnOpen");
+}
+
+function renderBrowserPanel() {
+  document.getElementById("template-featured-label").textContent = t("sectionCommonUse");
+  document.getElementById("template-domain-label").textContent = t("sectionDomain");
+  renderFeaturedChips();
+  renderDomainChips();
+  renderTemplateCards();
+}
+
+function renderFeaturedChips() {
+  const container = document.getElementById("template-featured-chips");
+  container.textContent = "";
+  _promptTemplates.filter(tpl => tpl.featured).forEach(tpl => {
+    const chip = document.createElement("div");
+    chip.style.cssText = "background:#fff7e6;border:1px solid #ffd591;border-radius:20px;padding:3px 11px;font-size:0.77rem;cursor:pointer;color:#ad6800;";
+    chip.textContent = tpl.name;
+    chip.onclick = () => _applyTemplate(tpl.id);
+    container.appendChild(chip);
+  });
+}
+
+function renderDomainChips() {
+  const container = document.getElementById("template-domain-chips");
+  container.textContent = "";
+  _getAvailableDomains().forEach(domain => {
+    const active = domain === _activeDomain;
+    const chip = document.createElement("div");
+    chip.style.cssText = active
+      ? "background:#4361ee;color:#fff;border-radius:20px;padding:3px 10px;font-size:0.73rem;cursor:pointer;"
+      : "background:#f0f4ff;color:#4361ee;border:1px solid #c5ceff;border-radius:20px;padding:3px 10px;font-size:0.73rem;cursor:pointer;";
+    chip.textContent = _domainLabel(domain);
+    chip.onclick = () => onDomainChipClick(domain);
+    container.appendChild(chip);
+  });
+  if (_promptTemplates.some(tpl => !tpl.is_builtin)) {
+    const active = _activeDomain === "__user__";
+    const chip = document.createElement("div");
+    chip.style.cssText = active
+      ? "background:#722ed1;color:#fff;border-radius:20px;padding:3px 10px;font-size:0.73rem;cursor:pointer;"
+      : "background:#f5f0ff;color:#722ed1;border:1px solid #d3adf7;border-radius:20px;padding:3px 10px;font-size:0.73rem;cursor:pointer;";
+    chip.textContent = t("domainMyTemplates");
+    chip.onclick = () => onDomainChipClick("__user__");
+    container.appendChild(chip);
+  }
+}
+
+function renderTemplateCards() {
+  document.getElementById("template-preview-pane").style.display = "none";
+  const grid = document.getElementById("template-card-grid");
+  grid.style.display = "grid";
+  grid.textContent = "";
+  const filtered = _activeDomain === "__user__"
+    ? _promptTemplates.filter(tpl => !tpl.is_builtin)
+    : _promptTemplates.filter(tpl => tpl.is_builtin && tpl.domain === _activeDomain);
+  if (filtered.length === 0) {
+    const empty = document.createElement("div");
+    empty.style.cssText = "color:#aaa;font-size:0.8rem;padding:8px;grid-column:1/-1;";
+    empty.textContent = "No templates in this domain.";
+    grid.appendChild(empty);
+    return;
+  }
+  filtered.forEach(tpl => {
+    const isSelected = tpl.id === _selectedTemplateId;
+    const card = document.createElement("div");
+    card.style.cssText = isSelected
+      ? "background:#e8edff;border:1.5px solid #4361ee;border-radius:7px;padding:8px 9px;cursor:pointer;"
+      : "background:#f8f9ff;border:1px solid #e0e4ff;border-radius:7px;padding:8px 9px;cursor:pointer;";
+    const name = document.createElement("div");
+    name.style.cssText = "font-size:0.8rem;font-weight:600;color:" + (isSelected ? "#1a237e" : "#333") + ";margin-bottom:2px;";
+    name.textContent = tpl.name;
+    const desc = document.createElement("div");
+    desc.style.cssText = "font-size:0.7rem;color:#555;line-height:1.3;";
+    desc.textContent = tpl.description || "";
+    card.appendChild(name);
+    card.appendChild(desc);
+    card.onclick = () => showTemplatePreview(tpl.id);
+    grid.appendChild(card);
+  });
+}
+
+function onDomainChipClick(domain) {
+  _activeDomain = domain;
+  _previewTemplateId = null;
+  renderDomainChips();
+  renderTemplateCards();
+}
+
 async function loadPromptTemplates() {
   try {
     const resp = await fetch("/api/prompt-templates");
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     _promptTemplates = await resp.json();
     populateTemplateDropdown();
-    const firstBuiltin = _promptTemplates.find(item => item.is_builtin);
+    const firstFeatured = _promptTemplates.find(item => item.is_builtin && item.featured);
+    const firstBuiltin  = firstFeatured || _promptTemplates.find(item => item.is_builtin);
     if (firstBuiltin) {
-      document.getElementById("template-select").value = firstBuiltin.id;
       _selectedTemplateId = firstBuiltin.id;
+      document.getElementById("llm-prompt").value = firstBuiltin.content;
+      localStorage.setItem("llm_custom_prompt", firstBuiltin.content);
+      const barLabel = document.getElementById("template-bar-label");
+      if (barLabel) { barLabel.textContent = firstBuiltin.name; barLabel.style.color = "#333"; }
     }
   } catch (e) {
     console.warn("Failed to load prompt templates", e);
-    const sel = document.getElementById("template-select");
-    if (sel) {
-      sel.disabled = true;
-      if (sel.options.length > 0) sel.options[0].textContent = "Failed to load templates";
-    }
+    const browseBtn = document.getElementById("template-browse-btn");
+    if (browseBtn) browseBtn.disabled = true;
   }
 }
 
