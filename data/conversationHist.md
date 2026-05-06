@@ -522,3 +522,127 @@
 - `static/index.html` — Folder Watch 功能全实现 + 折叠修复 + 迁移为独立卡片 + TDZ 修复
 - `app/routes.py` — 根路由新增 no-cache 响应头
 
+---
+
+## Conversation 13
+
+### Task 1: OpenAI 5.x API 兼容修复
+- **max_tokens 不支持**：检测 400 错误消息同时含 "max_tokens" 和 "max_completion_tokens" 时，将 `max_tokens` 替换为 `max_completion_tokens: 4096` 并重试
+- **temperature 不支持**：检测 400 错误消息含 "temperature" 时，移除参数后重试
+- 两种修复合并为一次重试（避免双重请求）
+- 位置：`app/services.py` `summarize_openai_compatible()` 的 400 错误处理块
+
+### Task 2: 双分支 Git 策略
+- `main` = 稳定版（仅接收 bug fix cherry-pick）
+- `dev` = 活跃开发分支（所有新功能）
+- Folder Watch 在 dev 上隐藏（`display:none`），等待成熟后上线
+
+### Task 3: 产品审计 + P0 功能实现
+
+**产品审计**：以 PM/销售视角梳理核心上传→处理→查看循环，发现缺失功能，保存为 `data/feature-list.md`（P0~P3 分级）
+
+**P0 — 复制/下载按钮（`33e6fa8`）**
+- 转录和会议纪要标题行新增 📋 复制 / ⬇️ 下载按钮
+- 复制：JSON 格式转录输出 `[Speaker] text`，纯文本直接复制
+- 下载：`_transcript.txt` / `_notes.md`，`URL.createObjectURL(new Blob(...))`
+- 新增 `_flashBtn()` 工具函数，复制后临时显示"✅ 已复制"
+
+**P0 — 供应商选择跨刷新记忆（`33e6fa8`）**
+- ASR/LLM `<select>` 新增 `onchange` 写 `localStorage`
+- `populateSelects()` 恢复时优先用当前 session 值，其次 localStorage
+
+**P0 — Re-run Notes 面板（`b302259`）**
+- 后端：`POST /api/tasks/<task_id>/rerun-llm` — 读取缓存 `transcript.txt`，流式 SSE，覆写 `summary.txt` + `meta.json`
+- 前端：结果卡片底部「重新生成纪要」按钮，展开面板含 LLM 供应商/模型/自定义提示词选择
+- 生成中按钮文字改为 "⏳ 处理中..." 并禁用，完成后恢复
+
+### Task 4: P1 — 上传进度条（`9a836d4`）
+- `processSingleFile` 从 `fetch` 改为 `XMLHttpRequest`
+- `xhr.upload.addEventListener("progress")` 更新 `task.percent`（0–8%）和"上传中... X/Y MB"消息
+- `xhr.addEventListener("progress")` 增量读取 `xhr.response` 解析 SSE 流，行为与原 fetch 版完全一致
+
+### Task 5: P1 — 新用户引导横幅（`9a836d4`）
+- 当 ASR 和 LLM 均无已配置供应商时，页面顶部显示蓝色横幅
+- 包含说明文字 + "🔑 立即配置凭证 →" 按钮
+- 按钮调用 `scrollToCreds()`：展开凭证区域并平滑滚动到位
+- 任意供应商配置完成后横幅自动隐藏（`populateSelects()` 驱动）
+- 完整 zh/en i18n
+
+### Task 6: P1 — 历史记录搜索 + 删除（`9a836d4`）
+- 历史区域新增搜索输入框，按文件名实时过滤（客户端，无需重新请求）
+- 每条历史记录新增 🗑️ 删除按钮
+- 删除调用 `DELETE /api/tasks/<task_id>`（新后端端点，`shutil.rmtree`），立即从内存列表中移除并重渲染
+- `_historyTasks` 模块变量存储已获取的任务列表，`renderHistory(filterText)` 统一渲染逻辑
+
+### Task 7: P1 — 会议纪要可编辑（`289095c`）
+- 会议纪要标题行新增 ✏️ 编辑 / ✅ 保存 / ✕ 取消 按钮
+- 编辑模式：隐藏渲染 div，显示 `<textarea>` 填充原始 Markdown
+- 保存：更新 `_currentSummaryRaw`，重新渲染 Markdown，调用 `PUT /api/tasks/<task_id>/summary` 持久化到 `summary.txt`
+- 取消：不修改，恢复渲染视图
+- 新 LLM 结果到来（队列处理或 re-run）时自动退出编辑模式
+- 完整 zh/en i18n
+
+### Task 8: P2 — 批量处理可见性（`686f4e5`）
+- **自动展开队列**：上传 >1 个文件时，队列卡片自动展开（无需手动点击）
+- **批次计数器**：队列标题显示 "批次: X/N"，随任务完成实时更新
+- **批量完成通知**：最后一个文件完成时触发独立 toast（区别于每文件单独 toast）
+- **"查看结果"提示**：已完成任务条目右下角显示 "👁 查看结果"，提示可点击
+- `_batchIds` (Set) + `_batchNotified` (bool) 追踪当前批次状态，`processFiles()` 每次提交重置
+
+
+### Git 提交记录（dev 分支）
+- `33e6fa8`：`feat: P0 copy/download buttons + remember vendor selection`
+- `b302259`：`feat: P0 re-run notes panel + backend endpoint + button feedback`
+- `9a836d4`：`feat: P1 upload progress bar, onboarding banner, history search + delete`
+- `289095c`：`feat: P1 editable meeting notes`
+- `686f4e5`：`feat: P2 multi-file batch visibility`
+
+---
+
+## Conversation 14 (current)
+
+### Task 1: Logo 集成 + Prompt 文件重组织
+
+**问题描述**：用户添加了 3 个 logo 文件到 `data/logos/`，需要集成到 UI 中；同时建立 `custom-prompts/` 目录用于后续自定义 prompt 功能
+
+**实现方案**：
+
+**初始方案（两次迭代）**：
+1. 第一版：直接复制 logo 文件到 `static/logos/`，HTML 引用 `/static/logos/xxx.png`
+   - 提交 `db3a6a5`：`feat: add logos and reorganize prompts`
+   - 添加 favicon：`<link rel="icon" href="/static/logos/web-tab-logo.png">`
+   - 添加 EN banner logo，初始隐藏，via `applyLanguage()` 基于语言切换显示/隐藏
+   - `app/config.py` line 73 更新：`LLM_PROMPT = _load_prompt("custom-prompts/meetingminutes-prompt.txt")`
+   - 移动 `data/LLM_prompt.txt` → `data/custom-prompts/meetingminutes-prompt.txt`
+   
+2. 用户反馈：logo 太小且位置不对（左对齐）
+   - 第二版：调整 `max-height: 300px`，改用 flexbox 实现中心对齐 `display:flex; justify-content:center`
+
+**最终优化（消除重复）**：
+3. 用户提问：为何 `/static/logos/` 存在，本不需要在此复制文件
+   - 分析：单一真实源原则 — logo 来源是 `data/logos/`，不应在 `static/` 中复制
+   - 提交 `956ceeb`：`refactor: serve logos from data/ via Flask route instead of static duplication`
+   - `app/routes.py` 新增路由：`@bp.route("/logos/<filename>")` → `send_from_directory(os.path.join(BASE_DIR, "data", "logos"), ...)`
+   - HTML 更新：`/static/logos/xxx` → `/logos/xxx`
+   - 删除 `static/logos/` 目录
+
+**logo 尺寸调整说明**：
+- 用户要求 logo 尺寸可调
+- 提交 `2035d8d`：`docs: add logo size adjustment comments`
+- HTML 中添加详细注释说明如何调整：
+  - `max-height:300px` 控制大小（改为 200px 缩小，改为 400px 放大）
+  - `margin-bottom:24px` 控制与下方内容的距离
+  - 包含 EN/CN 语言切换逻辑说明
+
+**文件变更汇总**：
+- `static/index.html` — favicon + EN logo 标记 + `applyLanguage()` 切换逻辑 + 尺寸调整注释
+- `app/config.py` — prompt 路径 update
+- `app/routes.py` — logo 服务路由 + 文件移动处理
+- `data/LLM_prompt.txt` → `data/custom-prompts/meetingminutes-prompt.txt`
+
+### Git 提交记录（dev 分支 + 最新）
+- `686f4e5`：`feat: P2 multi-file batch visibility`
+- `db3a6a5`：`feat: add logos and reorganize prompts`
+- `956ceeb`：`refactor: serve logos from data/ via Flask route instead of static duplication`
+- `2035d8d`：`docs: add logo size adjustment comments`
+

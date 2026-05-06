@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">灵感纪要 · VibeMeet2Notes</title>
+<link rel="icon" type="image/png" href="/logos/web-tab-logo.png">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 /* Language switcher */
@@ -43,6 +44,22 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
       <option value="en">🌐 English</option>
     </select>
   </div>
+  <!-- EN Banner Logo (hidden by default, toggled in applyLanguage() based on language) -->
+  <div style="display:flex;justify-content:center;margin-bottom:24px;">
+    <!-- To adjust size: change max-height value (e.g., 200px for smaller, 400px for larger) -->
+    <!-- margin-bottom controls spacing below logo (24px = current space to subtitle) -->
+    <img id="banner-logo-en"
+         src="/logos/banner-logo.png"
+         onerror="this.src='/logos/backup-banner-logo.png'"
+         alt="VibeMeet2Notes"
+         style="display:none;max-height:100px;width:auto;object-fit:contain;">
+    <!-- Style breakdown:
+         - display:none = hidden initially (shown when language = EN in applyLanguage())
+         - max-height:300px = size control (ADJUST THIS to change logo size)
+         - width:auto = maintains aspect ratio
+         - object-fit:contain = ensures whole image visible without cropping
+    -->
+  </div>
   <h1>🎙️ 灵感纪要 · VibeMeet2Notes</h1>
   <p class="subtitle">上传音视频文件 → ASR 语音识别（说话人分离）→ LLM 会议纪要</p>
 
@@ -52,6 +69,13 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
   </div>
 
   <div id="save-toast" style="display:none;position:fixed;top:20px;right:20px;background:#2e7d32;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;z-index:999;transition:opacity 0.3s;">✅ 已自动保存</div>
+
+  <!-- Onboarding banner for first-time users -->
+  <div id="onboarding-banner" style="display:none;background:#e3f2fd;border:1px solid #bbdefb;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+    <div style="font-size:1.05rem;font-weight:600;color:#1565c0;margin-bottom:8px;">👋 <span id="onboarding-title">欢迎使用 VibeMeet2Notes！</span></div>
+    <p id="onboarding-msg" style="font-size:0.88rem;color:#555;margin-bottom:14px;line-height:1.6;">开始使用前，请先配置 ASR 和 LLM 供应商凭证。凭证仅保存在浏览器本地，输入后自动保存。</p>
+    <button onclick="scrollToCreds()" id="onboarding-btn" style="padding:10px 22px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;">🔑 立即配置凭证 →</button>
+  </div>
 
   <!-- Upload & Process (FIRST — core feature) -->
   <div class="card">
@@ -65,12 +89,12 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     <div class="form-row">
       <div class="form-group">
         <label id="asr-label">ASR 供应商（语音转文字 + 说话人分离）</label>
-        <select id="asr-vendor"><option value="">-- 请选择 --</option></select>
+        <select id="asr-vendor" onchange="localStorage.setItem('last_asr_vendor',this.value)"><option value="">-- 请选择 --</option></select>
         <div id="asr-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">⚠️ 暂无已配置的 ASR 供应商，请先在下方配置凭证</div>
       </div>
       <div class="form-group">
         <label id="llm-label">LLM 供应商（会议纪要）</label>
-        <select id="llm-vendor"><option value="">-- 请选择 --</option></select>
+        <select id="llm-vendor" onchange="localStorage.setItem('last_llm_vendor',this.value);fetchModels(this.value)"><option value="">-- 请选择 --</option></select>
         <div id="llm-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">⚠️ 暂无已配置的 LLM 供应商，请先在下方配置凭证</div>
       </div>
       <div class="form-group">
@@ -94,7 +118,7 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
   </div>
 
   <!-- Folder Watch Card -->
-  <div class="card" id="fw-card">
+  <div class="card" id="fw-card" style="display:none">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
       <h2 style="cursor:pointer;user-select:none;margin:0;flex:1;" onclick="toggleFwCard()">
         📂 <span id="fw-section-title">文件夹监控</span>
@@ -139,13 +163,29 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     <div id="result-filename" style="font-size:0.95rem;font-weight:500;color:#1a1a2e;margin-bottom:6px;"></div>
     <div id="task-id-display" style="font-size:0.82rem;color:#888;margin-bottom:12px;"></div>
     <div id="transcript-section" style="margin-bottom:16px;display:none;">
-      <label style="font-weight:600;color:#555;display:block;margin-bottom:8px;cursor:pointer;user-select:none;" onclick="toggleTranscript()">转录文本 <span id="asr-vendor-tag" style="font-size:0.78rem;color:#2e7d32;"></span> <span id="transcript-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label style="font-weight:600;color:#555;cursor:pointer;user-select:none;margin:0;" onclick="toggleTranscript()">转录文本 <span id="asr-vendor-tag" style="font-size:0.78rem;color:#2e7d32;"></span> <span id="transcript-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
+        <div style="display:flex;gap:6px;">
+          <button id="copy-transcript-btn" onclick="copyTranscript()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">📋 <span id="copy-transcript-label">复制</span></button>
+          <button onclick="downloadTranscript()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">⬇️ <span id="download-transcript-label">下载</span></button>
+        </div>
+      </div>
       <div id="transcript-meta" style="display:none;font-size:0.82rem;color:#666;margin-bottom:8px;padding:6px 12px;background:#e8f5e9;border-radius:6px;"></div>
       <div id="transcript-output" style="background:#f8f9fa;padding:16px;border-radius:8px;max-height:500px;overflow-y:auto;font-size:0.9rem;line-height:1.6;border:1px solid #e9ecef;"></div>
     </div>
     <div id="summary-section" style="display:none;">
-      <label style="font-weight:600;color:#555;display:block;margin-bottom:8px;cursor:pointer;user-select:none;" onclick="toggleSummary()">会议纪要 <span id="llm-vendor-tag" style="font-size:0.78rem;color:#1565c0;"></span> <span id="summary-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label style="font-weight:600;color:#555;cursor:pointer;user-select:none;margin:0;" onclick="toggleSummary()">会议纪要 <span id="llm-vendor-tag" style="font-size:0.78rem;color:#1565c0;"></span> <span id="summary-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
+        <div style="display:flex;gap:6px;">
+          <button id="copy-summary-btn" onclick="copySummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">📋 <span id="copy-summary-label">复制</span></button>
+          <button onclick="downloadSummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">⬇️ <span id="download-summary-label">下载</span></button>
+          <button id="edit-summary-btn" onclick="enterSummaryEdit()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">✏️ <span id="edit-summary-label">编辑</span></button>
+          <button id="save-summary-btn" onclick="saveSummaryEdit()" style="display:none;font-size:0.78rem;padding:3px 10px;border:1px solid #c8e6c9;border-radius:5px;background:#e8f5e9;cursor:pointer;color:#2e7d32;">✅ <span id="save-summary-label">保存</span></button>
+          <button id="cancel-summary-btn" onclick="cancelSummaryEdit()" style="display:none;font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#888;">✕ <span id="cancel-summary-label">取消</span></button>
+        </div>
+      </div>
       <div id="summary-output" style="background:#f0f4ff;padding:16px;border-radius:8px;max-height:600px;overflow-y:auto;font-size:0.9rem;line-height:1.6;border:1px solid #d6e0ff;"></div>
+      <textarea id="summary-edit-area" style="display:none;width:100%;box-sizing:border-box;padding:16px;border:1px solid #4361ee;border-radius:8px;font-size:0.9rem;font-family:inherit;resize:vertical;line-height:1.6;min-height:300px;"></textarea>
     </div>
     <div id="error-section" style="display:none;margin-bottom:12px;padding:12px 14px;background:#fff5f5;border-radius:8px;border:1px solid #ffcdd2;">
       <div style="font-weight:600;font-size:0.85rem;color:#c62828;margin-bottom:6px;">⚠️ <span id="error-label">错误信息</span></div>
@@ -155,6 +195,28 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
       <div style="font-weight:600;font-size:0.85rem;color:#7b1fa2;margin-bottom:6px;">🔢 Token 用量</div>
       <div id="token-usage-content" style="font-size:0.82rem;color:#555;"></div>
     </div>
+    <div style="margin-top:14px;text-align:right;">
+      <button id="rerun-toggle-btn" onclick="toggleRerunPanel()" style="font-size:0.82rem;padding:5px 14px;border:1px solid #4361ee;border-radius:6px;background:#fff;color:#4361ee;cursor:pointer;">🔄 <span id="rerun-toggle-label">重新生成纪要</span></button>
+    </div>
+    <div id="rerun-panel" style="display:none;margin-top:10px;padding:14px;background:#f8f9fa;border:1px solid #e0e4ff;border-radius:8px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+        <div style="flex:1;min-width:140px;">
+          <label style="font-size:0.8rem;color:#555;display:block;margin-bottom:4px;" id="rerun-llm-label">LLM 供应商</label>
+          <select id="rerun-llm-vendor" onchange="fetchRerunModels(this.value)" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:5px;font-size:0.85rem;"></select>
+        </div>
+        <div style="flex:1;min-width:120px;">
+          <label style="font-size:0.8rem;color:#555;display:block;margin-bottom:4px;" id="rerun-model-label">模型</label>
+          <select id="rerun-llm-model" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:5px;font-size:0.85rem;"><option value="">-- 默认 --</option></select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label id="rerun-prompt-toggle-label" style="font-size:0.82rem;color:#4361ee;cursor:pointer;user-select:none;" onclick="toggleRerunPrompt()">▶ <span id="rerun-prompt-toggle-text">自定义提示词</span></label>
+        <div id="rerun-prompt-editor" style="display:none;margin-top:6px;">
+          <textarea id="rerun-llm-prompt" rows="5" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ddd;border-radius:5px;font-size:0.82rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
+        </div>
+      </div>
+      <button onclick="doRerunLlm()" id="rerun-submit-btn" style="width:100%;padding:10px;background:#4361ee;color:#fff;border:none;border-radius:7px;font-size:0.9rem;cursor:pointer;">🔄 <span id="rerun-submit-label">生成</span></button>
+    </div>
   </div>
 
   <!-- Task History (collapsible) -->
@@ -162,7 +224,11 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     <h2 style="cursor:pointer;user-select:none;" onclick="toggleHistory()">
       📂 历史任务 <span id="history-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▼ 展开</span>
     </h2>
-    <div id="task-history" style="display:none;"></div>
+    <div id="history-content" style="display:none;">
+      <input type="text" id="history-search" placeholder="搜索历史记录..." oninput="filterHistory(this.value)"
+        style="width:100%;padding:8px 12px;border:1px solid #d9d9d9;border-radius:8px;font-size:0.88rem;margin-bottom:10px;box-sizing:border-box;">
+      <div id="task-history"></div>
+    </div>
   </div>
 
   <!-- Vendor Key Management (collapsible) -->
@@ -279,6 +345,14 @@ let credsExpanded = false;
 let taskQueue = {}; // taskId -> {file, status, percent, message, token_usage, ...}
 let activeTaskCount = 0;
 const MAX_PARALLEL = 3;
+// Batch tracking (most recent processFiles() call)
+let _batchIds = new Set();
+let _batchNotified = false;
+// Current result state (for copy/download)
+let _currentTranscriptRaw = "";
+let _currentSummaryRaw = "";
+let _currentTaskId = "";
+let _currentFileName = "";
 
 // i18n - Language setting (must be before init)
 let currentLang = localStorage.getItem("app_lang") || "zh";
@@ -425,7 +499,27 @@ const i18n = {
     fwClose: "关闭",
     fwNotSupported: "您的浏览器不支持文件夹监控功能",
     fwMaxFolders: "最多支持 3 个文件夹",
-    fwHowItWorks: "原理：浏览器通过文件系统权限直接读取本地文件夹，每 10 秒检测是否有新录音文件，无需安装任何插件或本地程序。"
+    fwHowItWorks: "原理：浏览器通过文件系统权限直接读取本地文件夹，每 10 秒检测是否有新录音文件，无需安装任何插件或本地程序。",
+    copyBtn: "复制",
+    downloadBtn: "下载",
+    copied: "✅ 已复制",
+    rerunBtn: "重新生成纪要",
+    rerunSubmit: "生成",
+    rerunLlmLabel: "LLM 供应商",
+    rerunModelLabel: "模型",
+    rerunPromptToggle: "自定义提示词",
+    editBtn: "编辑",
+    saveBtn: "保存",
+    cancelBtn: "取消",
+    batchProgress: "批次",
+    batchAllDone: "全部 {n} 个文件处理完成",
+    viewResult: "查看结果",
+    onboardingTitle: "欢迎使用 VibeMeet2Notes！",
+    onboardingMsg: "开始使用前，请先配置 ASR（语音识别）和 LLM（会议纪要）供应商凭证。凭证仅保存在浏览器本地，输入后自动保存。",
+    onboardingBtn: "🔑 立即配置凭证 →",
+    historySearch: "搜索历史记录...",
+    deleteBtn: "删除",
+    confirmDelete: "确认删除此条历史记录？删除后无法恢复。"
   },
   en: {
     title: "🎙️ VibeMeet2Notes · 灵感纪要",
@@ -540,7 +634,27 @@ const i18n = {
     fwClose: "Close",
     fwNotSupported: "Your browser doesn't support Folder Watch",
     fwMaxFolders: "Maximum 3 folders supported",
-    fwHowItWorks: "How it works: the browser reads your local folders directly via file system permissions, checking every 10 seconds for new recordings — no plugin or local app required."
+    fwHowItWorks: "How it works: the browser reads your local folders directly via file system permissions, checking every 10 seconds for new recordings — no plugin or local app required.",
+    copyBtn: "Copy",
+    downloadBtn: "Download",
+    copied: "✅ Copied",
+    rerunBtn: "Re-run Notes",
+    rerunSubmit: "Generate",
+    rerunLlmLabel: "LLM Vendor",
+    rerunModelLabel: "Model",
+    rerunPromptToggle: "Custom Prompt",
+    editBtn: "Edit",
+    saveBtn: "Save",
+    cancelBtn: "Cancel",
+    batchProgress: "Batch",
+    batchAllDone: "All {n} files complete",
+    viewResult: "View results",
+    onboardingTitle: "Welcome to VibeMeet2Notes!",
+    onboardingMsg: "To get started, configure at least one ASR (speech-to-text) and one LLM (meeting notes) vendor below. Credentials are saved only in your browser.",
+    onboardingBtn: "🔑 Set Up Credentials →",
+    historySearch: "Search history...",
+    deleteBtn: "Delete",
+    confirmDelete: "Delete this history entry? This cannot be undone."
   }
 };
 
@@ -717,9 +831,11 @@ function populateSelects() {
     }
   });
 
-  // Restore previous selection if still available
-  if (asrPrev) asrSel.value = asrPrev;
-  if (llmPrev) llmSel.value = llmPrev;
+  // Restore previous selection — in-session first, then localStorage
+  const asrRestore = asrPrev || localStorage.getItem("last_asr_vendor") || "";
+  const llmRestore = llmPrev || localStorage.getItem("last_llm_vendor") || "";
+  if (asrRestore) asrSel.value = asrRestore;
+  if (llmRestore) llmSel.value = llmRestore;
   // If LLM vendor changed, refresh model list
   if (llmSel.value !== llmPrev) {
     fetchModels(llmSel.value);
@@ -727,6 +843,9 @@ function populateSelects() {
 
   document.getElementById("asr-no-vendor").style.display = asrCount === 0 ? "block" : "none";
   document.getElementById("llm-no-vendor").style.display = llmCount === 0 ? "block" : "none";
+
+  const banner = document.getElementById("onboarding-banner");
+  if (banner) banner.style.display = (asrCount === 0 && llmCount === 0) ? "block" : "none";
 }
 
 function renderVendorTable() {
@@ -753,6 +872,7 @@ function getVendorCreds(vendor) {
 let _lastTranscriptMeta = null;
 
 function renderTranscript(text) {
+  _currentTranscriptRaw = text;
   const output = document.getElementById("transcript-output");
   const meta = document.getElementById("transcript-meta");
   _lastTranscriptMeta = null;
@@ -869,7 +989,12 @@ function updateQueueUI() {
   card.style.display = "block";
   const running = ids.filter(id => taskQueue[id].status === "running" || taskQueue[id].status === "waiting").length;
   const done = ids.filter(id => taskQueue[id].status === "done").length;
-  document.getElementById("queue-count").textContent = `(${running} ${t("queueRunning")} / ${done} ${t("queueDone")} / ${t("queueTotal")} ${ids.length})`;
+  let countText = `(${running} ${t("queueRunning")} / ${done} ${t("queueDone")} / ${t("queueTotal")} ${ids.length})`;
+  if (_batchIds.size > 1) {
+    const batchDone = [..._batchIds].filter(id => taskQueue[id] && (taskQueue[id].status === "done" || taskQueue[id].status === "error")).length;
+    countText = `${t("batchProgress")}: ${batchDone}/${_batchIds.size} · ` + countText;
+  }
+  document.getElementById("queue-count").textContent = countText;
   container.innerHTML = ids.map(tid => {
     const task = taskQueue[tid];
     const statusMap = {waiting: t("statusWaiting"), running: t("statusRunning"), done: t("statusDone"), error: t("statusError")};
@@ -880,6 +1005,10 @@ function updateQueueUI() {
     if (task.token_usage && task.token_usage.total_tokens) {
       extraHtml = ` · 🔢 ${task.token_usage.total_tokens} ${t("tokensUnit")}`;
     }
+    const isTerminal = task.status === "done" || task.status === "error";
+    const viewHint = isTerminal
+      ? `<div style="font-size:0.7rem;color:#4361ee;text-align:right;margin-top:3px;">👁 ${t("viewResult")}</div>`
+      : '';
     return `<div class="queue-item ${task.status}" onclick="viewQueueTask('${tid}')">
       <div class="qi-header">
         <span class="qi-file">${escapeHtml(task.fileName)}</span>
@@ -889,6 +1018,7 @@ function updateQueueUI() {
         </span>
       </div>
       ${task.status === 'running' || task.status === 'waiting' ? renderQueueProgress(task) : ''}
+      ${viewHint}
     </div>`;
   }).join("");
 }
@@ -916,6 +1046,31 @@ function showTaskNotification(qid, isError) {
   <span class="tn-close" onclick="event.stopPropagation();dismissNotify('${nid}')">✕</span>`;
   container.appendChild(el);
   setTimeout(() => dismissNotify(nid), 10000);
+}
+
+function _checkBatchComplete() {
+  if (_batchNotified || _batchIds.size < 2) return;
+  const allDone = [..._batchIds].every(id =>
+    taskQueue[id] && (taskQueue[id].status === "done" || taskQueue[id].status === "error")
+  );
+  if (!allDone) return;
+  _batchNotified = true;
+  showBatchNotification(_batchIds.size);
+}
+
+function showBatchNotification(count) {
+  const container = document.getElementById("task-notifications");
+  const nid = "notify-batch-" + Date.now();
+  const el = document.createElement("div");
+  el.id = nid;
+  el.className = "task-notify";
+  el.innerHTML = `<div class="tn-body">
+    <div class="tn-title">${t("batchAllDone").replace("{n}", count)}</div>
+    <div class="tn-file" style="color:#666;">${t("viewResult")} ↑</div>
+  </div>
+  <span class="tn-close" onclick="event.stopPropagation();dismissNotify('${nid}')">✕</span>`;
+  container.appendChild(el);
+  setTimeout(() => dismissNotify(nid), 12000);
 }
 
 function dismissNotify(nid) {
@@ -976,17 +1131,29 @@ async function processFiles() {
   const llmModel = document.getElementById("llm-model").value;
   const llmPrompt = document.getElementById("llm-prompt").value.trim();
   const files = Array.from(fileInput.files);
+  const newQids = [];
 
   for (const f of files) {
     const qid = Date.now() + "_" + Math.random().toString(36).slice(2, 6);
     taskQueue[qid] = { fileName: f.name, file: f, status: "waiting", percent: 0, message: t("queuing"),
                         asrVendor, llmVendor, llmModel, llmPrompt, token_usage: null, taskIdServer: null };
+    newQids.push(qid);
   }
+
+  _batchIds = new Set(newQids);
+  _batchNotified = false;
+
+  if (files.length > 1 && !queueExpanded) {
+    queueExpanded = true;
+    document.getElementById("task-queue-list").style.display = "block";
+    document.getElementById("queue-toggle").textContent = t("queueCollapse");
+  }
+
   updateQueueUI();
   drainQueue();
 }
 
-async function processSingleFile(qid) {
+function processSingleFile(qid) {
   const task = taskQueue[qid];
   const formData = new FormData();
   formData.append("file", task.file);
@@ -997,36 +1164,57 @@ async function processSingleFile(qid) {
   formData.append("llm_model", task.llmModel || "");
   formData.append("llm_prompt", task.llmPrompt || "");
 
-  try {
-    const resp = await fetch("/api/process", { method: "POST", body: formData });
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/process");
+    xhr.responseType = "text";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+    // Upload phase progress (maps to 0–8% in queue)
+    xhr.upload.addEventListener("progress", (e) => {
+      if (!e.lengthComputable) return;
+      const pct = Math.round((e.loaded / e.total) * 8);
+      const loaded = (e.loaded / 1024 / 1024).toFixed(1);
+      const total = (e.total / 1024 / 1024).toFixed(1);
+      task.percent = pct;
+      task.message = currentLang === "zh"
+        ? `上传中... ${loaded}/${total} MB`
+        : `Uploading... ${loaded}/${total} MB`;
+      updateQueueUI();
+    });
 
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
+    // SSE streaming response (fires incrementally as server writes events)
+    let sseBuffer = "";
+    let lastLen = 0;
+    xhr.addEventListener("progress", () => {
+      const newText = xhr.response.slice(lastLen);
+      lastLen = xhr.response.length;
+      sseBuffer += newText;
+      const lines = sseBuffer.split("\n");
+      sseBuffer = lines.pop() || "";
       let eventType = "";
       for (const line of lines) {
         if (line.startsWith("event: ")) {
           eventType = line.slice(7).trim();
         } else if (line.startsWith("data: ") && eventType) {
-          const data = JSON.parse(line.slice(6));
-          handleQueueSSE(qid, eventType, data);
+          try {
+            const data = JSON.parse(line.slice(6));
+            handleQueueSSE(qid, eventType, data);
+          } catch(e) {}
           eventType = "";
         }
       }
-    }
-  } catch (e) {
-    taskQueue[qid].status = "error";
-    taskQueue[qid].message = t("requestFailed") + ": " + e.message;
-    updateQueueUI();
-  }
+    });
+
+    xhr.addEventListener("load", resolve);
+    xhr.addEventListener("error", () => {
+      task.status = "error";
+      task.message = t("requestFailed");
+      updateQueueUI();
+      resolve();
+    });
+
+    xhr.send(formData);
+  });
 }
 
 function handleQueueSSE(qid, event, data) {
@@ -1062,6 +1250,8 @@ function handleQueueSSE(qid, event, data) {
     document.getElementById("asr-vendor-tag").textContent = `(${getVendorDisplayName(task.asrVendor)})`;
   } else if (event === "summary") {
     task.summary = data.text;
+    _currentSummaryRaw = data.text;
+    if (_summaryEditMode) exitSummaryEdit();
     document.getElementById("summary-section").style.display = "block";
     document.getElementById("summary-output").innerHTML = renderMarkdown(data.text);
     document.getElementById("llm-vendor-tag").textContent = `(${getVendorDisplayName(task.llmVendor)})`;
@@ -1071,6 +1261,7 @@ function handleQueueSSE(qid, event, data) {
     task.message = t("statusDone");
     task.currentStep = "done";
     task.taskIdServer = data.task_id;
+    _currentTaskId = data.task_id;
     task.completedAt = new Date().toLocaleString();
     if (data.token_usage) task.token_usage = data.token_usage;
     updateQueueUI();
@@ -1079,6 +1270,7 @@ function handleQueueSSE(qid, event, data) {
     document.getElementById("task-id-display").textContent = `${t("taskIdLabel")}: ${data.task_id}`;
     setStep("step-done", "done");
     loadTaskHistory();
+    _checkBatchComplete();
   } else if (event === "error") {
     task.status = "error";
     task.message = "❌ " + translateError(data.message);
@@ -1086,12 +1278,14 @@ function handleQueueSSE(qid, event, data) {
     updateQueueUI();
     showTaskNotification(qid, true);
     loadTaskHistory();
+    _checkBatchComplete();
   }
 }
 
 function showResultForTask(qid, asrVendor, llmVendor) {
   const task = taskQueue[qid];
   task._viewing = true;
+  _currentFileName = task.fileName;
   document.getElementById("results-card").style.display = "block";
   document.getElementById("result-filename").textContent = "📄 " + task.fileName;
   document.getElementById("transcript-section").style.display = "none";
@@ -1128,58 +1322,310 @@ function toggleTranscript() {
   document.getElementById("transcript-toggle").textContent = transcriptExpanded ? t("collapseText") : t("expandText");
 }
 
+function _textFilename(suffix) {
+  const base = _currentFileName.replace(/\.[^.]+$/, "") || "result";
+  return base + suffix;
+}
+
+function _flashBtn(btnId, originalHtml) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.innerHTML = t("copied");
+  setTimeout(() => { btn.innerHTML = originalHtml; }, 1800);
+}
+
+function copyTranscript() {
+  if (!_currentTranscriptRaw) return;
+  let text = _currentTranscriptRaw;
+  try {
+    const parsed = JSON.parse(_currentTranscriptRaw);
+    if (parsed.segments) text = parsed.segments.map(s => `[${s.speaker}] ${s.text}`).join("\n");
+  } catch(e) {}
+  navigator.clipboard.writeText(text).then(() => {
+    _flashBtn("copy-transcript-btn", `📋 <span id="copy-transcript-label">${t("copyBtn")}</span>`);
+  });
+}
+
+function copySummary() {
+  if (!_currentSummaryRaw) return;
+  navigator.clipboard.writeText(_currentSummaryRaw).then(() => {
+    _flashBtn("copy-summary-btn", `📋 <span id="copy-summary-label">${t("copyBtn")}</span>`);
+  });
+}
+
+function downloadTranscript() {
+  if (!_currentTranscriptRaw) return;
+  let text = _currentTranscriptRaw;
+  try {
+    const parsed = JSON.parse(_currentTranscriptRaw);
+    if (parsed.segments) text = parsed.segments.map(s => `[${s.speaker}] (${s.start_time}→${s.end_time}) ${s.text}`).join("\n");
+  } catch(e) {}
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+  a.download = _textFilename("_transcript.txt");
+  a.click();
+}
+
+function downloadSummary() {
+  if (!_currentSummaryRaw) return;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([_currentSummaryRaw], { type: "text/plain;charset=utf-8" }));
+  a.download = _textFilename("_notes.md");
+  a.click();
+}
+
+// ── Edit meeting notes ────────────────────────────────────────────────
+let _summaryEditMode = false;
+
+function enterSummaryEdit() {
+  _summaryEditMode = true;
+  document.getElementById("summary-edit-area").value = _currentSummaryRaw;
+  document.getElementById("summary-output").style.display = "none";
+  document.getElementById("summary-edit-area").style.display = "block";
+  document.getElementById("edit-summary-btn").style.display = "none";
+  document.getElementById("save-summary-btn").style.display = "";
+  document.getElementById("cancel-summary-btn").style.display = "";
+  document.getElementById("summary-edit-area").focus();
+}
+
+async function saveSummaryEdit() {
+  const text = document.getElementById("summary-edit-area").value;
+  _currentSummaryRaw = text;
+  document.getElementById("summary-output").innerHTML = renderMarkdown(text);
+  exitSummaryEdit();
+  if (_currentTaskId) {
+    try {
+      await fetch(`/api/tasks/${_currentTaskId}/summary`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+    } catch(e) {}
+  }
+}
+
+function cancelSummaryEdit() {
+  exitSummaryEdit();
+}
+
+function exitSummaryEdit() {
+  _summaryEditMode = false;
+  document.getElementById("summary-output").style.display = "";
+  document.getElementById("summary-edit-area").style.display = "none";
+  document.getElementById("edit-summary-btn").style.display = "";
+  document.getElementById("save-summary-btn").style.display = "none";
+  document.getElementById("cancel-summary-btn").style.display = "none";
+}
+
+// ── Re-run LLM panel ──────────────────────────────────────────────────
+let rerunPanelOpen = false;
+let rerunPromptOpen = false;
+
+function toggleRerunPanel() {
+  rerunPanelOpen = !rerunPanelOpen;
+  document.getElementById("rerun-panel").style.display = rerunPanelOpen ? "block" : "none";
+  if (rerunPanelOpen) _initRerunPanel();
+}
+
+function toggleRerunPrompt() {
+  rerunPromptOpen = !rerunPromptOpen;
+  document.getElementById("rerun-prompt-editor").style.display = rerunPromptOpen ? "block" : "none";
+  const label = document.getElementById("rerun-prompt-toggle-label");
+  label.childNodes[0].textContent = (rerunPromptOpen ? "▼ " : "▶ ");
+}
+
+function _initRerunPanel() {
+  const sel = document.getElementById("rerun-llm-vendor");
+  sel.innerHTML = "";
+  Object.entries(VENDORS).forEach(([name, info]) => {
+    if (info.types.includes("LLM") && isVendorReady(name)) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = getVendorDisplayName(name);
+      sel.appendChild(opt);
+    }
+  });
+  // Pre-select last used LLM vendor
+  const last = localStorage.getItem("last_llm_vendor");
+  if (last && sel.querySelector(`option[value="${CSS.escape(last)}"]`)) sel.value = last;
+  fetchRerunModels(sel.value);
+  // Pre-fill prompt from main editor
+  const mainPrompt = document.getElementById("llm-prompt").value;
+  document.getElementById("rerun-llm-prompt").value = mainPrompt;
+}
+
+async function fetchRerunModels(vendor) {
+  const sel = document.getElementById("rerun-llm-model");
+  sel.innerHTML = `<option value="">-- ${t("modelDefault")} --</option>`;
+  if (!vendor) return;
+  try {
+    const creds = getVendorCreds(vendor);
+    const resp = await fetch("/api/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vendor, creds })
+    });
+    const data = await resp.json();
+    (data.models || []).forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m; opt.textContent = m;
+      sel.appendChild(opt);
+    });
+    const saved = localStorage.getItem("llm_model_" + vendor);
+    if (saved && sel.querySelector(`option[value="${CSS.escape(saved)}"]`)) sel.value = saved;
+  } catch(e) {}
+}
+
+async function doRerunLlm() {
+  if (!_currentTaskId) return;
+  const vendor = document.getElementById("rerun-llm-vendor").value;
+  const model = document.getElementById("rerun-llm-model").value;
+  const prompt = document.getElementById("rerun-llm-prompt").value.trim();
+  if (!vendor) { alert(t("selectLlmAlert")); return; }
+  const creds = getVendorCreds(vendor);
+  const credsError = validateVendorCreds(vendor);
+  if (credsError) { alert(credsError); return; }
+
+  const btn = document.getElementById("rerun-submit-btn");
+  const labelEl = document.getElementById("rerun-submit-label");
+
+  btn.disabled = true;
+  labelEl.textContent = currentLang === "zh" ? "⏳ 处理中..." : "⏳ Processing...";
+  document.getElementById("summary-section").style.display = "none";
+
+  try {
+    const resp = await fetch(`/api/tasks/${_currentTaskId}/rerun-llm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ llm_vendor: vendor, llm_model: model, llm_prompt: prompt, llm_creds: creds })
+    });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split("\n\n");
+      buf = parts.pop();
+      for (const part of parts) {
+        const lines = part.split("\n");
+        const eventLine = lines.find(l => l.startsWith("event:"));
+        const dataLine = lines.find(l => l.startsWith("data:"));
+        if (!eventLine || !dataLine) continue;
+        const event = eventLine.slice(7).trim();
+        const data = JSON.parse(dataLine.slice(5).trim());
+        if (event === "summary") {
+          _currentSummaryRaw = data.text;
+          if (_summaryEditMode) exitSummaryEdit();
+          document.getElementById("summary-section").style.display = "block";
+          document.getElementById("summary-output").innerHTML = renderMarkdown(data.text);
+          document.getElementById("llm-vendor-tag").textContent = `(${getVendorDisplayName(vendor)})`;
+        } else if (event === "done") {
+          showTokenUsageInResults(data.token_usage);
+          rerunPanelOpen = false;
+          document.getElementById("rerun-panel").style.display = "none";
+        } else if (event === "error") {
+          alert(data.message);
+        }
+      }
+    }
+  } catch(e) {
+    alert("Re-run failed: " + e.message);
+  } finally {
+    btn.disabled = false;
+    labelEl.textContent = t("rerunSubmit");
+  }
+}
+
 let historyExpanded = false;
 
 function toggleHistory() {
   historyExpanded = !historyExpanded;
-  document.getElementById("task-history").style.display = historyExpanded ? "block" : "none";
+  document.getElementById("history-content").style.display = historyExpanded ? "block" : "none";
   document.getElementById("history-toggle").textContent = historyExpanded ? t("collapseText") : t("expandText");
   if (historyExpanded) loadTaskHistory();
 }
+
+let _historyTasks = [];
 
 async function loadTaskHistory() {
   const container = document.getElementById("task-history");
   try {
     const resp = await fetch("/api/tasks");
-    const tasks = await resp.json();
-    if (tasks.length === 0) {
-      container.innerHTML = `<p style="color:#999;font-size:0.85rem;padding:8px 0;">${t("noHistory")}</p>`;
-      return;
-    }
-    container.innerHTML = tasks.map(task => {
-      const status = task.error ? t("statusError") : t("success");
-      const statusColor = task.error ? '#e65100' : '#2e7d32';
-      const asrVendorName = getVendorDisplayName(task.asr_vendor);
-      const llmVendorName = getVendorDisplayName(task.llm_vendor);
-      const timeStr = task.created_at ? new Date(task.created_at).toLocaleString() : '';
-      const tokenHtml = task.token_usage && task.token_usage.total_tokens
-        ? `<div style="font-size:0.72rem;color:#7b1fa2;margin-top:2px;">🔢 ${task.token_usage.model || llmVendorName}: ${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`
-        : '';
-      return `<div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;" onclick="loadTask('${task.task_id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-weight:500;font-size:0.9rem;">${task.source_file || '—'}</span>
-          <span style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:0.78rem;color:${statusColor};">${status}</span>
-            <span style="font-size:0.7rem;color:#aaa;">${timeStr}</span>
-          </span>
-        </div>
-        <div style="font-size:0.78rem;color:#999;margin-top:4px;">
-          ASR: ${asrVendorName} · LLM: ${llmVendorName}
-        </div>
-        ${tokenHtml}
-      </div>`;
-    }).join("");
+    _historyTasks = await resp.json();
+    renderHistory(document.getElementById("history-search")?.value || "");
   } catch (e) {
     container.innerHTML = `<p style="color:#e65100;font-size:0.85rem;">${t("loadFailed")}</p>`;
   }
+}
+
+function filterHistory(text) {
+  renderHistory(text);
+}
+
+function renderHistory(filterText) {
+  const container = document.getElementById("task-history");
+  const query = (filterText || "").toLowerCase().trim();
+  const tasks = query
+    ? _historyTasks.filter(t => (t.source_file || "").toLowerCase().includes(query))
+    : _historyTasks;
+
+  if (tasks.length === 0) {
+    container.innerHTML = `<p style="color:#999;font-size:0.85rem;padding:8px 0;">${t("noHistory")}</p>`;
+    return;
+  }
+  container.innerHTML = tasks.map(task => {
+    const status = task.error ? t("statusError") : t("success");
+    const statusColor = task.error ? '#e65100' : '#2e7d32';
+    const asrVendorName = getVendorDisplayName(task.asr_vendor);
+    const llmVendorName = getVendorDisplayName(task.llm_vendor);
+    const timeStr = task.created_at ? new Date(task.created_at).toLocaleString() : '';
+    const tokenHtml = task.token_usage && task.token_usage.total_tokens
+      ? `<div style="font-size:0.72rem;color:#7b1fa2;margin-top:2px;">🔢 ${task.token_usage.model || llmVendorName}: ${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`
+      : '';
+    return `<div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;position:relative;" onclick="loadTask('${task.task_id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:500;font-size:0.9rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(task.source_file || '—')}</span>
+        <span style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:8px;">
+          <span style="font-size:0.78rem;color:${statusColor};">${status}</span>
+          <span style="font-size:0.7rem;color:#aaa;">${timeStr}</span>
+          <button onclick="deleteTask('${task.task_id}',event)" style="font-size:0.72rem;padding:2px 8px;border:1px solid #ffcdd2;border-radius:4px;background:#fff;color:#e53935;cursor:pointer;" title="${t('deleteBtn')}">🗑️</button>
+        </span>
+      </div>
+      <div style="font-size:0.78rem;color:#999;margin-top:4px;">
+        ASR: ${escapeHtml(asrVendorName)} · LLM: ${escapeHtml(llmVendorName)}
+      </div>
+      ${tokenHtml}
+    </div>`;
+  }).join("");
+}
+
+async function deleteTask(taskId, event) {
+  event.stopPropagation();
+  if (!confirm(t("confirmDelete"))) return;
+  try {
+    await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+    _historyTasks = _historyTasks.filter(task => task.task_id !== taskId);
+    renderHistory(document.getElementById("history-search")?.value || "");
+  } catch (e) {}
+}
+
+function scrollToCreds() {
+  if (!credsExpanded) toggleCreds();
+  document.getElementById("creds-card").scrollIntoView({ behavior: "smooth" });
 }
 
 async function loadTask(taskId) {
   try {
     const resp = await fetch(`/api/tasks/${taskId}`);
     const data = await resp.json();
+    _currentTaskId = taskId;
+    _currentFileName = data.meta ? (data.meta.source_file || '') : '';
+    _currentTranscriptRaw = "";
+    _currentSummaryRaw = "";
     document.getElementById("task-id-display").textContent = `${t("taskIdLabel")}: ${taskId}`;
-    document.getElementById("result-filename").textContent = data.meta ? "📄 " + (data.meta.source_file || '') : '';
+    document.getElementById("result-filename").textContent = _currentFileName ? "📄 " + _currentFileName : '';
     document.getElementById("transcript-section").style.display = "none";
     document.getElementById("summary-section").style.display = "none";
     document.getElementById("token-usage-section").style.display = "none";
@@ -1192,6 +1638,7 @@ async function loadTask(taskId) {
       document.getElementById("asr-vendor-tag").textContent = asrVendorName ? `(${asrVendorName})` : '';
     }
     if (data.summary) {
+      _currentSummaryRaw = data.summary;
       document.getElementById("summary-section").style.display = "block";
       document.getElementById("summary-output").innerHTML = renderMarkdown(data.summary);
       document.getElementById("llm-vendor-tag").textContent = data.meta ? `(${getVendorDisplayName(data.meta.llm_vendor)})` : '';
@@ -1403,6 +1850,19 @@ function applyLanguage() {
   
   // Update static text elements
   document.querySelector("h1").innerHTML = t("title");
+
+  // Toggle banner logo visibility by language
+  // EN: show logo image, hide h1 text | CN: hide logo image, show h1 text
+  const enLogo = document.getElementById("banner-logo-en");
+  const h1 = document.querySelector("h1");
+  if (currentLang === "en") {
+    enLogo.style.display = "block";  // Show EN logo when English selected
+    h1.style.display = "none";       // Hide h1 text
+  } else {
+    enLogo.style.display = "none";   // Hide EN logo when Chinese selected
+    h1.style.display = "";           // Show h1 text (emoji + Chinese title)
+  }
+
   document.querySelector(".subtitle").textContent = t("subtitle");
   document.querySelector("#tip-banner span:first-child").innerHTML = t("tipBanner");
   
@@ -1483,8 +1943,19 @@ function applyLanguage() {
     }
   }
   
+  // Onboarding banner
+  const obTitle = document.getElementById("onboarding-title");
+  if (obTitle) obTitle.textContent = t("onboardingTitle");
+  const obMsg = document.getElementById("onboarding-msg");
+  if (obMsg) obMsg.textContent = t("onboardingMsg");
+  const obBtn = document.getElementById("onboarding-btn");
+  if (obBtn) obBtn.textContent = t("onboardingBtn");
+  // History search placeholder
+  const histSearch = document.getElementById("history-search");
+  if (histSearch) histSearch.placeholder = t("historySearch");
+
   // History title
-  const historyH2 = document.querySelector("#task-history").closest(".card").querySelector("h2");
+  const historyH2 = document.querySelector("#history-content").closest(".card").querySelector("h2");
   if (historyH2) {
     const toggleSpan = document.getElementById("history-toggle");
     historyH2.innerHTML = "";
@@ -1550,6 +2021,31 @@ function applyLanguage() {
   const fwToggle = document.getElementById("fw-toggle");
   if (fwToggle) fwToggle.textContent = fwCardExpanded ? t("collapseText") : t("expandText");
   renderFolderWatchSettings();
+  // Copy/download button labels
+  const copyTLabel = document.getElementById("copy-transcript-label");
+  if (copyTLabel) copyTLabel.textContent = t("copyBtn");
+  const dlTLabel = document.getElementById("download-transcript-label");
+  if (dlTLabel) dlTLabel.textContent = t("downloadBtn");
+  const copySLabel = document.getElementById("copy-summary-label");
+  if (copySLabel) copySLabel.textContent = t("copyBtn");
+  const dlSLabel = document.getElementById("download-summary-label");
+  if (dlSLabel) dlSLabel.textContent = t("downloadBtn");
+  const editSLabel = document.getElementById("edit-summary-label");
+  if (editSLabel) editSLabel.textContent = t("editBtn");
+  const saveSLabel = document.getElementById("save-summary-label");
+  if (saveSLabel) saveSLabel.textContent = t("saveBtn");
+  const cancelSLabel = document.getElementById("cancel-summary-label");
+  if (cancelSLabel) cancelSLabel.textContent = t("cancelBtn");
+  const rerunToggleLabel = document.getElementById("rerun-toggle-label");
+  if (rerunToggleLabel) rerunToggleLabel.textContent = t("rerunBtn");
+  const rerunSubmitLabel = document.getElementById("rerun-submit-label");
+  if (rerunSubmitLabel) rerunSubmitLabel.textContent = t("rerunSubmit");
+  const rerunLlmLabel = document.getElementById("rerun-llm-label");
+  if (rerunLlmLabel) rerunLlmLabel.textContent = t("rerunLlmLabel");
+  const rerunModelLabel = document.getElementById("rerun-model-label");
+  if (rerunModelLabel) rerunModelLabel.textContent = t("rerunModelLabel");
+  const rerunPTText = document.getElementById("rerun-prompt-toggle-text");
+  if (rerunPTText) rerunPTText.textContent = t("rerunPromptToggle");
 }
 
 // Override updateCredsSummary to use i18n

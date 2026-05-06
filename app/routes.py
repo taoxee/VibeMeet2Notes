@@ -87,6 +87,14 @@ def get_default_prompt():
     return jsonify({"prompt": LLM_PROMPT})
 
 
+@bp.route("/logos/<filename>")
+def serve_logo(filename):
+    """Serve logo files from data/logos/."""
+    from app.config import BASE_DIR
+    logos_dir = os.path.join(BASE_DIR, "data", "logos")
+    return send_from_directory(logos_dir, secure_filename(filename))
+
+
 @bp.route("/api/models", methods=["POST"])
 def list_models():
     """Query available models from an LLM vendor using the user's credentials."""
@@ -365,3 +373,93 @@ def get_task(task_id):
             with open(fpath, "r", encoding="utf-8") as f:
                 result[key] = f.read()
     return jsonify(result)
+
+
+@bp.route("/api/tasks/<task_id>/rerun-llm", methods=["POST"])
+def rerun_llm(task_id):
+    """Re-run only the LLM step using the cached transcript. Streams SSE."""
+    task_dir = os.path.join(OUTPUT_DIR, secure_filename(task_id))
+    transcript_path = os.path.join(task_dir, "transcript.txt")
+    if not os.path.isfile(transcript_path):
+        return jsonify({"error": "转录文件不存在，无法重新生成"}), 404
+
+    body = request.get_json(force=True, silent=True) or {}
+    llm_vendor = body.get("llm_vendor", "")
+    llm_model = body.get("llm_model", "")
+    llm_prompt = body.get("llm_prompt", "").strip()
+    llm_creds = body.get("llm_creds", {})
+
+    if not llm_vendor or not llm_creds:
+        return jsonify({"error": "请选择 LLM 供应商并填写凭证"}), 400
+
+    with open(transcript_path, "r", encoding="utf-8") as f:
+        transcript = f.read()
+
+    meta_path = os.path.join(task_dir, "meta.json")
+    meta = {}
+    if os.path.isfile(meta_path):
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+
+    def sse_event(event, data):
+        return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+    def generate():
+        token_usage = {}
+        try:
+            yield sse_event("progress", {"step": "llm", "percent": 10, "message": f"正在调用 {llm_vendor} 重新生成会议纪要..."})
+            llm_handler = LLM_HANDLERS.get(llm_vendor)
+            if not llm_handler:
+                yield sse_event("error", {"message": f"LLM 供应商 '{llm_vendor}' 暂未实现接口对接"})
+                return
+
+            llm_result = llm_handler(llm_creds, transcript, llm_model, llm_prompt)
+            summary, token_usage = llm_result if isinstance(llm_result, tuple) else (llm_result, {})
+
+            with open(os.path.join(task_dir, "summary.txt"), "w", encoding="utf-8") as f:
+                f.write(summary)
+
+            meta["llm_vendor"] = llm_vendor
+            meta["llm_model"] = llm_model
+            if token_usage:
+                meta["token_usage"] = token_usage
+            meta.pop("error", None)
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(meta, f, ensure_ascii=False, indent=2)
+
+            yield sse_event("progress", {"step": "llm_done", "percent": 95, "message": f"{llm_vendor} 会议纪要重新生成完成"})
+            yield sse_event("summary", {"text": summary})
+            yield sse_event("done", {"task_id": task_id, "percent": 100, "message": "完成", "token_usage": token_usage})
+
+        except requests.exceptions.HTTPError as e:
+            detail = ""
+            try:
+                detail = e.response.json()
+            except Exception:
+                detail = e.response.text[:500] if e.response else str(e)
+            yield sse_event("error", {"message": f"API 调用失败: {detail}"})
+        except Exception as e:
+            yield sse_event("error", {"message": f"处理失败: {str(e)}"})
+
+
+@bp.route("/api/tasks/<task_id>/summary", methods=["PUT"])
+def update_summary(task_id):
+    task_dir = os.path.join(OUTPUT_DIR, secure_filename(task_id))
+    if not os.path.isdir(task_dir):
+        return jsonify({"error": "任务不存在"}), 404
+    body = request.get_json(force=True, silent=True) or {}
+    text = body.get("text", "")
+    with open(os.path.join(task_dir, "summary.txt"), "w", encoding="utf-8") as f:
+        f.write(text)
+    return jsonify({"ok": True})
+
+
+@bp.route("/api/tasks/<task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    task_dir = os.path.join(OUTPUT_DIR, secure_filename(task_id))
+    if not os.path.isdir(task_dir):
+        return jsonify({"error": "任务不存在"}), 404
+    shutil.rmtree(task_dir, ignore_errors=True)
+    return jsonify({"ok": True})
+
+    return Response(stream_with_context(generate()), mimetype="text/event-stream")

@@ -70,7 +70,7 @@ def _load_prompt(filename, fallback=""):
     return fallback
 
 
-LLM_PROMPT = _load_prompt("LLM_prompt.txt")
+LLM_PROMPT = _load_prompt("custom-prompts/meetingminutes-prompt.txt")
 
 
 # ── Vendor definitions ───────────────────────────────────────────────
