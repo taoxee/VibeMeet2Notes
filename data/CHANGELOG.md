@@ -2,6 +2,14 @@
 
 All notable changes to VibeMeet2Notes are documented here.
 
+## 2026-05-07
+
+### Features
+- Template browser UX refinement: builtin templates apply instantly on click with browser staying open, enabling frictionless template discovery; user templates still require preview before applying
+
+### Bug Fixes
+- Removed development planning artifacts from git history (superpowers specs/plans, TEMPLATES_ADDED.md); files remain locally in .gitignore
+
 ## 2026-05-06
 
 ### Features
