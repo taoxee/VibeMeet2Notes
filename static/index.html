@@ -2394,22 +2394,25 @@ function onDomainChipClick(domain) {
 function showTemplatePreview(id) {
   const tpl = _promptTemplates.find(item => item.id === id);
   if (!tpl) return;
+  // Builtin templates: apply directly, no preview
+  if (tpl.is_builtin) {
+    _applyTemplate(id);
+    return;
+  }
+  // User templates: show preview
   _previewTemplateId = id;
   document.getElementById("template-card-grid").style.display = "none";
   document.getElementById("template-preview-pane").style.display = "block";
   document.getElementById("template-preview-name").textContent = tpl.name;
-  const domainStr = tpl.is_builtin
-    ? (_domainLabel(tpl.domain || "") + " · Built-in")
-    : t("domainMyTemplates");
-  document.getElementById("template-preview-meta").textContent = domainStr;
+  document.getElementById("template-preview-meta").textContent = t("domainMyTemplates");
   document.getElementById("template-preview-content").value = tpl.content;
   document.getElementById("template-preview-back-btn").textContent = t("previewBack");
   document.getElementById("template-preview-cancel-btn").textContent = t("templateSaveCancel");
   document.getElementById("template-preview-use-btn").textContent = t("previewUse");
   const deleteBtn = document.getElementById("delete-template-btn");
   if (deleteBtn) {
-    deleteBtn.style.display = tpl.is_builtin ? "none" : "";
-    if (!tpl.is_builtin) deleteBtn.textContent = t("deleteTemplate");
+    deleteBtn.style.display = "";
+    deleteBtn.textContent = t("deleteTemplate");
   }
 }
 
