@@ -2394,9 +2394,14 @@ function onDomainChipClick(domain) {
 function showTemplatePreview(id) {
   const tpl = _promptTemplates.find(item => item.id === id);
   if (!tpl) return;
-  // Builtin templates: apply directly, no preview
+  // Builtin templates: apply directly, keep browser open
   if (tpl.is_builtin) {
-    _applyTemplate(id);
+    _selectedTemplateId = id;
+    document.getElementById("llm-prompt").value = tpl.content;
+    localStorage.setItem("llm_custom_prompt", tpl.content);
+    const barLabel = document.getElementById("template-bar-label");
+    if (barLabel) { barLabel.textContent = tpl.name; barLabel.style.color = "#333"; }
+    renderTemplateCards();
     return;
   }
   // User templates: show preview
