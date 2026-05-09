@@ -5,76 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">灵感纪要 · VibeMeet2Notes</title>
 <link rel="icon" type="image/png" href="/logos/web-tab-logo.png">
+<link rel="stylesheet" href="/static/shared.css">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
-/* Language switcher */
-.lang-switcher { text-align: right; margin-bottom: 12px; }
-.lang-switcher select { padding: 8px 16px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 1.05rem; background: #fff; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1); appearance: none; -webkit-appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
-.lang-switcher select:hover { border-color: #4361ee; }
-.lang-switcher select:focus { outline: none; border-color: #4361ee; box-shadow: 0 0 0 3px rgba(67,97,238,0.15); }
-</style>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
-.container { max-width: 960px; margin: 0 auto; padding: 24px; }
-h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; }
-.subtitle { text-align: center; color: #666; margin-bottom: 32px; font-size: 0.95rem; }
-.card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-.card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #1a1a2e; border-left: 4px solid #4361ee; padding-left: 12px; }
-.form-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-.form-group { flex: 1; min-width: 200px; }
-.form-group label { display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500; color: #555; }
-.form-group select, .form-group input { width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 0.9rem; transition: border-color 0.2s; }
-.form-group select:focus, .form-group input:focus { outline: none; border-color: #4361ee; box-shadow: 0 0 0 3px rgba(67,97,238,0.1); }
-.vendor-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-left: 4px; }
-.badge-asr { background: #e8f5e9; color: #2e7d32; }
-.badge-llm { background: #e3f2fd; color: #1565c0; }
-.badge-tts { background: #fff3e0; color: #e65100; }
-.badge-other { background: #f3e5f5; color: #7b1fa2; }
-@keyframes spin { to { transform: rotate(360deg); } }
 #process-btn:hover { background: #3a56d4; }
 #process-btn:disabled { background: #aaa; cursor: not-allowed; }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="lang-switcher">
+
+<!-- ── Top Nav ── -->
+<nav class="topnav">
+  <div class="nav-brand">
+    <img id="nav-logo-cn" src="/logos/Banner-Logo-CN.png" alt="灵感纪要">
+    <img id="nav-logo-en" src="/logos/Banner-Logo-EN.png" alt="VibeMeet2Notes" style="display:none;">
+  </div>
+  <div class="nav-links">
+    <a href="/" class="active">📁 <span id="nav-label-process">处理</span></a>
+    <a href="/vendors">🔑 <span id="nav-label-vendors">供应商</span></a>
+  </div>
+  <div class="nav-lang">
     <select id="lang-select" onchange="switchLanguage(this.value)">
       <option value="zh">🌐 中文</option>
       <option value="en">🌐 English</option>
     </select>
   </div>
-  <!-- EN Banner Logo (hidden by default, toggled in applyLanguage() based on language) -->
-  <div style="display:flex;justify-content:center;margin-bottom:24px;">
-    <!-- To adjust size: change max-height value (e.g., 200px for smaller, 400px for larger) -->
-    <!-- margin-bottom controls spacing below logo (24px = current space to subtitle) -->
-    <img id="banner-logo-en"
-         src="/logos/banner-logo.png"
-         onerror="this.src='/logos/backup-banner-logo.png'"
-         alt="VibeMeet2Notes"
-         style="display:none;max-height:100px;width:auto;object-fit:contain;">
-    <!-- Style breakdown:
-         - display:none = hidden initially (shown when language = EN in applyLanguage())
-         - max-height:300px = size control (ADJUST THIS to change logo size)
-         - width:auto = maintains aspect ratio
-         - object-fit:contain = ensures whole image visible without cropping
-    -->
-  </div>
-  <h1>🎙️ 灵感纪要 · VibeMeet2Notes</h1>
-  <p class="subtitle">上传音视频文件 → ASR 语音识别（说话人分离）→ LLM 会议纪要</p>
+</nav>
+
+<div id="save-toast" style="display:none;position:fixed;top:20px;right:20px;background:#2e7d32;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;z-index:999;transition:opacity 0.3s;">✅ 已自动保存</div>
+
+<div class="container">
 
   <div id="tip-banner" style="display:none;background:#fff3e0;border:1px solid #ffe0b2;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.88rem;color:#e65100;display:flex;align-items:center;justify-content:space-between;">
-    <span>💡 推荐组合：ASR 选 <strong>Deepgram</strong>，LLM 选 <strong>阿里云</strong>（速度快、识别准、性价比高）</span>
+    <span>💡 推荐组合：ASR 选 <strong>Soniox</strong>，LLM 选 <strong>阿里云</strong>（速度快、识别准、性价比高）</span>
     <span onclick="dismissTip()" style="cursor:pointer;color:#bbb;font-size:1.1rem;margin-left:12px;" title="关闭">✕</span>
   </div>
-
-  <div id="save-toast" style="display:none;position:fixed;top:20px;right:20px;background:#2e7d32;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;z-index:999;transition:opacity 0.3s;">✅ 已自动保存</div>
 
   <!-- Onboarding banner for first-time users -->
   <div id="onboarding-banner" style="display:none;background:#e3f2fd;border:1px solid #bbdefb;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
     <div style="font-size:1.05rem;font-weight:600;color:#1565c0;margin-bottom:8px;">👋 <span id="onboarding-title">欢迎使用 VibeMeet2Notes！</span></div>
     <p id="onboarding-msg" style="font-size:0.88rem;color:#555;margin-bottom:14px;line-height:1.6;">开始使用前，请先配置 ASR 和 LLM 供应商凭证。凭证仅保存在浏览器本地，输入后自动保存。</p>
-    <button onclick="scrollToCreds()" id="onboarding-btn" style="padding:10px 22px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;">🔑 立即配置凭证 →</button>
+    <button onclick="window.location.href='/vendors'" id="onboarding-btn" style="padding:10px 22px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;">🔑 前往配置凭证 →</button>
   </div>
 
   <!-- Upload & Process (FIRST — core feature) -->
@@ -276,52 +247,13 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
     </div>
   </div>
 
-  <!-- Vendor Key Management (collapsible) -->
-  <div class="card" id="creds-card">
-    <h2 style="cursor:pointer;user-select:none;" onclick="toggleCreds()">
-      🔑 供应商凭证管理 <span id="creds-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▼ 展开</span>
-    </h2>
-    <p style="font-size:0.85rem;color:#888;margin-bottom:8px;">凭证仅保存在浏览器本地，输入即自动保存，刷新页面后自动恢复。</p>
-    <div id="creds-summary" style="font-size:0.85rem;color:#4caf50;margin-bottom:8px;"></div>
-    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
-      <button id="btn-import" onclick="importKeys()" style="padding:8px 16px;background:#4361ee;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">📥 一键导入凭证</button>
-      <label id="btn-import-file" style="padding:8px 16px;background:#ff9800;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;display:inline-block;">📁 从文件导入（CSV/JSON）<input type="file" accept=".json,.csv" onchange="importFromFile(event)" style="display:none;"></label>
-      <button id="btn-export" onclick="exportKeys()" style="padding:8px 16px;background:#2e7d32;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">📤 导出凭证</button>
-      <button id="btn-clear" onclick="clearAllKeys()" style="padding:8px 16px;background:#e53935;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">🗑️ 清除所有凭证</button>
-    </div>
-    <div id="import-status" style="display:none;font-size:0.85rem;margin-bottom:8px;padding:8px 12px;border-radius:6px;"></div>
-    <div id="vendor-keys" style="display:none;"></div>
   </div>
-
-  <!-- Vendor Reference Table -->
-  <div class="card">
-    <h2>📋 供应商能力一览</h2>
-    <div style="overflow-x:auto;">
-      <table id="vendor-table" style="width:100%;border-collapse:collapse;font-size:0.88rem;">
-        <thead><tr style="background:#f8f9fa;"><th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6;">供应商</th><th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6;">支持的产品类型</th><th style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6;">所需凭证</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-</div>
 
 <footer style="text-align:center;padding:24px 0 16px;font-size:0.82rem;color:#aaa;">
   Made by <a href="https://github.com/taoxee" target="_blank" rel="noopener" style="color:#4361ee;text-decoration:none;">taoxee</a> · Apache 2.0
 </footer>
 
 <style>
-.vendor-section { border: 1px solid #e9ecef; border-radius: 8px; padding: 16px; margin-bottom: 12px; transition: border-color 0.2s; }
-.vendor-section:hover { border-color: #4361ee; }
-.vendor-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-.vendor-fields { display: flex; gap: 12px; flex-wrap: wrap; }
-.vendor-fields .field-item { flex: 1; min-width: 180px; }
-.vendor-fields .field-item label { font-size: 0.8rem; color: #777; margin-bottom: 4px; display: block; }
-.vendor-fields .field-item input { width: 100%; padding: 8px 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 0.85rem; }
-.vendor-fields .field-item input:focus { outline: none; border-color: #4361ee; box-shadow: 0 0 0 2px rgba(67,97,238,0.1); }
-.optional-tag { font-size: 0.7rem; color: #aaa; margin-left: 2px; }
-.filled-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: auto; }
-.filled-yes { background: #4caf50; }
-.filled-no { background: #e0e0e0; }
 /* Diarized transcript segments */
 .diarized-segment { margin-bottom: 10px; padding: 8px 12px; border-left: 3px solid #4361ee; background: #fff; border-radius: 0 6px 6px 0; }
 .diarized-segment .seg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
@@ -382,10 +314,8 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
 #fw-detected-list .fw-file-row { display:flex; align-items:center; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #e0e0e0; font-size:0.85rem; }
 #fw-detected-list .fw-file-row:last-child { border-bottom:none; }
 </style>
+<script src="/static/shared.js"></script>
 <script>
-let VENDORS = {};
-let saveTimeout = null;
-let credsExpanded = false;
 // Task queue state
 let taskQueue = {}; // taskId -> {file, status, percent, message, token_usage, ...}
 let activeTaskCount = 0;
@@ -399,367 +329,10 @@ let _currentSummaryRaw = "";
 let _currentTaskId = "";
 let _currentFileName = "";
 
-// i18n - Language setting (must be before init)
-let currentLang = localStorage.getItem("app_lang") || "zh";
-
-// Vendor name translations
-const vendorNames = {
-  "腾讯云": { en: "Tencent Cloud" },
-  "火山云": { en: "Volcengine" },
-  "微软-世纪互联": { en: "Microsoft 21Vianet" },
-  "Minimax-CN": { en: "Minimax-CN" },
-  "阿里云": { en: "Alibaba Cloud" },
-  "Minimax-Global": { en: "Minimax-Global" },
-  "ElevenLabs": { en: "ElevenLabs" },
-  "Soniox": { en: "Soniox" },
-  "微软-Global": { en: "Microsoft" },
-  "Groq": { en: "Groq" },
-  "Deepgram": { en: "Deepgram" },
-  "智谱": { en: "Zhipu AI" },
-  "讯飞": { en: "iFlytek" },
-  "OpenAI": { en: "OpenAI" },
-  "FishAudio": { en: "FishAudio" },
-  "BytePlus": { en: "BytePlus" },
-  "阶跃星辰": { en: "StepFun" }
-};
-
-function getVendorDisplayName(vendor) {
-  const info = vendorNames[vendor];
-  if (!info) return vendor;
-  if (currentLang === "zh") return vendor;
-  return info.en || vendor;
-}
-
-const i18n = {
-  zh: {
-    title: "🎙️ 灵感纪要 · VibeMeet2Notes",
-    subtitle: "上传音视频文件 → ASR 语音识别（说话人分离）→ LLM 会议纪要",
-    tipBanner: "💡 推荐组合：ASR 选 <strong>Soniox</strong>，LLM 选 <strong>阿里云</strong>（速度快、识别准、性价比高）",
-    uploadTitle: "📁 上传文件并处理",
-    selectFile: "选择音视频文件（可多选）",
-    asrVendor: "ASR 供应商（语音转文字 + 说话人分离）",
-    llmVendor: "LLM 供应商（会议纪要）",
-    selectPlaceholder: "-- 请选择 --",
-    noAsrVendor: "⚠️ 暂无已配置的 ASR 供应商，请先在下方配置凭证",
-    noLlmVendor: "⚠️ 暂无已配置的 LLM 供应商，请先在下方配置凭证",
-    startBtn: "🚀 开始处理",
-    queueTitle: "📋 任务队列",
-    queueCollapse: "▲ 收起",
-    queueExpand: "▼ 展开",
-    resultsTitle: "📝 处理结果",
-    transcript: "转录文本",
-    summary: "会议纪要",
-    tokenUsage: "🔢 Token 用量",
-    historyTitle: "📂 历史任务",
-    credsTitle: "🔑 供应商凭证管理",
-    credsDesc: "凭证仅保存在浏览器本地，输入即自动保存，刷新页面后自动恢复。",
-    importBtn: "📥 一键导入凭证",
-    importFileBtn: "📁 从文件导入（CSV/JSON）",
-    exportBtn: "📤 导出凭证",
-    clearBtn: "🗑️ 清除所有凭证",
-    vendorTableTitle: "📋 供应商能力一览",
-    vendorCol: "供应商",
-    typesCol: "支持的产品类型",
-    credsCol: "所需凭证",
-    optional: "(选填)",
-    noHistory: "暂无历史任务",
-    loadFailed: "加载失败",
-    saved: "✅ 已自动保存",
-    noCreds: "尚未配置任何供应商凭证",
-    configured: "已配置",
-    confirmClear: "确定要清除所有已保存的供应商凭证吗？此操作不可撤销。",
-    noCredsExport: "没有可导出的凭证",
-    exported: "✅ 凭证已导出为 vendor_creds.json",
-    cleared: "🗑️ 所有凭证已清除",
-    importSuccess: "✅ 已导入",
-    vendors: "个供应商的",
-    fields: "个凭证字段",
-    noCredsDetected: "未检测到凭证。可通过环境变量、.env 文件或 vendor_keys.csv 配置。",
-    importFailed: "导入失败",
-    fileParseFailed: "文件解析失败",
-    noValidCreds: "未从文件中解析到有效凭证",
-    selectFileAlert: "请选择一个或多个音视频文件",
-    selectAsrAlert: "请选择 ASR 供应商",
-    selectLlmAlert: "请选择 LLM 供应商",
-    missingCreds: "缺少必填凭证",
-    loadTaskFailed: "加载任务失败",
-    requestFailed: "请求失败",
-    statusWaiting: "⏳ 等待中",
-    statusRunning: "🔄 处理中",
-    statusDone: "✅ 完成",
-    statusError: "❌ 失败",
-    success: "✅ 成功",
-    queueRunning: "进行中",
-    queueDone: "已完成",
-    queueTotal: "共",
-    speakersDetected: "🗣️ 识别到",
-    speakersUnit: "位说话人",
-    langLabel: "语言",
-    modelLabel: "模型",
-    inputLabel: "输入",
-    outputLabel: "输出",
-    totalLabel: "合计",
-    tokensUnit: "tokens",
-    taskIdLabel: "任务ID",
-    processing: "处理中",
-    voiceClone: "声音复刻",
-    translation: "翻译",
-    langParam: "语言参数",
-    taskDone: "✅ 任务完成",
-    taskFailed: "❌ 任务失败",
-    queuing: "排队中...",
-    uploading: "正在上传...",
-    collapseText: "▲ 收起",
-    expandText: "▼ 展开",
-    errorDetail: "错误信息",
-    modelDefault: "-- 默认 --",
-    modelLoading: "加载模型中...",
-    promptLabel: "系统提示词",
-    promptToggle: "自定义提示词",
-    promptReset: "恢复默认",
-    stepUpload: "上传",
-    stepTranscode: "转码",
-    stepAsr: "语音识别",
-    stepLlm: "会议纪要",
-    stepDone: "完成",
-    fwTitle: "📂 文件夹监控",
-    fwEnable: "启用",
-    fwSetDefault: "📂 设置默认监控文件夹",
-    fwAddFolder: "+ 添加文件夹",
-    fwAutoProcess: "自动处理",
-    fwCustomPrompt: "自定义提示词",
-    fwDetectedCount: "个新文件被检测到",
-    fwRefresh: "刷新",
-    fwProcess: "处理",
-    fwSkip: "跳过",
-    fwPermNeeded: "⚠ 需要授权",
-    fwReauthorize: "重新授权",
-    fwUseGlobal: "-- 使用全局设置 --",
-    fwCompatTitle: "浏览器兼容性",
-    fwCompatChrome: "Chrome / Edge: ✅ 完整支持",
-    fwCompatFirefox: "Firefox: ❌ 不支持（功能不可用）",
-    fwCompatSafari: "Safari: ⚠️ macOS 15.2+ 部分支持，每次启动需重新授权",
-    fwCompatRec: "推荐使用 Chrome 或 Edge 浏览器",
-    fwSelectVendorFirst: "请先配置 ASR 和 LLM 供应商凭证",
-    fwClose: "关闭",
-    fwNotSupported: "您的浏览器不支持文件夹监控功能",
-    fwMaxFolders: "最多支持 3 个文件夹",
-    fwHowItWorks: "原理：浏览器通过文件系统权限直接读取本地文件夹，每 10 秒检测是否有新录音文件，无需安装任何插件或本地程序。",
-    copyBtn: "复制",
-    downloadBtn: "下载",
-    copied: "✅ 已复制",
-    rerunBtn: "重新生成纪要",
-    rerunSubmit: "生成",
-    rerunLlmLabel: "LLM 供应商",
-    rerunModelLabel: "模型",
-    rerunPromptToggle: "自定义提示词",
-    editBtn: "编辑",
-    saveBtn: "保存",
-    cancelBtn: "取消",
-    batchProgress: "批次",
-    batchAllDone: "全部 {n} 个文件处理完成",
-    viewResult: "查看结果",
-    onboardingTitle: "欢迎使用 VibeMeet2Notes！",
-    onboardingMsg: "开始使用前，请先配置 ASR（语音识别）和 LLM（会议纪要）供应商凭证。凭证仅保存在浏览器本地，输入后自动保存。",
-    onboardingBtn: "🔑 立即配置凭证 →",
-    historySearch: "搜索历史记录...",
-    deleteBtn: "删除",
-    confirmDelete: "确认删除此条历史记录？删除后无法恢复。",
-    promptTemplateLabel: "提示词模板",
-    selectTemplatePlaceholder: "── 选择模板 ──",
-    saveAsTemplate: "另存为模板",
-    deleteTemplate: "删除模板",
-    templateNamePlaceholder: "模板名称...",
-    templateBuiltinGroup: "内置模板",
-    templateUserGroup: "我的模板",
-    templateNameRequired: "请输入模板名称",
-    templateSaveConfirm: "保存",
-    templateSaveCancel: "取消",
-    browseBtnOpen: "浏览 ▾",
-    browseBtnClose: "收起 ▴",
-    sectionCommonUse: "⭐ 常用模板",
-    sectionDomain: "🗂 按领域浏览",
-    domainMeeting: "会议",
-    domainSales: "销售",
-    domainHr: "招聘",
-    domainProduct: "产品",
-    domainStudy: "学习",
-    domainLaw: "法律",
-    domainMyTemplates: "我的模板",
-    previewBack: "← 返回",
-    previewUse: "✓ 使用此模板"
-  },
-  en: {
-    title: "🎙️ VibeMeet2Notes · 灵感纪要",
-    subtitle: "Upload audio/video → ASR transcription (speaker diarization) → LLM meeting minutes",
-    tipBanner: "💡 Recommended: ASR use <strong>Soniox</strong>, LLM use <strong>Open AI</strong> (fast, accurate, cost-effective)",
-    uploadTitle: "📁 Upload & Process",
-    selectFile: "Select audio/video files (multiple allowed)",
-    asrVendor: "ASR Vendor (STT + Speaker Diarization)",
-    llmVendor: "LLM Vendor (Meeting Minutes)",
-    selectPlaceholder: "-- Select --",
-    noAsrVendor: "⚠️ No ASR vendor configured. Please add credentials below.",
-    noLlmVendor: "⚠️ No LLM vendor configured. Please add credentials below.",
-    startBtn: "🚀 Start Processing",
-    queueTitle: "📋 Task Queue",
-    queueCollapse: "▲ Collapse",
-    queueExpand: "▼ Expand",
-    resultsTitle: "📝 Results",
-    transcript: "Transcript",
-    summary: "Meeting Minutes",
-    tokenUsage: "🔢 Token Usage",
-    historyTitle: "📂 Task History",
-    credsTitle: "🔑 Vendor Credentials",
-    credsDesc: "Credentials are stored locally in your browser only. Auto-saved on input.",
-    importBtn: "📥 Auto Import",
-    importFileBtn: "📁 Import from File (CSV/JSON)",
-    exportBtn: "📤 Export",
-    clearBtn: "🗑️ Clear All",
-    vendorTableTitle: "📋 Vendor Capabilities",
-    vendorCol: "Vendor",
-    typesCol: "Supported Types",
-    credsCol: "Required Credentials",
-    optional: "(optional)",
-    noHistory: "No task history",
-    loadFailed: "Load failed",
-    saved: "✅ Auto-saved",
-    noCreds: "No vendor credentials configured",
-    configured: "Configured",
-    confirmClear: "Are you sure you want to clear all saved credentials? This cannot be undone.",
-    noCredsExport: "No credentials to export",
-    exported: "✅ Credentials exported as vendor_creds.json",
-    cleared: "🗑️ All credentials cleared",
-    importSuccess: "✅ Imported",
-    vendors: "vendors with",
-    fields: "credential fields",
-    noCredsDetected: "No credentials detected. Configure via environment variables, .env file, or vendor_keys.csv.",
-    importFailed: "Import failed",
-    fileParseFailed: "File parse failed",
-    noValidCreds: "No valid credentials found in file",
-    selectFileAlert: "Please select one or more audio/video files",
-    selectAsrAlert: "Please select an ASR vendor",
-    selectLlmAlert: "Please select an LLM vendor",
-    missingCreds: "Missing required credentials",
-    loadTaskFailed: "Failed to load task",
-    requestFailed: "Request failed",
-    statusWaiting: "⏳ Waiting",
-    statusRunning: "🔄 Processing",
-    statusDone: "✅ Done",
-    statusError: "❌ Failed",
-    success: "✅ Success",
-    queueRunning: "running",
-    queueDone: "done",
-    queueTotal: "total",
-    speakersDetected: "🗣️ Detected",
-    speakersUnit: "speakers",
-    langLabel: "Language",
-    modelLabel: "Model",
-    inputLabel: "Input",
-    outputLabel: "Output",
-    totalLabel: "Total",
-    tokensUnit: "tokens",
-    taskIdLabel: "Task ID",
-    processing: "Processing",
-    voiceClone: "Voice Clone",
-    translation: "Translation",
-    langParam: "Language",
-    taskDone: "✅ Task Complete",
-    taskFailed: "❌ Task Failed",
-    queuing: "Queuing...",
-    uploading: "Uploading...",
-    collapseText: "▲ Collapse",
-    expandText: "▼ Expand",
-    errorDetail: "Error Details",
-    modelDefault: "-- Default --",
-    modelLoading: "Loading models...",
-    promptLabel: "System Prompt",
-    promptToggle: "Custom Prompt",
-    promptReset: "Reset to Default",
-    stepUpload: "Upload",
-    stepTranscode: "Transcode",
-    stepAsr: "ASR",
-    stepLlm: "LLM",
-    stepDone: "Done",
-    fwTitle: "📂 Folder Watch",
-    fwEnable: "Enable",
-    fwSetDefault: "📂 Set Default Watch Folder",
-    fwAddFolder: "+ Add Folder",
-    fwAutoProcess: "Auto-process",
-    fwCustomPrompt: "Custom Prompt",
-    fwDetectedCount: "new files detected",
-    fwRefresh: "Refresh",
-    fwProcess: "Process",
-    fwSkip: "Skip",
-    fwPermNeeded: "⚠ Permission needed",
-    fwReauthorize: "Re-authorize",
-    fwUseGlobal: "-- Use global setting --",
-    fwCompatTitle: "Browser Compatibility",
-    fwCompatChrome: "Chrome / Edge: ✅ Full support",
-    fwCompatFirefox: "Firefox: ❌ Not supported",
-    fwCompatSafari: "Safari: ⚠️ macOS 15.2+ partial, re-auth each session",
-    fwCompatRec: "Recommended: Chrome or Edge",
-    fwSelectVendorFirst: "Please configure ASR and LLM vendor credentials first",
-    fwClose: "Close",
-    fwNotSupported: "Your browser doesn't support Folder Watch",
-    fwMaxFolders: "Maximum 3 folders supported",
-    fwHowItWorks: "How it works: the browser reads your local folders directly via file system permissions, checking every 10 seconds for new recordings — no plugin or local app required.",
-    copyBtn: "Copy",
-    downloadBtn: "Download",
-    copied: "✅ Copied",
-    rerunBtn: "Re-run Notes",
-    rerunSubmit: "Generate",
-    rerunLlmLabel: "LLM Vendor",
-    rerunModelLabel: "Model",
-    rerunPromptToggle: "Custom Prompt",
-    editBtn: "Edit",
-    saveBtn: "Save",
-    cancelBtn: "Cancel",
-    batchProgress: "Batch",
-    batchAllDone: "All {n} files complete",
-    viewResult: "View results",
-    onboardingTitle: "Welcome to VibeMeet2Notes!",
-    onboardingMsg: "To get started, configure at least one ASR (speech-to-text) and one LLM (meeting notes) vendor below. Credentials are saved only in your browser.",
-    onboardingBtn: "🔑 Set Up Credentials →",
-    historySearch: "Search history...",
-    deleteBtn: "Delete",
-    confirmDelete: "Delete this history entry? This cannot be undone.",
-    promptTemplateLabel: "Prompt Template",
-    selectTemplatePlaceholder: "── Select a template ──",
-    saveAsTemplate: "Save as Template",
-    deleteTemplate: "Delete Template",
-    templateNamePlaceholder: "Template name...",
-    templateBuiltinGroup: "Built-in",
-    templateUserGroup: "My Templates",
-    templateNameRequired: "Name required",
-    templateSaveConfirm: "Save",
-    templateSaveCancel: "Cancel",
-    browseBtnOpen: "Browse ▾",
-    browseBtnClose: "Close ▴",
-    sectionCommonUse: "⭐ COMMON USE",
-    sectionDomain: "🗂 DOMAIN",
-    domainMeeting: "Meeting",
-    domainSales: "Sales",
-    domainHr: "HR",
-    domainProduct: "Product",
-    domainStudy: "Study",
-    domainLaw: "Law",
-    domainMyTemplates: "My Templates",
-    previewBack: "← Back",
-    previewUse: "✓ Use This Template"
-  }
-};
-
-function t(key) {
-  return i18n[currentLang]?.[key] || i18n.zh[key] || key;
-}
 
 async function init() {
-  const resp = await fetch("/api/vendors");
-  VENDORS = await resp.json();
-  renderVendorKeys();
-  renderVendorTable();
+  await fetchVendors();
   populateSelects();
-  updateCredsSummary();
   if (!localStorage.getItem("tip_dismissed")) {
     document.getElementById("tip-banner").style.display = "flex";
   }
@@ -769,135 +342,6 @@ async function init() {
   renderFolderWatchSettings();
   await requestPermissionsForStoredHandles();
   setInterval(runFolderScan, 10000);
-}
-
-function getStoredCreds() {
-  try { return JSON.parse(localStorage.getItem("vendor_creds") || "{}"); } catch { return {}; }
-}
-
-function saveCred(vendor, fieldKey, value) {
-  const all = getStoredCreds();
-  if (!all[vendor]) all[vendor] = {};
-  all[vendor][fieldKey] = value;
-  localStorage.setItem("vendor_creds", JSON.stringify(all));
-  updateFilledIndicator(vendor);
-  populateSelects();
-  updateCredsSummary();
-  showToast();
-}
-
-function showToast() {
-  const toast = document.getElementById("save-toast");
-  toast.style.display = "block";
-  toast.style.opacity = "1";
-  clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.style.display = "none", 300); }, 1200);
-}
-
-function isVendorReady(vendor) {
-  const info = VENDORS[vendor];
-  if (!info) return false;
-  const creds = getStoredCreds()[vendor] || {};
-  const requiredFields = info.fields.filter(f => !f.optional);
-  return requiredFields.length > 0 && requiredFields.every(f => (creds[f.key] && creds[f.key].trim()) || (f.default && f.default.trim()));
-}
-
-function updateCredsSummary() {
-  const ready = Object.keys(VENDORS).filter(v => isVendorReady(v));
-  const el = document.getElementById("creds-summary");
-  if (ready.length === 0) {
-    el.innerHTML = '<span style="color:#e65100;">尚未配置任何供应商凭证</span>';
-  } else {
-    el.innerHTML = `已配置: ${ready.join(", ")}`;
-  }
-}
-
-function toggleCreds() {
-  credsExpanded = !credsExpanded;
-  document.getElementById("vendor-keys").style.display = credsExpanded ? "block" : "none";
-  document.getElementById("creds-toggle").textContent = credsExpanded ? t("collapseText") : t("expandText");
-}
-
-function updateFilledIndicator(vendor) {
-  const dot = document.getElementById(`indicator-${CSS.escape(vendor)}`);
-  if (dot) {
-    const ready = isVendorReady(vendor);
-    dot.className = "filled-indicator " + (ready ? "filled-yes" : "filled-no");
-    dot.title = ready ? (currentLang === "en" ? "Credentials complete" : "凭证已填写完整") : (currentLang === "en" ? "Missing required fields" : "还有必填项未填写");
-  }
-}
-
-function translateType(type) {
-  const map = { "声音复刻": t("voiceClone"), "翻译": t("translation") };
-  return map[type] || type;
-}
-
-function translateNote(note) {
-  if (currentLang === "zh") return note;
-  const translations = {
-    "方言自由说ASR，语言参数：autodialect（自动识别中英及中文方言）": 
-      "Dialect ASR. Language param: autodialect (auto-detect Chinese/English/dialects)",
-    "火山海外版 BytePlus，服务海外用户":
-      "BytePlus (International Volcengine) for overseas users",
-  };
-  return translations[note] || note;
-}
-
-function translateFieldLabel(label) {
-  if (currentLang === "zh") return label;
-  const map = {
-    "语言参数": "Language",
-    "密钥1": "Key 1",
-    "密钥2": "Key 2",
-    "位置/区域": "Region",
-    "终结点": "Endpoint",
-  };
-  return map[label] || label;
-}
-
-// Translate error messages from Chinese to English
-function translateError(msg) {
-  if (currentLang === "zh") return msg;
-  return msg
-    .replace("API 调用失败:", "API call failed:")
-    .replace("处理失败:", "Processing failed:")
-    .replace("转录结果为空，请检查音频文件是否包含语音内容", "Transcription is empty. Please check if the audio contains speech.")
-    .replace("请上传有效的音视频文件", "Please upload a valid audio/video file")
-    .replace("凭证格式错误", "Invalid credentials format")
-    .replace("请选择 ASR 供应商并填写凭证", "Please select an ASR vendor and fill in credentials")
-    .replace("请选择 LLM 供应商并填写凭证", "Please select an LLM vendor and fill in credentials");
-}
-
-function renderVendorKeys() {
-  const container = document.getElementById("vendor-keys");
-  const creds = getStoredCreds();
-  container.innerHTML = Object.entries(VENDORS).map(([vendor, info]) => {
-    const vc = creds[vendor] || {};
-    const optionalText = currentLang === "en" ? "(optional)" : "(选填)";
-    const fieldsHtml = info.fields.map(f => {
-      const val = vc[f.key] || f.default || "";
-      const optTag = f.optional ? `<span class="optional-tag">${optionalText}</span>` : '';
-      const inputType = "text";
-      const maskStyle = (f.secret !== false) ? ' style="-webkit-text-security: disc;"' : '';
-      return `<div class="field-item">
-        <label>${translateFieldLabel(f.label)}${optTag}</label>
-        <input type="${inputType}"${maskStyle} placeholder="${f.placeholder || ''}" value="${val}"
-          oninput="saveCred('${vendor}', '${f.key}', this.value)">
-      </div>`;
-    }).join("");
-    const noteHtml = info.note ? `<div style="font-size:0.78rem;color:#e65100;margin-top:6px;">📌 ${translateNote(info.note)}</div>` : "";
-    const displayName = getVendorDisplayName(vendor);
-    return `<div class="vendor-section">
-      <div class="vendor-name">
-        ${displayName}
-        <span style="font-size:0.75rem;color:#999;">${info.types.map(translateType).join(" / ")}</span>
-        <span class="filled-indicator filled-no" id="indicator-${CSS.escape(vendor)}"></span>
-      </div>
-      <div class="vendor-fields">${fieldsHtml}</div>
-      ${noteHtml}
-    </div>`;
-  }).join("");
-  Object.keys(VENDORS).forEach(v => updateFilledIndicator(v));
 }
 
 function populateSelects() {
@@ -939,26 +383,6 @@ function populateSelects() {
   if (banner) banner.style.display = (asrCount === 0 && llmCount === 0) ? "block" : "none";
 }
 
-function renderVendorTable() {
-  const tbody = document.querySelector("#vendor-table tbody");
-  const optionalText = currentLang === "en" ? "(optional)" : "(选填)";
-  tbody.innerHTML = Object.entries(VENDORS).map(([name, info]) => {
-    const displayName = getVendorDisplayName(name);
-    return `<tr style="border-bottom:1px solid #f0f0f0;">
-      <td style="padding:10px;font-weight:500;">${displayName}</td>
-      <td style="padding:10px;">${info.types.map(type => {
-        const cls = type === "ASR" ? "badge-asr" : type === "LLM" ? "badge-llm" : type === "TTS" ? "badge-tts" : "badge-other";
-        return `<span class="vendor-badge ${cls}">${translateType(type)}</span>`;
-      }).join(" ")}</td>
-      <td style="padding:10px;font-size:0.82rem;color:#666;">${info.fields.map(f => translateFieldLabel(f.label) + (f.optional ? optionalText : '')).join(", ")}</td>
-    </tr>`;
-  }).join("");
-}
-
-function getVendorCreds(vendor) {
-  return getStoredCreds()[vendor] || {};
-}
-
 // Last transcript metadata for language refresh
 let _lastTranscriptMeta = null;
 
@@ -995,41 +419,6 @@ function renderTranscript(text) {
   } catch (e) { /* not JSON, render as plain text */ }
   meta.style.display = "none";
   output.innerHTML = `<div style="white-space:pre-wrap;">${escapeHtml(text)}</div>`;
-}
-
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function renderMarkdown(text) {
-  // Use marked.js for full Markdown rendering (tables, code blocks, etc.)
-  if (typeof marked !== 'undefined') {
-    return marked.parse(text);
-  }
-  // Fallback: basic rendering if marked.js fails to load
-  let html = escapeHtml(text);
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = html.replace(/\n/g, '<br>');
-  return `<p>${html}</p>`;
-}
-
-function validateVendorCreds(vendor) {
-  const info = VENDORS[vendor];
-  const creds = getVendorCreds(vendor);
-  const missing = info.fields.filter(f => !f.optional && (!creds[f.key] || !creds[f.key].trim()));
-  if (missing.length > 0) {
-    const vendorName = getVendorDisplayName(vendor);
-    return `${vendorName} ${t("missingCreds")}: ${missing.map(f => f.label).join(", ")}`;
-  }
-  return null;
 }
 
 function setStep(stepId, status) {
@@ -1234,13 +623,14 @@ async function processFiles() {
   _batchIds = new Set(newQids);
   _batchNotified = false;
 
-  if (files.length > 1 && !queueExpanded) {
+  if (!queueExpanded) {
     queueExpanded = true;
     document.getElementById("task-queue-list").style.display = "block";
     document.getElementById("queue-toggle").textContent = t("queueCollapse");
   }
 
   updateQueueUI();
+  document.getElementById("queue-card").scrollIntoView({ behavior: "smooth", block: "start" });
   drainQueue();
 }
 
@@ -1582,12 +972,32 @@ async function doRerunLlm() {
   const credsError = validateVendorCreds(vendor);
   if (credsError) { alert(credsError); return; }
 
+  // Add a queue entry for the rerun
+  const qid = Date.now() + "_rerun_" + Math.random().toString(36).slice(2, 6);
+  const label = currentLang === "zh" ? "重新生成" : "Re-run";
+  taskQueue[qid] = {
+    fileName: (_currentFileName || _currentTaskId) + ` [${label}]`,
+    status: "running", percent: 50, currentStep: "llm",
+    message: currentLang === "zh" ? "LLM 生成纪要中..." : "Generating notes...",
+    token_usage: null, taskIdServer: _currentTaskId, llmVendor: vendor
+  };
+  if (!queueExpanded) {
+    queueExpanded = true;
+    document.getElementById("task-queue-list").style.display = "block";
+    document.getElementById("queue-toggle").textContent = t("queueCollapse");
+  }
+  updateQueueUI();
+  document.getElementById("queue-card").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Close rerun panel
+  rerunPanelOpen = false;
+  document.getElementById("rerun-panel").style.display = "none";
+  document.getElementById("summary-section").style.display = "none";
+
   const btn = document.getElementById("rerun-submit-btn");
   const labelEl = document.getElementById("rerun-submit-label");
-
   btn.disabled = true;
   labelEl.textContent = currentLang === "zh" ? "⏳ 处理中..." : "⏳ Processing...";
-  document.getElementById("summary-section").style.display = "none";
 
   try {
     const resp = await fetch(`/api/tasks/${_currentTaskId}/rerun-llm`, {
@@ -1619,14 +1029,27 @@ async function doRerunLlm() {
           document.getElementById("llm-vendor-tag").textContent = `(${getVendorDisplayName(vendor)})`;
         } else if (event === "done") {
           showTokenUsageInResults(data.token_usage);
-          rerunPanelOpen = false;
-          document.getElementById("rerun-panel").style.display = "none";
+          taskQueue[qid].status = "done";
+          taskQueue[qid].percent = 100;
+          taskQueue[qid].currentStep = "done";
+          taskQueue[qid].message = "";
+          taskQueue[qid].token_usage = data.token_usage;
+          taskQueue[qid].completedAt = new Date().toLocaleTimeString();
+          updateQueueUI();
+          showTaskNotification(qid, false);
         } else if (event === "error") {
+          taskQueue[qid].status = "error";
+          taskQueue[qid].message = data.message || "";
+          updateQueueUI();
+          showTaskNotification(qid, true);
           alert(data.message);
         }
       }
     }
   } catch(e) {
+    taskQueue[qid].status = "error";
+    taskQueue[qid].message = e.message;
+    updateQueueUI();
     alert("Re-run failed: " + e.message);
   } finally {
     btn.disabled = false;
@@ -1707,11 +1130,6 @@ async function deleteTask(taskId, event) {
   } catch (e) {}
 }
 
-function scrollToCreds() {
-  if (!credsExpanded) toggleCreds();
-  document.getElementById("creds-card").scrollIntoView({ behavior: "smooth" });
-}
-
 async function loadTask(taskId) {
   try {
     const resp = await fetch(`/api/tasks/${taskId}`);
@@ -1757,209 +1175,15 @@ async function loadTask(taskId) {
   }
 }
 
-function showImportStatus(msg, isError) {
-  const el = document.getElementById("import-status");
-  el.style.display = "block";
-  el.style.background = isError ? "#ffebee" : "#e8f5e9";
-  el.style.color = isError ? "#c62828" : "#2e7d32";
-  el.innerHTML = msg;
-  setTimeout(() => { el.style.display = "none"; }, 5000);
-}
-
-async function importKeys() {
-  try {
-    const resp = await fetch("/api/import-keys");
-    const creds = await resp.json();
-    if (!creds || Object.keys(creds).length === 0) {
-      showImportStatus(t("noCredsDetected"), true);
-      return;
-    }
-    const existing = getStoredCreds();
-    let imported = 0;
-    for (const [vendor, fields] of Object.entries(creds)) {
-      if (!existing[vendor]) existing[vendor] = {};
-      for (const [key, val] of Object.entries(fields)) {
-        if (val && val.trim()) {
-          existing[vendor][key] = val.trim();
-          imported++;
-        }
-      }
-    }
-    localStorage.setItem("vendor_creds", JSON.stringify(existing));
-    renderVendorKeys();
-    populateSelects();
-    updateCredsSummary();
-    const vendors = Object.keys(creds).join(", ");
-    showImportStatus(`${t("importSuccess")} ${Object.keys(creds).length} ${t("vendors")} ${imported} ${t("fields")} (${vendors})`, false);
-  } catch (e) {
-    showImportStatus(t("importFailed") + ": " + e.message, true);
-  }
-}
-
-function importFromFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const text = e.target.result.trim();
-      let creds;
-      const isCSV = file.name.endsWith(".csv") || (!text.startsWith("{") && text.includes(","));
-      if (isCSV) {
-        creds = parseCSVCreds(text);
-      } else {
-        creds = JSON.parse(text);
-      }
-      if (!creds || typeof creds !== "object" || Object.keys(creds).length === 0) {
-        showImportStatus(t("noValidCreds"), true);
-        return;
-      }
-      const existing = getStoredCreds();
-      let imported = 0;
-      for (const [vendor, fields] of Object.entries(creds)) {
-        if (typeof fields !== "object") continue;
-        if (!existing[vendor]) existing[vendor] = {};
-        for (const [key, val] of Object.entries(fields)) {
-          if (val && String(val).trim()) {
-            existing[vendor][key] = String(val).trim();
-            imported++;
-          }
-        }
-      }
-      localStorage.setItem("vendor_creds", JSON.stringify(existing));
-      renderVendorKeys();
-      populateSelects();
-      updateCredsSummary();
-      showImportStatus(`${t("importSuccess")} ${Object.keys(creds).length} ${t("vendors")} ${imported} ${t("fields")}`, false);
-    } catch (err) {
-      showImportStatus(t("fileParseFailed") + ": " + err.message, true);
-    }
-  };
-  reader.readAsText(file);
-  event.target.value = "";
-}
-
-function parseCSVCreds(text) {
-  // Parse vendor_keys.csv format: 供应商,支持产品类型,Key
-  // Key column contains "label: value; label: value" or "label: 'value', label: 'value'"
-  const result = {};
-  const lines = text.split("\n");
-  for (const line of lines) {
-    if (!line.trim() || line.startsWith("供应商")) continue;
-    // Handle CSV quoting: find first two commas outside quotes
-    const row = parseCSVRow(line);
-    if (row.length < 3) continue;
-    const vendor = row[0].trim();
-    const keyStr = row[2].trim();
-    if (!vendor || !keyStr) continue;
-    const vendorInfo = VENDORS[vendor];
-    if (!vendorInfo) continue;
-    // Build label→field_key map from VENDORS
-    const labelMap = {};
-    vendorInfo.fields.forEach(f => { labelMap[f.label] = f.key; });
-    // Parse entries: try semicolon split first, then comma-quote split
-    let entries = keyStr.split(/[;；]/);
-    if (entries.length === 1 && keyStr.includes(": ") && keyStr.includes(",")) {
-      entries = keyStr.split(/',\s*/);
-    }
-    for (let entry of entries) {
-      entry = entry.trim();
-      if (!entry) continue;
-      const m = entry.match(/^(.+?)\s*[:：]\s*(.*)/);
-      if (!m) continue;
-      const label = m[1].trim();
-      const value = m[2].trim().replace(/^['"]|['"]$/g, "");
-      if (!value) continue;
-      const fieldKey = labelMap[label];
-      if (fieldKey) {
-        if (!result[vendor]) result[vendor] = {};
-        result[vendor][fieldKey] = value;
-      }
-    }
-  }
-  return result;
-}
-
-function parseCSVRow(line) {
-  // Simple CSV row parser that handles quoted fields
-  const result = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === "," && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current);
-  return result;
-}
-
-function exportKeys() {
-  const creds = getStoredCreds();
-  if (!creds || Object.keys(creds).length === 0) {
-    showImportStatus(t("noCredsExport"), true);
-    return;
-  }
-  const blob = new Blob([JSON.stringify(creds, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "vendor_creds.json";
-  a.click();
-  URL.revokeObjectURL(url);
-  showImportStatus(t("exported"), false);
-}
-
-function clearAllKeys() {
-  if (!confirm(t("confirmClear"))) return;
-  localStorage.removeItem("vendor_creds");
-  renderVendorKeys();
-  populateSelects();
-  updateCredsSummary();
-  showImportStatus(t("cleared"), false);
-}
-
 function dismissTip() {
   document.getElementById("tip-banner").style.display = "none";
   localStorage.setItem("tip_dismissed", "1");
 }
 
-function switchLanguage(lang) {
-  currentLang = lang;
-  localStorage.setItem("app_lang", lang);
-  applyLanguage();
-}
-
-function applyLanguage() {
-  document.getElementById("lang-select").value = currentLang;
-  
-  // Re-render vendor-related UI
-  renderVendorKeys();
-  renderVendorTable();
+window._applyPageLanguage = function() {
   populateSelects();
-  
-  // Update static text elements
-  document.querySelector("h1").innerHTML = t("title");
 
-  // Toggle banner logo visibility by language
-  // EN: show logo image, hide h1 text | CN: hide logo image, show h1 text
-  const enLogo = document.getElementById("banner-logo-en");
-  const h1 = document.querySelector("h1");
-  if (currentLang === "en") {
-    enLogo.style.display = "block";  // Show EN logo when English selected
-    h1.style.display = "none";       // Hide h1 text
-  } else {
-    enLogo.style.display = "none";   // Hide EN logo when Chinese selected
-    h1.style.display = "";           // Show h1 text (emoji + Chinese title)
-  }
-
-  document.querySelector(".subtitle").textContent = t("subtitle");
+  // tipBanner uses innerHTML for <strong> tags — content is from controlled i18n, not user input
   document.querySelector("#tip-banner span:first-child").innerHTML = t("tipBanner");
   
   // Upload section
@@ -2059,48 +1283,17 @@ function applyLanguage() {
     historyH2.appendChild(toggleSpan);
   }
   
-  // Credentials section
-  const credsH2 = document.querySelector("#creds-card h2");
-  if (credsH2) {
-    const toggleSpan = document.getElementById("creds-toggle");
-    credsH2.innerHTML = "";
-    credsH2.textContent = t("credsTitle") + " ";
-    credsH2.appendChild(toggleSpan);
-  }
-  document.querySelector("#creds-card > p").textContent = t("credsDesc");
-  
-  // Credential buttons - use IDs for reliable targeting
-  document.getElementById("btn-import").textContent = t("importBtn");
-  document.getElementById("btn-import-file").innerHTML = t("importFileBtn") + '<input type="file" accept=".json,.csv" onchange="importFromFile(event)" style="display:none;">';
-  document.getElementById("btn-export").textContent = t("exportBtn");
-  document.getElementById("btn-clear").textContent = t("clearBtn");
-  
-  // Vendor table title
-  document.querySelector("#vendor-table").closest(".card").querySelector("h2").textContent = t("vendorTableTitle");
-  
-  // Table headers
-  const ths = document.querySelectorAll("#vendor-table thead th");
-  if (ths.length >= 3) {
-    ths[0].textContent = t("vendorCol");
-    ths[1].textContent = t("typesCol");
-    ths[2].textContent = t("credsCol");
-  }
-  
   // Update toggle text
   document.getElementById("queue-toggle").textContent = queueExpanded ? t("queueCollapse") : t("queueExpand");
   document.getElementById("history-toggle").textContent = historyExpanded ? t("collapseText") : t("expandText");
-  document.getElementById("creds-toggle").textContent = credsExpanded ? t("collapseText") : t("expandText");
   document.getElementById("transcript-toggle").textContent = transcriptExpanded ? t("collapseText") : t("expandText");
   document.getElementById("summary-toggle").textContent = summaryExpanded ? t("collapseText") : t("expandText");
-  
-  // Update save toast
-  document.getElementById("save-toast").textContent = t("saved");
-  
-  // Update page title
-  document.getElementById("page-title").textContent = currentLang === "en" ? "VibeMeet2Notes · 灵感纪要" : "灵感纪要 · VibeMeet2Notes";
-  
-  // Update credentials summary
-  updateCredsSummary();
+
+  // Nav labels
+  const navProcess = document.getElementById("nav-label-process");
+  if (navProcess) navProcess.textContent = t("navProcess");
+  const navVendors = document.getElementById("nav-label-vendors");
+  if (navVendors) navVendors.textContent = t("navVendors");
 
   // Re-render dynamic content with new language
   updateQueueUI();
@@ -2162,18 +1355,6 @@ function applyLanguage() {
   if (_promptTemplates.length) populateTemplateDropdown();
   if (_templateBrowserOpen) renderBrowserPanel();
 }
-
-// Override updateCredsSummary to use i18n
-const _origUpdateCredsSummary = updateCredsSummary;
-updateCredsSummary = function() {
-  const ready = Object.keys(VENDORS).filter(v => isVendorReady(v));
-  const el = document.getElementById("creds-summary");
-  if (ready.length === 0) {
-    el.innerHTML = `<span style="color:#e65100;">${t("noCreds")}</span>`;
-  } else {
-    el.innerHTML = `${t("configured")}: ${ready.map(getVendorDisplayName).join(", ")}`;
-  }
-};
 
 // ── LLM Model selector ──────────────────────────────────────────────
 let _modelCache = {}; // vendor -> {models:[], default:""}
@@ -2248,6 +1429,8 @@ let _selectedTemplateId = null;
 let _templateBrowserOpen = false;
 let _activeDomain = null;
 let _previewTemplateId = null;
+
+window._onCredSaved = function() { populateSelects(); };
 
 init();
 applyLanguage();
@@ -2499,7 +1682,6 @@ function onRerunTemplateSelect(id) {
   const tpl = _promptTemplates.find(item => item.id === id);
   if (tpl) {
     document.getElementById("rerun-llm-prompt").value = tpl.content;
-    if (!rerunPromptOpen) toggleRerunPrompt();
   }
 }
 

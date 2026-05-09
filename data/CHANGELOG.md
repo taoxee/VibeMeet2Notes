@@ -2,6 +2,21 @@
 
 All notable changes to VibeMeet2Notes are documented here.
 
+## 2026-05-10
+
+### Features
+- Two-page layout: main page (`/`) for Upload & Process + Task History; vendor management page (`/vendors`) for credentials and capabilities table
+- Shared CSS/JS layer: `static/shared.css` and `static/shared.js` extracted from monolithic `index.html`; both pages link to them, no build step needed
+- Top navigation bar on both pages with active-tab highlighting and CN/EN banner logo toggle
+- Banner logos: CN (`Banner-Logo-CN.png`) and EN (`Banner-Logo-EN.png`) shown in nav, toggled by language
+- On Start Processing, page auto-scrolls to Task Queue and queue is always expanded (was only auto-expanded for multi-file batches)
+- Re-run Notes now creates a visible Task Queue entry showing LLM step progress, scrolls to queue, and fires a completion notification
+- Onboarding CTA now navigates to `/vendors` instead of scrolling to removed in-page credentials section
+- 27 integration tests covering both routes, shared file serving, and content assertions (`tests/test_two_page.py`)
+
+### Bug Fixes
+- Re-run template select no longer auto-expands the prompt editor on selection
+
 ## 2026-05-07
 
 ### Features

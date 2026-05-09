@@ -102,6 +102,16 @@ def index():
     return resp
 
 
+@bp.route("/vendors")
+def vendors():
+    from app.config import BASE_DIR
+    resp = send_from_directory(os.path.join(BASE_DIR, "static"), "vendors.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
+
 @bp.route("/api/vendors")
 def get_vendors():
     return jsonify(VENDORS)

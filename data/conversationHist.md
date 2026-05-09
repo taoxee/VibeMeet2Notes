@@ -929,3 +929,88 @@ UI：Prompt 区域升级为常驻 section，含模板下拉 + Save as Template +
 
 ### Git 提交记录（本次会话）
 - 无独立提交（变更包含在未提交的 `static/index.html` diff 中）
+
+---
+
+## Conversation 18
+
+### 主题：两页拆分 + UX 改进（两次会话跨越上下文压缩）
+
+---
+
+### 架构变更：单文件拆分为两页
+
+**目标**：将 2949 行 `static/index.html` 拆分为两个专注页面，共享 CSS/JS 层。
+
+**新文件**
+
+| 文件 | 说明 |
+|------|------|
+| `static/shared.css` | 公共样式：reset、body、`.topnav`、`.card`、`.form-row`、vendor badge/section 样式 |
+| `static/shared.js` | 公共 globals（`VENDORS`, `currentLang`, `i18n`, `vendorNames`）+ 函数（`t`, `fetchVendors`, `getStoredCreds`, `saveCred`, `isVendorReady`, `showToast`, `escapeHtml`, `renderMarkdown`, `switchLanguage`, `applyLanguage`, `validateVendorCreds` 等） |
+| `static/vendors.html` | 供应商管理页（凭证填写 + 能力表格），路由 `GET /vendors` |
+| `tests/test_two_page.py` | 27 个集成测试，覆盖两个路由、静态文件服务、关键 DOM 元素存在性 |
+| `tests/conftest.py` | 将项目根加入 `sys.path` |
+
+**Hook 模式**
+
+- `window._onCredSaved?(vendor)` — 凭证保存后回调；index.html 注册 `() => populateSelects()`，vendors.html 注册 `updateFilledIndicator + updateCredsSummary`
+- `window._applyPageLanguage?()` — 语言切换后页面级回调；`shared.js applyLanguage()` 末尾调用
+
+**Flask 路由**（`app/routes.py`）
+
+```python
+@bp.route("/vendors")
+def vendors():
+    resp = send_from_directory(os.path.join(BASE_DIR, "static"), "vendors.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+```
+
+---
+
+### index.html 变更
+
+- `<head>` 引入 `shared.css` + `shared.js`
+- `<body>` 顶部替换为 `.topnav`（含 CN/EN banner logo + 语言选择器）
+- 删除 vendor 凭证卡片（`#creds-card`）和能力表格卡片
+- `init()` 改为调用 `fetchVendors()`（共享），移除 `renderVendorKeys/renderVendorTable/updateCredsSummary`
+- `applyLanguage()` 改为 `window._applyPageLanguage`，移除 vendor 专属 DOM 更新，新增 nav label 更新
+- 删除 `scrollToCreds()`、`updateCredsSummary` override block
+- Onboarding CTA 改为 `window.location.href='/vendors'`
+- 新增 `window._onCredSaved = () => populateSelects()`
+
+---
+
+### UX 改进
+
+**Start Processing → 自动跳转 Task Queue**
+
+- `processFiles()` 中：`!queueExpanded` 时始终展开（原仅多文件展开），调用后 `scrollIntoView({behavior:"smooth"})`
+
+**Re-run Notes → 创建 Task Queue 条目并跳转**
+
+- `doRerunLlm()` 重写：立即创建 `taskQueue[qid]`（`status:"running"`, `currentStep:"llm"`），展开并滚动到 queue card，关闭 rerun panel；SSE 流结束后更新状态为 done/error，调用 `showTaskNotification`
+
+**Re-run 模板选择不自动展开提示词编辑器**
+
+- `onRerunTemplateSelect()` 移除 `if (!rerunPromptOpen) toggleRerunPrompt()` 调用；选模板只填充 textarea，不展开面板
+
+---
+
+### i18n 新增 key
+
+`shared.js` zh/en 各新增：
+- `navProcess`（"处理" / "Process"）
+- `navVendors`（"供应商" / "Vendors"）
+
+---
+
+### 删除
+
+- `static/mockup.html`（头脑风暴用临时文件）
+
+---
+
+### Git 提交记录（本次会话）
+- 待本次提交

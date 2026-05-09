@@ -46,24 +46,9 @@ The app's `_load_builtin_templates()` function automatically:
 
 ---
 
-## Next Steps (Optional)
+## Status
 
-### 1. Frontend i18n (Optional Enhancement)
-To add Chinese translations for new template names, update `static/index.html`:
-- Add Chinese names to i18n object for better user experience
-- Example: `"templateSpinSelling": { "zh": "SPIN销售法", "en": "SPIN Selling" }`
-
-### 2. Test Coverage (Optional)
-- Manual test: Load each template via dropdown and verify display
-- Verify language switching works correctly
-- Test with actual recordings to ensure output quality
-
-### 3. Git Commit (When Ready)
-```bash
-git add data/custom-prompts/builtin/0[4-9]-*.txt data/custom-prompts/builtin/1[0-3]-*.txt
-git commit -m "feat: add 10 new prompt templates (study notes, product review, brainstorm, sales analysis)"
-git push
-```
+All templates committed and shipped (2026-05-06). No outstanding next steps.
 
 ---
 
