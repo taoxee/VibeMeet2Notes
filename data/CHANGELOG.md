@@ -13,6 +13,9 @@ All notable changes to VibeMeet2Notes are documented here.
 - Re-run Notes now creates a visible Task Queue entry showing LLM step progress, scrolls to queue, and fires a completion notification
 - Onboarding CTA now navigates to `/vendors` instead of scrolling to removed in-page credentials section
 - 27 integration tests covering both routes, shared file serving, and content assertions (`tests/test_two_page.py`)
+- SVG icon system: all emoji characters replaced with inline SVG icons (Feather/Lucide style) across both pages — nav links, h2 headings, action buttons, status indicators; zero emojis remain in HTML/JS/CSS
+- Mobile responsive layout: nav collapses to icon-only at ≤600px; cards use reduced padding; form rows stack vertically; improved tap targets
+- Nav logo enlarged (36px → 48px) with taller nav bar (56px → 64px) for better visual presence
 
 ### Bug Fixes
 - Re-run template select no longer auto-expands the prompt editor on selection

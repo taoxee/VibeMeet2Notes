@@ -1013,4 +1013,77 @@ def vendors():
 ---
 
 ### Git 提交记录（本次会话）
-- 待本次提交
+- `c097453` feat: split into two pages, add shared layer, UX queue improvements
+
+---
+
+## Conversation 19 (2026-05-10)
+
+### 主题：UI 细化 — SVG 图标系统 + 移动端适配 + 导航栏增大
+
+---
+
+### 变更概览
+
+**触发原因：** 用户要求放大导航栏 logo、用 SVG 替换所有 emoji、保持导航栏无 emoji、并兼顾手机端视图。
+
+---
+
+### 文件变更
+
+#### `static/shared.css`
+- Nav 高度：56px → 64px
+- Logo 高度：36px → 48px
+- `.topnav .nav-links a` 改为 `display: inline-flex; align-items: center; gap: 6px`（支持 SVG + 文字对齐）
+- `.card h2` 增加 `display: flex; align-items: center; gap: 8px`（支持 SVG 图标与标题文字对齐）
+- 新增 `@media (max-width: 600px)` 移动端断点：nav 缩为图标模式（隐藏文字标签）、卡片减少内边距、表单行竖向排列
+
+#### `static/shared.js` — i18n 清理
+- zh + en 两节全部 emoji 字符移除（共涉及约 30+ 条 key）
+- 受影响 key：`uploadTitle`, `queueTitle`, `resultsTitle`, `credsTitle`, `vendorTableTitle`, `startBtn`, `importBtn`, `exportBtn`, `clearBtn`, `statusRunning/Done/Error/Waiting`, `taskDone/taskFailed`, `saved`, `exported`, `copied`, `speakersDetected`, `onboardingBtn`, `fwTitle`, 等
+
+#### `static/index.html`
+- **导航栏**：`📁` → 上传箭头 SVG；`🔑` → 钥匙 SVG；`🌐` 从语言选择器删除
+- **h2 标题重构**：每个 `<h2>` 改为 `<h2 style="display:flex;..."><svg/><span id="*-title-text">文字</span></h2>` 结构
+  - Upload: upload-title-text
+  - Queue: queue-title-text（count/toggle span 保留为兄弟节点）
+  - Results: results-title-text
+  - History: history-title-text（toggle span 保留为兄弟节点）
+- **`_applyPageLanguage` 重构**：不再对 h2 整体 innerHTML 清空再重建，改为仅更新对应 span；消除了每次切换语言时 SVG 被摧毁的问题
+- **按钮 SVG 化**：copy (📋→复制图标), download (⬇️→下载图标), edit (✏️→编辑图标), save (✅→勾选图标), rerun toggle/submit (🔄→刷新图标)
+- **内容区域**：error section ⚠️ → 三角警告 SVG；tip banner 💡 → 圆形信息 SVG；onboarding 按钮 🔑 → 钥匙 SVG；历史删除按钮 🗑️ → 垃圾桶 SVG；队列 viewHint 👁 → 眼睛 SVG
+- **JS 内容**：`_flashBtn` 恢复字符串改用 SVG copy 图标；`extraHtml` 移除 `🔢`；`task.message` 移除 `❌` 前缀；`setStep()` 简化（该函数指向不存在的 DOM 元素，为历史遗留）；`⏳` / `🔄` 状态文字清理
+- **token-usage-section div** 新增 `id="token-usage-title"` 以支持 applyLanguage 定向更新
+- **Folder Watch（隐藏功能）**：移除 `📂` / `📁` 前缀
+
+#### `static/vendors.html`
+- **导航栏**：同 index.html（上传 SVG + 钥匙 SVG，移除 🌐）
+- **h2 标题重构**：
+  - Creds: `<span id="creds-title-text">`
+  - Vendor Table: `<span id="vendor-table-title-text">`
+- **按钮重构**：import/export/clear/import-file 均改为 SVG + `<span id="btn-*-text">` 结构
+- **`_applyPageLanguage` 简化**：不再需要重建文件 input（之前因 `textContent` 覆盖子节点 input 而需 JS 重建），现在只更新文字 span；文件 input 永久保留在 HTML 中
+
+---
+
+### 设计原则（SVG 图标）
+- 所有图标：Feather/Lucide 风格，stroke-based，无 fill
+- h2 图标：15×15px，`flex-shrink:0`
+- 按钮图标：12–13px，`vertical-align:-1px`
+- 导航图标：15px（桌面），18px（移动端）
+- 图标 SVG 直接内联在 HTML 中（无外部依赖、无构建）
+
+---
+
+### 移动端策略（`@media (max-width: 600px)`）
+- 导航文字标签隐藏（`.topnav .nav-links a span { display: none }`）
+- 导航图标放大至 18px（保持点击区域可用）
+- 导航 Logo 降回 36px（适配小屏）
+- Container padding 12px，Card padding 16px
+- Form row 改竖排，min-width 取消
+
+---
+
+### 测试
+- 27 个集成测试全部通过（`python -m pytest tests/test_two_page.py -v`）
+- 全文件 emoji 扫描：index.html、vendors.html、shared.js 均为 0 匹配

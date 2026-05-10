@@ -21,36 +21,36 @@
     <img id="nav-logo-en" src="/logos/Banner-Logo-EN.png" alt="VibeMeet2Notes" style="display:none;">
   </div>
   <div class="nav-links">
-    <a href="/" class="active">📁 <span id="nav-label-process">处理</span></a>
-    <a href="/vendors">🔑 <span id="nav-label-vendors">供应商</span></a>
+    <a href="/" class="active"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span id="nav-label-process">处理</span></a>
+    <a href="/vendors"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg><span id="nav-label-vendors">供应商</span></a>
   </div>
   <div class="nav-lang">
     <select id="lang-select" onchange="switchLanguage(this.value)">
-      <option value="zh">🌐 中文</option>
-      <option value="en">🌐 English</option>
+      <option value="zh">中文</option>
+      <option value="en">English</option>
     </select>
   </div>
 </nav>
 
-<div id="save-toast" style="display:none;position:fixed;top:20px;right:20px;background:#2e7d32;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;z-index:999;transition:opacity 0.3s;">✅ 已自动保存</div>
+<div id="save-toast" style="display:none;position:fixed;top:20px;right:20px;background:#2e7d32;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;z-index:999;transition:opacity 0.3s;">已自动保存</div>
 
 <div class="container">
 
   <div id="tip-banner" style="display:none;background:#fff3e0;border:1px solid #ffe0b2;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.88rem;color:#e65100;display:flex;align-items:center;justify-content:space-between;">
-    <span>💡 推荐组合：ASR 选 <strong>Soniox</strong>，LLM 选 <strong>阿里云</strong>（速度快、识别准、性价比高）</span>
+    <span style="display:flex;align-items:flex-start;gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span id="tip-banner-text">推荐组合：ASR 选 <strong>Soniox</strong>，LLM 选 <strong>阿里云</strong>（速度快、识别准、性价比高）</span></span>
     <span onclick="dismissTip()" style="cursor:pointer;color:#bbb;font-size:1.1rem;margin-left:12px;" title="关闭">✕</span>
   </div>
 
   <!-- Onboarding banner for first-time users -->
   <div id="onboarding-banner" style="display:none;background:#e3f2fd;border:1px solid #bbdefb;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
-    <div style="font-size:1.05rem;font-weight:600;color:#1565c0;margin-bottom:8px;">👋 <span id="onboarding-title">欢迎使用 VibeMeet2Notes！</span></div>
+    <div style="font-size:1.05rem;font-weight:600;color:#1565c0;margin-bottom:8px;"><span id="onboarding-title">欢迎使用 VibeMeet2Notes！</span></div>
     <p id="onboarding-msg" style="font-size:0.88rem;color:#555;margin-bottom:14px;line-height:1.6;">开始使用前，请先配置 ASR 和 LLM 供应商凭证。凭证仅保存在浏览器本地，输入后自动保存。</p>
-    <button onclick="window.location.href='/vendors'" id="onboarding-btn" style="padding:10px 22px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;">🔑 前往配置凭证 →</button>
+    <button onclick="window.location.href='/vendors'" id="onboarding-btn" style="padding:10px 22px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>前往配置凭证 →</button>
   </div>
 
   <!-- Upload & Process (FIRST — core feature) -->
   <div class="card">
-    <h2>📁 上传文件并处理</h2>
+    <h2><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span id="upload-title-text">上传文件并处理</span></h2>
     <div class="form-row">
       <div class="form-group" style="flex:2;">
         <label id="file-label">选择音视频文件（可多选）</label>
@@ -61,12 +61,12 @@
       <div class="form-group">
         <label id="asr-label">ASR 供应商（语音转文字 + 说话人分离）</label>
         <select id="asr-vendor" onchange="localStorage.setItem('last_asr_vendor',this.value)"><option value="">-- 请选择 --</option></select>
-        <div id="asr-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">⚠️ 暂无已配置的 ASR 供应商，请先在下方配置凭证</div>
+        <div id="asr-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">暂无已配置的 ASR 供应商，请先在供应商页面配置凭证</div>
       </div>
       <div class="form-group">
         <label id="llm-label">LLM 供应商（会议纪要）</label>
         <select id="llm-vendor" onchange="localStorage.setItem('last_llm_vendor',this.value);fetchModels(this.value)"><option value="">-- 请选择 --</option></select>
-        <div id="llm-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">⚠️ 暂无已配置的 LLM 供应商，请先在下方配置凭证</div>
+        <div id="llm-no-vendor" style="display:none;font-size:0.8rem;color:#e65100;margin-top:4px;">暂无已配置的 LLM 供应商，请先在供应商页面配置凭证</div>
       </div>
       <div class="form-group">
         <label id="llm-model-label">模型</label>
@@ -76,7 +76,7 @@
     </div>
     <div style="margin-bottom:12px;">
       <div style="margin-bottom:10px;padding:10px 12px;background:#f8f9ff;border:1px solid #e0e4ff;border-radius:8px;">
-        <label id="template-section-label" style="font-size:0.85rem;font-weight:600;color:#333;display:block;margin-bottom:8px;">📋 提示词模板</label>
+        <label id="template-section-label" style="font-size:0.85rem;font-weight:600;color:#333;display:block;margin-bottom:8px;">提示词模板</label>
         <!-- Compact bar -->
         <div style="display:flex;align-items:center;gap:8px;">
           <div id="template-bar-label" style="flex:1;background:#fff;border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:0.85rem;color:#888;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">── 选择模板 ──</div>
@@ -84,9 +84,9 @@
         </div>
         <!-- Browse panel -->
         <div id="template-browser" style="display:none;margin-top:10px;background:#fff;border:1px solid #e0e4ff;border-radius:8px;padding:12px;">
-          <div id="template-featured-label" style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:7px;">⭐ 常用模板</div>
+          <div id="template-featured-label" style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:7px;">常用模板</div>
           <div id="template-featured-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
-          <div id="template-domain-label" style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:7px;">🗂 按领域浏览</div>
+          <div id="template-domain-label" style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:7px;">按领域浏览</div>
           <div id="template-domain-chips" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;"></div>
           <div id="template-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:7px;"></div>
           <!-- Preview pane (hidden until a domain card is clicked) -->
@@ -126,7 +126,7 @@
       </div>
     </div>
     <button id="process-btn" onclick="processFiles()" style="width:100%;padding:12px;background:#4361ee;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;transition:background 0.2s;">
-      🚀 开始处理
+      开始处理
     </button>
   </div>
 
@@ -134,7 +134,7 @@
   <div class="card" id="fw-card" style="display:none">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
       <h2 style="cursor:pointer;user-select:none;margin:0;flex:1;" onclick="toggleFwCard()">
-        📂 <span id="fw-section-title">文件夹监控</span>
+        <span id="fw-section-title">文件夹监控</span>
         <span id="fw-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▼ 展开</span>
       </h2>
       <button onclick="showFolderWatchCompatInfo();" title="Browser Compatibility" style="background:none;border:1px solid #ccc;border-radius:50%;width:20px;height:20px;font-size:0.7rem;cursor:pointer;color:#888;padding:0;line-height:1;flex-shrink:0;">i</button>
@@ -149,7 +149,7 @@
       <div id="fw-detected-area" style="display:none;margin-bottom:12px;padding:10px 14px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <span style="font-size:0.88rem;font-weight:600;color:#2e7d32;">
-            📂 <span id="fw-detected-count">0</span> <span id="fw-detected-label">new files detected</span>
+            <span id="fw-detected-count">0</span> <span id="fw-detected-label">new files detected</span>
           </span>
           <button onclick="runFolderScan()" style="font-size:0.78rem;padding:2px 8px;border:1px solid #c8e6c9;border-radius:4px;background:#fff;cursor:pointer;color:#2e7d32;">↻ <span id="fw-refresh-label">Refresh</span></button>
         </div>
@@ -162,7 +162,7 @@
   <!-- Task Queue (collapsible) -->
   <div class="card" id="queue-card" style="display:none;">
     <h2 style="cursor:pointer;user-select:none;" onclick="toggleQueue()">
-      📋 任务队列 <span id="queue-count" style="font-size:0.82rem;color:#888;"></span> <span id="queue-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▲ 收起</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span id="queue-title-text">任务队列</span><span id="queue-count" style="font-size:0.82rem;color:#888;"></span> <span id="queue-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▲ 收起</span>
     </h2>
     <div id="task-queue-list" style="max-height:300px;overflow-y:auto;"></div>
   </div>
@@ -172,15 +172,15 @@
 
   <!-- Results (shown incrementally) -->
   <div class="card" id="results-card" style="display:none;">
-    <h2>📝 处理结果</h2>
+    <h2><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span id="results-title-text">处理结果</span></h2>
     <div id="result-filename" style="font-size:0.95rem;font-weight:500;color:#1a1a2e;margin-bottom:6px;"></div>
     <div id="task-id-display" style="font-size:0.82rem;color:#888;margin-bottom:12px;"></div>
     <div id="transcript-section" style="margin-bottom:16px;display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <label style="font-weight:600;color:#555;cursor:pointer;user-select:none;margin:0;" onclick="toggleTranscript()">转录文本 <span id="asr-vendor-tag" style="font-size:0.78rem;color:#2e7d32;"></span> <span id="transcript-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
         <div style="display:flex;gap:6px;">
-          <button id="copy-transcript-btn" onclick="copyTranscript()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">📋 <span id="copy-transcript-label">复制</span></button>
-          <button onclick="downloadTranscript()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">⬇️ <span id="download-transcript-label">下载</span></button>
+          <button id="copy-transcript-btn" onclick="copyTranscript()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="copy-transcript-label">复制</span></button>
+          <button onclick="downloadTranscript()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="download-transcript-label">下载</span></button>
         </div>
       </div>
       <div id="transcript-meta" style="display:none;font-size:0.82rem;color:#666;margin-bottom:8px;padding:6px 12px;background:#e8f5e9;border-radius:6px;"></div>
@@ -190,26 +190,26 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <label style="font-weight:600;color:#555;cursor:pointer;user-select:none;margin:0;" onclick="toggleSummary()">会议纪要 <span id="llm-vendor-tag" style="font-size:0.78rem;color:#1565c0;"></span> <span id="summary-toggle" style="font-size:0.78rem;color:#888;margin-left:4px;">▲ 收起</span></label>
         <div style="display:flex;gap:6px;">
-          <button id="copy-summary-btn" onclick="copySummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">📋 <span id="copy-summary-label">复制</span></button>
-          <button onclick="downloadSummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">⬇️ <span id="download-summary-label">下载</span></button>
-          <button id="edit-summary-btn" onclick="enterSummaryEdit()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;">✏️ <span id="edit-summary-label">编辑</span></button>
-          <button id="save-summary-btn" onclick="saveSummaryEdit()" style="display:none;font-size:0.78rem;padding:3px 10px;border:1px solid #c8e6c9;border-radius:5px;background:#e8f5e9;cursor:pointer;color:#2e7d32;">✅ <span id="save-summary-label">保存</span></button>
-          <button id="cancel-summary-btn" onclick="cancelSummaryEdit()" style="display:none;font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#888;">✕ <span id="cancel-summary-label">取消</span></button>
+          <button id="copy-summary-btn" onclick="copySummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="copy-summary-label">复制</span></button>
+          <button onclick="downloadSummary()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="download-summary-label">下载</span></button>
+          <button id="edit-summary-btn" onclick="enterSummaryEdit()" style="font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#555;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span id="edit-summary-label">编辑</span></button>
+          <button id="save-summary-btn" onclick="saveSummaryEdit()" style="display:none;font-size:0.78rem;padding:3px 10px;border:1px solid #c8e6c9;border-radius:5px;background:#e8f5e9;cursor:pointer;color:#2e7d32;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span id="save-summary-label">保存</span></button>
+          <button id="cancel-summary-btn" onclick="cancelSummaryEdit()" style="display:none;font-size:0.78rem;padding:3px 10px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer;color:#888;"><span id="cancel-summary-label">取消</span></button>
         </div>
       </div>
       <div id="summary-output" style="background:#f0f4ff;padding:16px;border-radius:8px;max-height:600px;overflow-y:auto;font-size:0.9rem;line-height:1.6;border:1px solid #d6e0ff;"></div>
       <textarea id="summary-edit-area" style="display:none;width:100%;box-sizing:border-box;padding:16px;border:1px solid #4361ee;border-radius:8px;font-size:0.9rem;font-family:inherit;resize:vertical;line-height:1.6;min-height:300px;"></textarea>
     </div>
     <div id="error-section" style="display:none;margin-bottom:12px;padding:12px 14px;background:#fff5f5;border-radius:8px;border:1px solid #ffcdd2;">
-      <div style="font-weight:600;font-size:0.85rem;color:#c62828;margin-bottom:6px;">⚠️ <span id="error-label">错误信息</span></div>
+      <div style="font-weight:600;font-size:0.85rem;color:#c62828;margin-bottom:6px;display:flex;align-items:center;gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c62828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span id="error-label">错误信息</span></div>
       <pre id="error-output" style="white-space:pre-wrap;font-size:0.82rem;color:#666;margin:0;font-family:monospace;"></pre>
     </div>
     <div id="token-usage-section" style="display:none;margin-top:12px;padding:10px 14px;background:#f3e5f5;border-radius:8px;border:1px solid #e1bee7;">
-      <div style="font-weight:600;font-size:0.85rem;color:#7b1fa2;margin-bottom:6px;">🔢 Token 用量</div>
+      <div id="token-usage-title" style="font-weight:600;font-size:0.85rem;color:#7b1fa2;margin-bottom:6px;">Token 用量</div>
       <div id="token-usage-content" style="font-size:0.82rem;color:#555;"></div>
     </div>
     <div style="margin-top:14px;text-align:right;">
-      <button id="rerun-toggle-btn" onclick="toggleRerunPanel()" style="font-size:0.82rem;padding:5px 14px;border:1px solid #4361ee;border-radius:6px;background:#fff;color:#4361ee;cursor:pointer;">🔄 <span id="rerun-toggle-label">重新生成纪要</span></button>
+      <button id="rerun-toggle-btn" onclick="toggleRerunPanel()" style="font-size:0.82rem;padding:5px 14px;border:1px solid #4361ee;border-radius:6px;background:#fff;color:#4361ee;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span id="rerun-toggle-label">重新生成纪要</span></button>
     </div>
     <div id="rerun-panel" style="display:none;margin-top:10px;padding:14px;background:#f8f9fa;border:1px solid #e0e4ff;border-radius:8px;">
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
@@ -231,14 +231,14 @@
           <textarea id="rerun-llm-prompt" rows="5" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ddd;border-radius:5px;font-size:0.82rem;font-family:inherit;resize:vertical;line-height:1.5;"></textarea>
         </div>
       </div>
-      <button onclick="doRerunLlm()" id="rerun-submit-btn" style="width:100%;padding:10px;background:#4361ee;color:#fff;border:none;border-radius:7px;font-size:0.9rem;cursor:pointer;">🔄 <span id="rerun-submit-label">生成</span></button>
+      <button onclick="doRerunLlm()" id="rerun-submit-btn" style="width:100%;padding:10px;background:#4361ee;color:#fff;border:none;border-radius:7px;font-size:0.9rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span id="rerun-submit-label">生成</span></button>
     </div>
   </div>
 
   <!-- Task History (collapsible) -->
   <div class="card">
     <h2 style="cursor:pointer;user-select:none;" onclick="toggleHistory()">
-      📂 历史任务 <span id="history-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▼ 展开</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="history-title-text">历史任务</span><span id="history-toggle" style="font-size:0.85rem;color:#888;margin-left:8px;">▼ 展开</span>
     </h2>
     <div id="history-content" style="display:none;">
       <input type="text" id="history-search" placeholder="搜索历史记录..." oninput="filterHistory(this.value)"
@@ -424,9 +424,7 @@ function renderTranscript(text) {
 function setStep(stepId, status) {
   const el = document.getElementById(stepId);
   if (!el) return;
-  if (status === 'active') el.textContent = el.textContent.replace(/^./, '🔄');
-  else if (status === 'done') el.textContent = el.textContent.replace(/^./, '✅');
-  else if (status === 'error') el.textContent = el.textContent.replace(/^./, '❌');
+  el.dataset.status = status;
 }
 
 function renderTokenUsage(usage) {
@@ -483,11 +481,11 @@ function updateQueueUI() {
     const timeHtml = task.completedAt ? `<span class="qi-time">${task.completedAt}</span>` : '';
     let extraHtml = "";
     if (task.token_usage && task.token_usage.total_tokens) {
-      extraHtml = ` · 🔢 ${task.token_usage.total_tokens} ${t("tokensUnit")}`;
+      extraHtml = ` · ${task.token_usage.total_tokens} ${t("tokensUnit")}`;
     }
     const isTerminal = task.status === "done" || task.status === "error";
     const viewHint = isTerminal
-      ? `<div style="font-size:0.7rem;color:#4361ee;text-align:right;margin-top:3px;">👁 ${t("viewResult")}</div>`
+      ? `<div style="font-size:0.7rem;color:#4361ee;text-align:right;margin-top:3px;display:flex;align-items:center;justify-content:flex-end;gap:4px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${t("viewResult")}</div>`
       : '';
     return `<div class="queue-item ${task.status}" onclick="viewQueueTask('${tid}')">
       <div class="qi-header">
@@ -754,7 +752,7 @@ function handleQueueSSE(qid, event, data) {
     _checkBatchComplete();
   } else if (event === "error") {
     task.status = "error";
-    task.message = "❌ " + translateError(data.message);
+    task.message = translateError(data.message);
     task.completedAt = new Date().toLocaleString();
     updateQueueUI();
     showTaskNotification(qid, true);
@@ -823,14 +821,14 @@ function copyTranscript() {
     if (parsed.segments) text = parsed.segments.map(s => `[${s.speaker}] ${s.text}`).join("\n");
   } catch(e) {}
   navigator.clipboard.writeText(text).then(() => {
-    _flashBtn("copy-transcript-btn", `📋 <span id="copy-transcript-label">${t("copyBtn")}</span>`);
+    _flashBtn("copy-transcript-btn", `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="copy-transcript-label">${t("copyBtn")}</span>`);
   });
 }
 
 function copySummary() {
   if (!_currentSummaryRaw) return;
   navigator.clipboard.writeText(_currentSummaryRaw).then(() => {
-    _flashBtn("copy-summary-btn", `📋 <span id="copy-summary-label">${t("copyBtn")}</span>`);
+    _flashBtn("copy-summary-btn", `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="copy-summary-label">${t("copyBtn")}</span>`);
   });
 }
 
@@ -997,7 +995,7 @@ async function doRerunLlm() {
   const btn = document.getElementById("rerun-submit-btn");
   const labelEl = document.getElementById("rerun-submit-label");
   btn.disabled = true;
-  labelEl.textContent = currentLang === "zh" ? "⏳ 处理中..." : "⏳ Processing...";
+  labelEl.textContent = currentLang === "zh" ? "处理中..." : "Processing...";
 
   try {
     const resp = await fetch(`/api/tasks/${_currentTaskId}/rerun-llm`, {
@@ -1101,7 +1099,7 @@ function renderHistory(filterText) {
     const llmVendorName = getVendorDisplayName(task.llm_vendor);
     const timeStr = task.created_at ? new Date(task.created_at).toLocaleString() : '';
     const tokenHtml = task.token_usage && task.token_usage.total_tokens
-      ? `<div style="font-size:0.72rem;color:#7b1fa2;margin-top:2px;">🔢 ${task.token_usage.model || llmVendorName}: ${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`
+      ? `<div style="font-size:0.72rem;color:#7b1fa2;margin-top:2px;">${task.token_usage.model || llmVendorName}: ${task.token_usage.total_tokens} ${t("tokensUnit")}</div>`
       : '';
     return `<div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;position:relative;" onclick="loadTask('${task.task_id}')">
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1109,7 +1107,7 @@ function renderHistory(filterText) {
         <span style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:8px;">
           <span style="font-size:0.78rem;color:${statusColor};">${status}</span>
           <span style="font-size:0.7rem;color:#aaa;">${timeStr}</span>
-          <button onclick="deleteTask('${task.task_id}',event)" style="font-size:0.72rem;padding:2px 8px;border:1px solid #ffcdd2;border-radius:4px;background:#fff;color:#e53935;cursor:pointer;" title="${t('deleteBtn')}">🗑️</button>
+          <button onclick="deleteTask('${task.task_id}',event)" style="font-size:0.72rem;padding:2px 8px;border:1px solid #ffcdd2;border-radius:4px;background:#fff;color:#e53935;cursor:pointer;" title="${t('deleteBtn')}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
         </span>
       </div>
       <div style="font-size:0.78rem;color:#999;margin-top:4px;">
@@ -1184,10 +1182,12 @@ window._applyPageLanguage = function() {
   populateSelects();
 
   // tipBanner uses innerHTML for <strong> tags — content is from controlled i18n, not user input
-  document.querySelector("#tip-banner span:first-child").innerHTML = t("tipBanner");
-  
+  const tipBannerText = document.getElementById("tip-banner-text");
+  if (tipBannerText) tipBannerText.innerHTML = t("tipBanner");
+
   // Upload section
-  document.querySelector("#process-btn").closest(".card").querySelector("h2").textContent = t("uploadTitle");
+  const uploadTitleEl = document.getElementById("upload-title-text");
+  if (uploadTitleEl) uploadTitleEl.textContent = t("uploadTitle");
   document.getElementById("file-label").textContent = t("selectFile");
   
   // ASR/LLM labels
@@ -1212,19 +1212,12 @@ window._applyPageLanguage = function() {
   document.getElementById("process-btn").textContent = t("startBtn");
   
   // Queue title
-  const queueH2 = document.querySelector("#queue-card h2");
-  if (queueH2) {
-    const countSpan = document.getElementById("queue-count");
-    const toggleSpan = document.getElementById("queue-toggle");
-    queueH2.innerHTML = "";
-    queueH2.textContent = t("queueTitle") + " ";
-    queueH2.appendChild(countSpan);
-    queueH2.appendChild(document.createTextNode(" "));
-    queueH2.appendChild(toggleSpan);
-  }
-  
+  const queueTitleEl = document.getElementById("queue-title-text");
+  if (queueTitleEl) queueTitleEl.textContent = t("queueTitle");
+
   // Results title
-  document.querySelector("#results-card h2").textContent = t("resultsTitle");
+  const resultsTitleEl = document.getElementById("results-title-text");
+  if (resultsTitleEl) resultsTitleEl.textContent = t("resultsTitle");
   
   // Transcript/Summary labels
   const transcriptLabel = document.querySelector("#transcript-section > label");
@@ -1250,7 +1243,8 @@ window._applyPageLanguage = function() {
   }
   
   // Token usage title
-  document.querySelector("#token-usage-section > div:first-child").textContent = t("tokenUsage");
+  const tokenTitleEl = document.getElementById("token-usage-title");
+  if (tokenTitleEl) tokenTitleEl.textContent = t("tokenUsage");
   
   // Error label
   document.getElementById("error-label").textContent = t("errorDetail");
@@ -1275,13 +1269,8 @@ window._applyPageLanguage = function() {
   if (histSearch) histSearch.placeholder = t("historySearch");
 
   // History title
-  const historyH2 = document.querySelector("#history-content").closest(".card").querySelector("h2");
-  if (historyH2) {
-    const toggleSpan = document.getElementById("history-toggle");
-    historyH2.innerHTML = "";
-    historyH2.textContent = t("historyTitle") + " ";
-    historyH2.appendChild(toggleSpan);
-  }
+  const historyTitleEl = document.getElementById("history-title-text");
+  if (historyTitleEl) historyTitleEl.textContent = t("historyTitle");
   
   // Update toggle text
   document.getElementById("queue-toggle").textContent = queueExpanded ? t("queueCollapse") : t("queueExpand");
@@ -1337,7 +1326,7 @@ window._applyPageLanguage = function() {
   if (rerunPTText) rerunPTText.textContent = t("rerunPromptToggle");
 
   const tplLabel = document.getElementById("template-section-label");
-  if (tplLabel) tplLabel.textContent = "📋 " + t("promptTemplateLabel");
+  if (tplLabel) tplLabel.textContent = t("promptTemplateLabel");
   const browseBtnEl = document.getElementById("template-browse-btn");
   if (browseBtnEl) browseBtnEl.textContent = _templateBrowserOpen ? t("browseBtnClose") : t("browseBtnOpen");
   const barLabelEl = document.getElementById("template-bar-label");
@@ -1910,7 +1899,7 @@ function renderFolderWatchSettings() {
       `<span id="fw-perm-badge-${cfg.id}" style="font-size:0.72rem;color:#e65100;">${t("fwPermNeeded")}</span><button onclick="reauthorizeFolder('${cfg.id}')" style="font-size:0.72rem;padding:1px 6px;border:1px solid #ffcc80;border-radius:4px;background:#fff3e0;color:#e65100;cursor:pointer;">${t("fwReauthorize")}</button>`;
     rows += `<div class="fw-folder-row" id="fw-row-${cfg.id}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-        <span style="font-size:0.85rem;font-weight:500;">📁 ${safeLabel}</span>
+        <span style="font-size:0.85rem;font-weight:500;">${safeLabel}</span>
         ${permBadge}
         <button onclick="removeFolderWatch('${cfg.id}')" style="margin-left:auto;font-size:0.72rem;padding:1px 6px;border:1px solid #ffcdd2;border-radius:4px;background:#fff5f5;color:#c62828;cursor:pointer;">✕</button>
       </div>
@@ -2078,7 +2067,7 @@ function renderDetectedFiles(files) {
     nameSpan.textContent = "🎵 " + item.file.name;
     const folderSpan = document.createElement("span");
     folderSpan.style.cssText = "font-size:0.75rem;color:#888;flex-shrink:0;margin:0 6px;";
-    folderSpan.textContent = "📁 " + item.config.label;
+    folderSpan.textContent = item.config.label;
     const btnGroup = document.createElement("span");
     btnGroup.style.cssText = "flex-shrink:0;display:flex;gap:6px;";
     const processBtn = document.createElement("button");

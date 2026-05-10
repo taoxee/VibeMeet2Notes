@@ -10,23 +10,26 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   display: flex;
   align-items: center;
   gap: 0;
-  height: 56px;
+  height: 64px;
   position: sticky;
   top: 0;
   z-index: 100;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .topnav .nav-brand { display: flex; align-items: center; margin-right: 20px; }
-.topnav .nav-brand img { height: 36px; width: auto; object-fit: contain; }
+.topnav .nav-brand img { height: 48px; width: auto; object-fit: contain; }
 .topnav .nav-links { display: flex; gap: 4px; flex: 1; }
 .topnav .nav-links a {
-  padding: 6px 16px;
+  padding: 6px 14px;
   border-radius: 7px;
   font-size: 0.88rem;
   font-weight: 500;
   color: #666;
   text-decoration: none;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   transition: background 0.15s, color 0.15s;
 }
 .topnav .nav-links a:hover { background: #f4f6fb; color: #1a1a2e; }
@@ -55,7 +58,7 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
 
 /* ── Card ── */
 .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-.card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #1a1a2e; border-left: 4px solid #4361ee; padding-left: 12px; }
+.card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #1a1a2e; border-left: 4px solid #4361ee; padding-left: 12px; display: flex; align-items: center; gap: 8px; }
 
 /* ── Form layout ── */
 .form-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -87,3 +90,19 @@ h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; 
 
 /* ── Shared animation ── */
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .topnav { padding: 0 12px; height: 56px; gap: 8px; }
+  .topnav .nav-brand img { height: 36px; }
+  .topnav .nav-brand { margin-right: 8px; }
+  .topnav .nav-links a { padding: 5px 10px; font-size: 0.82rem; gap: 4px; }
+  .topnav .nav-links a span { display: none; }
+  .topnav .nav-links a svg { width: 18px; height: 18px; }
+  .topnav .nav-lang select { font-size: 0.82rem; padding: 5px 22px 5px 8px; }
+  .container { padding: 12px; }
+  .card { padding: 16px; }
+  .card h2 { font-size: 1rem; }
+  .form-row { flex-direction: column; gap: 10px; }
+  .form-group { min-width: unset; }
+}
