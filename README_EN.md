@@ -1,5 +1,9 @@
 # [VibeMeet2Notes · 灵感纪要](https://github.com/taoxee/VibeMeet2Notes)
 
+<p align="center">
+  <img src="data/logos/Banner-Logo-EN.png" alt="VibeMeet2Notes" width="680">
+</p>
+
 **Media Transcription & Meeting Minutes Tool**
 
 [![中文](https://img.shields.io/badge/中文-red?style=for-the-badge)](README_CN.md) [![English](https://img.shields.io/badge/English-blue?style=for-the-badge)](README_EN.md)
@@ -39,6 +43,9 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 - 🔁 **Re-run Notes** — Re-generate minutes with a different model or prompt without re-transcribing
 - 📋 **Copy & Download** — One-click copy or download of transcript and meeting notes
 - 🗂️ **History Search & Delete** — Search across task history and delete individual entries
+- **Two-page Layout** — Dedicated vendor management page (`/vendors`) separated from the main processing page; top nav with active-tab highlighting
+- **SVG Icon System** — All emoji replaced with inline SVG icons (Feather/Lucide style) across both pages; consistent, scalable visuals
+- **Mobile Responsive** — Nav collapses to icon-only at ≤600px; cards use reduced padding; form rows stack vertically; improved tap targets
 
 ---
 

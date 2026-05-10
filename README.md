@@ -1,5 +1,9 @@
 # [VibeMeet2Notes · 灵感纪要](https://github.com/taoxee/VibeMeet2Notes)
 
+<p align="center">
+  <img src="data/logos/banner-logo.png" alt="VibeMeet2Notes" width="680">
+</p>
+
 **媒体文件转录与会议纪要工具 | Media Transcription & Meeting Minutes Tool**
 
 ---
@@ -18,6 +22,9 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 
 ## 🆕 最新功能 / Recent Updates
 
+- **两页布局 / Two-page Layout** — 主页处理任务 + 独立供应商管理页 / Main page for processing + dedicated vendor management page
+- **SVG 图标系统 / SVG Icons** — 全面替换 Emoji 为内联 SVG 图标（Feather/Lucide 风格）/ All emoji replaced with inline SVG icons
+- **移动端响应式 / Mobile Responsive** — 导航栏折叠、卡片自适应、表单竖排 / Nav collapses, cards/forms adapt for mobile
 - ✏️ **可编辑纪要 / Editable Notes** — 直接在页面修改生成的会议纪要 / Modify generated summaries in-place
 - 🔁 **重新生成 / Re-run** — 换模型或提示词后无需重新转录，一键重跑 LLM / Re-run LLM with different model or prompt without re-transcribing
 - 📋 **复制与下载 / Copy & Download** — 一键复制或下载纪要结果 / One-click copy or download results
