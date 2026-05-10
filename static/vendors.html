@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">灵感纪要 · VibeMeet2Notes</title>
+<link rel="icon" type="image/png" href="/logos/web-tab-logo.png">
+<link rel="stylesheet" href="/static/shared.css">
+</head>
+<body>
+
+<!-- ── Top Nav ── -->
+<nav class="topnav">
+  <div class="nav-brand">
+    <img id="nav-logo-cn" src="/logos/Banner-Logo-CN.png" alt="灵感纪要">
+    <img id="nav-logo-en" src="/logos/Banner-Logo-EN.png" alt="VibeMeet2Notes" style="display:none;">
+  </div>
+  <div class="nav-links">
+    <a href="/"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span id="nav-label-process">处理</span></a>
+    <a href="/vendors" class="active"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg><span id="nav-label-vendors">供应商</span></a>
+  </div>
+  <div class="nav-lang">
+    <select id="lang-select" onchange="switchLanguage(this.value)">
+      <option value="zh">中文</option>
+      <option value="en">English</option>
+    </select>
+  </div>
+</nav>
+
+<!-- ── Save toast ── -->
+<div id="save-toast" style="display:none;position:fixed;top:20px;right:20px;background:#2e7d32;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;z-index:999;transition:opacity 0.3s;">已自动保存</div>
+
+<div class="container">
+
+  <!-- Vendor Credentials -->
+  <div class="card" id="creds-card">
+    <h2 id="creds-title-h2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg><span id="creds-title-text">供应商凭证管理</span></h2>
+    <p id="creds-desc-p" style="font-size:0.85rem;color:#888;margin-bottom:8px;">凭证仅保存在浏览器本地，输入即自动保存，刷新页面后自动恢复。</p>
+    <div id="creds-summary" style="font-size:0.85rem;color:#4caf50;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+      <button id="btn-import" onclick="importKeys()" style="padding:8px 16px;background:#4361ee;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span id="btn-import-text">一键导入凭证</span></button>
+      <label id="btn-import-file" style="padding:8px 16px;background:#ff9800;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span id="btn-import-file-text">从文件导入（CSV/JSON）</span><input type="file" accept=".json,.csv" onchange="importFromFile(event)" style="display:none;"></label>
+      <button id="btn-export" onclick="exportKeys()" style="padding:8px 16px;background:#2e7d32;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span id="btn-export-text">导出凭证</span></button>
+      <button id="btn-clear" onclick="clearAllKeys()" style="padding:8px 16px;background:#e53935;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span id="btn-clear-text">清除所有凭证</span></button>
+    </div>
+    <div id="import-status" style="display:none;font-size:0.85rem;margin-bottom:8px;padding:8px 12px;border-radius:6px;"></div>
+    <div id="vendor-keys"></div>
+  </div>
+
+  <!-- Vendor Capabilities Table -->
+  <div class="card">
+    <h2 id="vendor-table-title-h2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span id="vendor-table-title-text">供应商能力一览</span></h2>
+    <div style="overflow-x:auto;">
+      <table id="vendor-table" style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+        <thead>
+          <tr style="background:#f8f9fa;">
+            <th id="th-vendor" style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6;">供应商</th>
+            <th id="th-types" style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6;">支持的产品类型</th>
+            <th id="th-creds" style="padding:10px;text-align:left;border-bottom:2px solid #dee2e6;">所需凭证</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<footer style="text-align:center;padding:24px 0 16px;font-size:0.82rem;color:#aaa;">
+  Made by <a href="https://github.com/taoxee" target="_blank" rel="noopener" style="color:#4361ee;text-decoration:none;">taoxee</a> · Apache 2.0
+</footer>
+
+<script src="/static/shared.js"></script>
+<script>
+// ── Vendor-page state ────────────────────────────────────────────────────────
+
+function renderVendorKeys() {
+  const container = document.getElementById("vendor-keys");
+  const creds = getStoredCreds();
+  const optionalText = t("optional");
+
+  // Build DOM nodes instead of raw innerHTML to avoid XSS from stored cred values
+  container.textContent = "";
+  Object.entries(VENDORS).forEach(([vendor, info]) => {
+    const vc = creds[vendor] || {};
+
+    const section = document.createElement("div");
+    section.className = "vendor-section";
+
+    // Vendor name row
+    const nameRow = document.createElement("div");
+    nameRow.className = "vendor-name";
+    nameRow.textContent = getVendorDisplayName(vendor) + " ";
+
+    const typeSpan = document.createElement("span");
+    typeSpan.style.cssText = "font-size:0.75rem;color:#999;";
+    typeSpan.textContent = info.types.map(translateType).join(" / ");
+    nameRow.appendChild(typeSpan);
+
+    const dot = document.createElement("span");
+    dot.className = "filled-indicator filled-no";
+    dot.id = "indicator-" + CSS.escape(vendor);
+    nameRow.appendChild(dot);
+    section.appendChild(nameRow);
+
+    // Fields
+    const fieldsDiv = document.createElement("div");
+    fieldsDiv.className = "vendor-fields";
+    info.fields.forEach(f => {
+      const item = document.createElement("div");
+      item.className = "field-item";
+
+      const lbl = document.createElement("label");
+      lbl.textContent = translateFieldLabel(f.label);
+      if (f.optional) {
+        const opt = document.createElement("span");
+        opt.className = "optional-tag";
+        opt.textContent = optionalText;
+        lbl.appendChild(opt);
+      }
+
+      const inp = document.createElement("input");
+      inp.type = "text";
+      if (f.secret !== false) inp.style.cssText = "-webkit-text-security: disc;";
+      inp.placeholder = f.placeholder || "";
+      inp.value = vc[f.key] || f.default || "";
+      inp.addEventListener("input", function() { saveCred(vendor, f.key, this.value); });
+
+      item.appendChild(lbl);
+      item.appendChild(inp);
+      fieldsDiv.appendChild(item);
+    });
+    section.appendChild(fieldsDiv);
+
+    // Optional note
+    if (info.note) {
+      const note = document.createElement("div");
+      note.style.cssText = "font-size:0.78rem;color:#e65100;margin-top:6px;";
+      note.textContent = "📌 " + translateNote(info.note);
+      section.appendChild(note);
+    }
+
+    container.appendChild(section);
+    updateFilledIndicator(vendor);
+  });
+}
+
+function renderVendorTable() {
+  const tbody = document.querySelector("#vendor-table tbody");
+  const optionalText = t("optional");
+  tbody.textContent = "";
+  Object.entries(VENDORS).forEach(([name, info]) => {
+    const tr = document.createElement("tr");
+    tr.style.borderBottom = "1px solid #f0f0f0";
+
+    const tdName = document.createElement("td");
+    tdName.style.cssText = "padding:10px;font-weight:500;";
+    tdName.textContent = getVendorDisplayName(name);
+
+    const tdTypes = document.createElement("td");
+    tdTypes.style.padding = "10px";
+    info.types.forEach(type => {
+      const cls = type === "ASR" ? "badge-asr" : type === "LLM" ? "badge-llm" : type === "TTS" ? "badge-tts" : "badge-other";
+      const badge = document.createElement("span");
+      badge.className = "vendor-badge " + cls;
+      badge.textContent = translateType(type);
+      tdTypes.appendChild(badge);
+      tdTypes.appendChild(document.createTextNode(" "));
+    });
+
+    const tdCreds = document.createElement("td");
+    tdCreds.style.cssText = "padding:10px;font-size:0.82rem;color:#666;";
+    tdCreds.textContent = info.fields.map(f =>
+      translateFieldLabel(f.label) + (f.optional ? optionalText : "")
+    ).join(", ");
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdTypes);
+    tr.appendChild(tdCreds);
+    tbody.appendChild(tr);
+  });
+}
+
+function updateCredsSummary() {
+  const ready = Object.keys(VENDORS).filter(v => isVendorReady(v));
+  const el = document.getElementById("creds-summary");
+  if (!el) return;
+  if (ready.length === 0) {
+    el.textContent = "";
+    const span = document.createElement("span");
+    span.style.color = "#e65100";
+    span.textContent = t("noCreds");
+    el.appendChild(span);
+  } else {
+    el.textContent = t("configured") + ": " + ready.map(getVendorDisplayName).join(", ");
+  }
+}
+
+function updateFilledIndicator(vendor) {
+  const dot = document.getElementById("indicator-" + CSS.escape(vendor));
+  if (dot) {
+    const ready = isVendorReady(vendor);
+    dot.className = "filled-indicator " + (ready ? "filled-yes" : "filled-no");
+    dot.title = ready
+      ? (currentLang === "en" ? "Credentials complete" : "凭证已填写完整")
+      : (currentLang === "en" ? "Missing required fields" : "还有必填项未填写");
+  }
+}
+
+// ── Import / Export / Clear ──────────────────────────────────────────────────
+function showImportStatus(msg, isError) {
+  const el = document.getElementById("import-status");
+  el.style.display = "block";
+  el.style.background = isError ? "#ffebee" : "#e8f5e9";
+  el.style.color = isError ? "#c62828" : "#2e7d32";
+  el.textContent = msg;
+  setTimeout(() => { el.style.display = "none"; }, 5000);
+}
+
+async function importKeys() {
+  try {
+    const resp = await fetch("/api/import-keys");
+    const creds = await resp.json();
+    if (!creds || Object.keys(creds).length === 0) {
+      showImportStatus(t("noCredsDetected"), true);
+      return;
+    }
+    const existing = getStoredCreds();
+    let imported = 0;
+    for (const [vendor, fields] of Object.entries(creds)) {
+      if (!existing[vendor]) existing[vendor] = {};
+      for (const [key, val] of Object.entries(fields)) {
+        if (val && val.trim()) { existing[vendor][key] = val.trim(); imported++; }
+      }
+    }
+    localStorage.setItem("vendor_creds", JSON.stringify(existing));
+    renderVendorKeys();
+    updateCredsSummary();
+    const vendorList = Object.keys(creds).join(", ");
+    showImportStatus(`${t("importSuccess")} ${Object.keys(creds).length} ${t("vendors")} ${imported} ${t("fields")} (${vendorList})`, false);
+  } catch (e) {
+    showImportStatus(t("importFailed") + ": " + e.message, true);
+  }
+}
+
+function importFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const text = e.target.result.trim();
+      let creds;
+      const isCSV = file.name.endsWith(".csv") || (!text.startsWith("{") && text.includes(","));
+      creds = isCSV ? parseCSVCreds(text) : JSON.parse(text);
+      if (!creds || typeof creds !== "object" || Object.keys(creds).length === 0) {
+        showImportStatus(t("noValidCreds"), true);
+        return;
+      }
+      const existing = getStoredCreds();
+      let imported = 0;
+      for (const [vendor, fields] of Object.entries(creds)) {
+        if (typeof fields !== "object") continue;
+        if (!existing[vendor]) existing[vendor] = {};
+        for (const [key, val] of Object.entries(fields)) {
+          if (val && String(val).trim()) { existing[vendor][key] = String(val).trim(); imported++; }
+        }
+      }
+      localStorage.setItem("vendor_creds", JSON.stringify(existing));
+      renderVendorKeys();
+      updateCredsSummary();
+      showImportStatus(`${t("importSuccess")} ${Object.keys(creds).length} ${t("vendors")} ${imported} ${t("fields")}`, false);
+    } catch (err) {
+      showImportStatus(t("fileParseFailed") + ": " + err.message, true);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = "";
+}
+
+function parseCSVCreds(text) {
+  const result = {};
+  for (const line of text.split("\n")) {
+    if (!line.trim() || line.startsWith("供应商")) continue;
+    const row = parseCSVRow(line);
+    if (row.length < 3) continue;
+    const vendor = row[0].trim();
+    const keyStr = row[2].trim();
+    if (!vendor || !keyStr || !VENDORS[vendor]) continue;
+    const labelMap = {};
+    VENDORS[vendor].fields.forEach(f => { labelMap[f.label] = f.key; });
+    let entries = keyStr.split(/[;；]/);
+    if (entries.length === 1 && keyStr.includes(": ") && keyStr.includes(",")) {
+      entries = keyStr.split(/',\s*/);
+    }
+    for (let entry of entries) {
+      entry = entry.trim();
+      if (!entry) continue;
+      const m = entry.match(/^(.+?)\s*[:：]\s*(.*)/);
+      if (!m) continue;
+      const label = m[1].trim();
+      const value = m[2].trim().replace(/^['"]|['"]$/g, "");
+      const fieldKey = labelMap[label];
+      if (fieldKey && value) {
+        if (!result[vendor]) result[vendor] = {};
+        result[vendor][fieldKey] = value;
+      }
+    }
+  }
+  return result;
+}
+
+function parseCSVRow(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+  for (const ch of line) {
+    if (ch === '"') { inQuotes = !inQuotes; }
+    else if (ch === "," && !inQuotes) { result.push(current); current = ""; }
+    else { current += ch; }
+  }
+  result.push(current);
+  return result;
+}
+
+function exportKeys() {
+  const creds = getStoredCreds();
+  if (!creds || Object.keys(creds).length === 0) {
+    showImportStatus(t("noCredsExport"), true);
+    return;
+  }
+  const blob = new Blob([JSON.stringify(creds, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "vendor_creds.json"; a.click();
+  URL.revokeObjectURL(url);
+  showImportStatus(t("exported"), false);
+}
+
+function clearAllKeys() {
+  if (!confirm(t("confirmClear"))) return;
+  localStorage.removeItem("vendor_creds");
+  renderVendorKeys();
+  updateCredsSummary();
+  showImportStatus(t("cleared"), false);
+}
+
+// ── Page-specific language hook ──────────────────────────────────────────────
+window._applyPageLanguage = function() {
+  renderVendorKeys();
+  renderVendorTable();
+  updateCredsSummary();
+
+  document.getElementById("creds-title-text").textContent = t("credsTitle");
+  document.getElementById("creds-desc-p").textContent = t("credsDesc");
+  document.getElementById("btn-import-text").textContent = t("importBtn");
+  document.getElementById("btn-export-text").textContent = t("exportBtn");
+  document.getElementById("btn-clear-text").textContent = t("clearBtn");
+  document.getElementById("btn-import-file-text").textContent = t("importFileBtn");
+
+  document.getElementById("vendor-table-title-text").textContent = t("vendorTableTitle");
+  document.getElementById("th-vendor").textContent = t("vendorCol");
+  document.getElementById("th-types").textContent = t("typesCol");
+  document.getElementById("th-creds").textContent = t("credsCol");
+
+  const nl = document.getElementById("nav-label-process");
+  if (nl) nl.textContent = currentLang === "en" ? "Process" : "处理";
+  const nv = document.getElementById("nav-label-vendors");
+  if (nv) nv.textContent = currentLang === "en" ? "Vendors" : "供应商";
+};
+
+// ── saveCred hook: update indicators + summary ───────────────────────────────
+window._onCredSaved = function(vendor) {
+  updateFilledIndicator(vendor);
+  updateCredsSummary();
+};
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  await fetchVendors();
+  renderVendorKeys();
+  renderVendorTable();
+  updateCredsSummary();
+  applyLanguage();
+}
+
+init();
+</script>
+</body>
+</html>

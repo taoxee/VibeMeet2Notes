@@ -646,3 +646,444 @@
 - `956ceeb`：`refactor: serve logos from data/ via Flask route instead of static duplication`
 - `2035d8d`：`docs: add logo size adjustment comments`
 
+---
+
+## Conversation 15
+
+### 主题：Prompt Templates 功能（从头设计到实现）
+
+**流程**：brainstorming → writing-plans → subagent-driven-development（含 spec + quality 双阶段审查）→ finishing-a-development-branch（选择 keep as-is）
+
+---
+
+### 阶段 1：Brainstorming（设计讨论）
+
+用户需求：让用户从预设 LLM 提示词模板中选择，而不是每次从默认的 meeting-minutes 开始。典型场景：HR 面试分析、销售购买意向判断。
+
+**4 个关键设计决策（问答）**：
+1. 用户能否自定义 prompt？→ **B：能保存自定义模板**
+2. 用户模板存储方式？→ **B：服务端持久化**（JSON 文件，不存 DB）
+3. 模板 UI 位置？→ **B：独立可见区域**（从折叠 toggle 升级为常驻 section）
+4. 内置模板语言？→ **A：仅英文**（LLM 有 language-mirror 指令，中英皆可用）
+
+**3 个方案对比**（推荐方案 B）：
+- A：前端硬编码模板（简单但不可扩展）
+- **B：后端 .txt 文件 + JSON 用户模板**（推荐，灵活且易维护）
+- C：数据库存储（过度设计）
+
+用户补充关键 API 要求：
+- 响应必须包含 `is_builtin` 字段（前端据此显示/隐藏 Delete 按钮）
+- 内置模板 ID 采用确定性规则：`builtin_` + 文件名（连字符换下划线）
+- 用户模板 ID 采用 `uuid4()`
+
+---
+
+### 阶段 2：设计规格（Spec）
+
+文档：`docs/superpowers/specs/2026-05-06-prompt-templates-design.md`（提交 `67034e3`）
+
+**核心设计**：
+
+新增文件结构：
+```
+data/custom-prompts/builtin/
+  01-meeting-minutes.txt    ← 从 meetingminutes-prompt.txt 移入
+  02-interview-analysis.txt ← 新建
+  03-sales-purchase-indication.txt ← 新建
+data/custom-prompts/user-templates.json  ← 首次保存时创建，不提交 git
+```
+
+API：
+- `GET /api/prompt-templates` → 返回内置 + 用户模板列表（内置优先）
+- `POST /api/prompt-templates` → 创建用户模板（name ≤80 chars）
+- `DELETE /api/prompt-templates/<id>` → 删除用户模板（内置返回 403）
+
+UI：Prompt 区域升级为常驻 section，含模板下拉 + Save as Template + Delete 按钮（仅用户模板可见）
+
+---
+
+### 阶段 3：实现计划（Plan）
+
+文档：`docs/superpowers/plans/2026-05-06-prompt-templates.md`（提交 `46e5bea`）
+
+**4 个任务**：
+- Task 1：内置模板文件 + config 常量
+- Task 2：后端 API 端点（GET / POST / DELETE）
+- Task 3：前端 HTML 结构
+- Task 4：前端 JS 逻辑
+
+---
+
+### 阶段 4：实现（Subagent-Driven Development）
+
+每个任务由独立 subagent 实现，后经 spec compliance → code quality 双阶段审查。
+
+**Task 1（提交 `d69766c`）**：
+- 创建 3 个内置模板文件（meeting-minutes、interview-analysis、sales-purchase-indication）
+- `app/config.py` 新增 `BUILTIN_TEMPLATES_DIR`、`USER_TEMPLATES_FILE` 常量
+- 更新 `LLM_PROMPT` 加载路径至 `builtin/01-meeting-minutes.txt`
+
+**Task 2（提交 `cbab278`，质量修复后 `737e258`）**：
+- `app/routes.py` 新增：
+  - `_templates_lock = threading.Lock()`（并发保护）
+  - `_load_builtin_templates()`、`_load_user_templates()`、`_save_user_templates()` 三个辅助函数
+  - 三个 API 端点：GET / POST / DELETE
+- 质量审查修复：
+  - POST 缺少 content 长度上限（磁盘耗尽风险）→ 加 50,000 字符限制
+  - POST + DELETE 读-改-写无锁保护 → 加 `with _templates_lock:`
+  - `_save_user_templates` 异常时 `.tmp` 文件泄漏 → 加 `os.unlink(tmp_path)` 清理
+
+**Task 3（提交 `8b9e367`）**：
+- `static/index.html` HTML 结构：主表单 Prompt 区域升级为常驻 section
+  - `#template-select`、`#save-template-btn`、`#delete-template-btn`（默认隐藏）
+  - `#save-template-input-area`（隐藏）、`#save-template-name`、`#save-template-error`
+- Rerun 对话框新增 `#rerun-template-select`
+
+**Task 4（提交 `d00a12a`，质量修复后 `82c2f01`）**：
+- `static/index.html` JS 新增 ~170 行逻辑：
+  - `loadPromptTemplates()`、`_buildTemplateSelect(sel)`（XSS 安全：使用 `createElement` + `textContent`，禁止 `innerHTML` 处理用户数据）
+  - `populateTemplateDropdown()`、`onTemplateSelect()`、`onRerunTemplateSelect()`
+  - `showSaveTemplateInput()`、`cancelSaveTemplate()`、`confirmSaveTemplate()`、`deleteCurrentTemplate()`
+- i18n 键新增（zh + en）：`promptTemplateLabel`、`selectTemplatePlaceholder`、`saveAsTemplate`、`deleteTemplate`、`templateNamePlaceholder`、`templateBuiltinGroup`、`templateUserGroup`、`templateNameRequired`
+- `applyTranslations()` 扩展以更新模板 section 标签并调用 `populateTemplateDropdown()`
+- 质量审查修复：
+  - `resp.json()` 在非 OK 响应时无防御 → 加 try/catch，默认错误信息兜底
+  - `.find()` 回调参数 `tpl` 与外层变量同名 → 重命名为 `item`
+  - `sel.options[0]` 脆弱访问 → 加 null guard（`if (sel.options.length > 0)`）
+
+**`.gitignore` 更新（提交 `9f08474`）**：
+- 添加 `data/custom-prompts/user-templates.json`（用户数据不提交 git）
+
+---
+
+### 发现并修复的预存在 Bug
+
+**`rerun_llm` 路由死代码**（最终代码审查发现）：
+- SSE `return Response(stream_with_context(...))` 位于 `delete_task` 路由的 `return` 语句之后，永远不可达
+- 导致所有 Re-run LLM 请求均返回 None 并触发 500 错误
+- 最终审查 subagent 修复：将 return 移入 `rerun_llm` 函数体内（包含在上述提交中）
+
+---
+
+### Git 提交记录（本次会话）
+- `67034e3`：`docs: add prompt templates feature design spec`
+- `46e5bea`：`docs: add prompt templates implementation plan`
+- `d69766c`：`feat: add builtin prompt template files and update config constants`
+- `cbab278`：`feat: add /api/prompt-templates GET, POST, DELETE endpoints`
+- `737e258`：`fix: add content cap, threading lock, and tmp cleanup to template endpoints`
+- `8b9e367`：`feat: add prompt template selector HTML to main form and rerun dialog`
+- `d00a12a`：`feat: add prompt template JS logic, i18n keys, and applyTranslations wiring`
+- `82c2f01`：`fix: defensive JSON parsing, null-guard, and shadow variable cleanup in template JS`
+- `9f08474`：`chore: gitignore user-templates.json`
+
+---
+
+## Conversation 16
+
+### 主题：Template Browser — 从凌乱下拉框到分域浏览面板
+
+**流程**：brainstorming（含 visual companion）→ writing-plans → subagent-driven-development（4 个任务）
+
+---
+
+### 背景
+
+随着内置模板从 3 个增长到 13 个（新增学习、产品、销售方法论等），原有的单层 `<select>` 下拉框已不可用。本次会话完整走完 brainstorm → spec → plan → implement 全流程，设计并实现了分域模板浏览面板。
+
+---
+
+### 阶段 1：Brainstorming + Visual Companion
+
+**关键决策（逐问对话）**：
+1. 预期规模？→ 每个领域 5–10 个模板，约 6 个领域（会议、销售、HR、产品、学习、法律），共 30–60 个
+2. 选模板时是精确选取还是浏览对比？→ 3–4 个「常用」一键选，其余按领域浏览并查看描述
+3. 选模板后立即应用还是先预览？→ 常用模板直接应用，领域模板先预览再确认
+4. 用户自定义模板放哪里？→ 独立的「我的模板」分区
+
+**3 个方案对比**（通过 visual companion 在浏览器展示）：
+- A：常用 chips + 展开面板（inline）
+- **B：下拉栏 + 内嵌浏览面板（推荐）** ← 用户选择
+- C：Modal 弹窗画廊
+
+**用户追加要求**：卡片更紧凑，1–3 列自适应宽度；所有内置模板从 `.txt` 文件迁移至单个 JSON 文件，包含 domain、featured、uuid、description、content 等字段。
+
+---
+
+### 阶段 2：设计规格（Spec）
+
+文档：`docs/superpowers/specs/2026-05-06-template-browser-design.md`（提交 `9f4c6a6`）
+
+**核心设计**：
+
+**UI 三态**：
+1. **紧凑栏**：当前模板名称 + "浏览 ▾" 按钮
+2. **浏览面板**（展开）：
+   - ⭐ 常用模板：pill chips，一键应用并关闭
+   - 🗂 按领域：filter chips（Meeting/Sales/HR/Product/Study/Law + 紫色「我的模板」）
+   - 卡片网格：`grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))`，每卡展示名称 + 一行描述
+3. **预览态**：点击领域卡片进入，显示完整 prompt（只读）+ Back / 使用此模板
+
+**数据层**：
+- `data/custom-prompts/builtin-templates.json`（新）替代所有 `.txt` 文件
+- 每条记录：`id`（uuid4，永久稳定）、`name`、`domain`、`featured`、`description`、`content`
+- 用户模板沿用 `user-templates.json`，独立展示
+
+**新增状态变量**：`_templateBrowserOpen`、`_activeDomain`、`_previewTemplateId`
+
+**Re-run 对话框**：保留原有 `<select>`，`populateTemplateDropdown()` 仅更新 `#rerun-template-select`
+
+---
+
+### 阶段 3：实现计划（Plan）
+
+文档：`docs/superpowers/plans/2026-05-06-template-browser.md`（提交 `f992c0f`）
+
+**4 个任务**：
+- Task 1：创建 `builtin-templates.json` + 更新 backend（config、routes）
+- Task 2：前端 HTML 骨架（紧凑栏 + 面板结构 + i18n keys + 状态变量）
+- Task 3：前端 JS 核心（open/close、featured chips、domain filter、card grid）
+- Task 4：前端 JS 集成（preview state、save/delete/applyLanguage 适配新面板）
+
+---
+
+### 阶段 4：实现（Subagent-Driven Development）
+
+每个任务由独立 subagent 实现，经 spec compliance review 通过后完成。
+
+**Task 1（提交 `2715c9e`）**：
+- Python 迁移脚本：从 13 个 `.txt` 文件读取内容，写入 `builtin-templates.json`（含稳定 UUID、domain、featured、description）
+- `app/config.py`：添加 `import json`，`BUILTIN_TEMPLATES_DIR` → `BUILTIN_TEMPLATES_FILE`，`LLM_PROMPT` 改为 `_load_default_prompt()` 从 JSON 读取第一个 featured 模板
+- `app/routes.py`：`_load_builtin_templates()` 改为 JSON 读取，移除 `import glob`
+- 删除 `data/custom-prompts/builtin/` 目录及 13 个 `.txt` 文件
+
+**Task 2（提交 `d3e0b7e`）**：
+- `static/index.html` HTML 替换：移除 `<select id="template-select">`，新增紧凑栏（`#template-bar-label`、`#template-browse-btn`）+ 浏览面板（featured/domain/card/preview 容器）
+- 新增 13 个 i18n keys（zh + en）：`browseBtnOpen`、`browseBtnClose`、`sectionCommonUse`、`sectionDomain`、域名标签、`previewBack`、`previewUse`
+- 新增状态变量：`_templateBrowserOpen`、`_activeDomain`、`_previewTemplateId`
+
+**Task 3（提交 `0e21cab`）**：
+- 新增辅助函数：`_getAvailableDomains()`、`_domainLabel(domain)`
+- 新增 `_applyTemplate(id)`：设置 prompt 内容、更新紧凑栏标签、控制删除按钮，关闭面板
+- 新增面板控制：`toggleTemplateBrowser()`、`openBrowserPanel()`、`closeBrowserPanel()`
+- 新增渲染函数：`renderBrowserPanel()`、`renderFeaturedChips()`、`renderDomainChips()`、`renderTemplateCards()`、`onDomainChipClick(domain)`
+- 更新 `loadPromptTemplates()`：优先选首个 featured 模板，更新 bar label，不再引用 `#template-select`
+
+**Task 4（提交 `bbb09f3`）**：
+- 新增 `showTemplatePreview(id)`、`applyPreviewedTemplate()`、`cancelPreview()`
+- `confirmSaveTemplate()`：移除 `template-select.value` 引用，改用 `_applyTemplate(newTpl.id)`
+- `deleteCurrentTemplate()`：移除 `template-select.value = ""`，改为重置 bar label
+- `populateTemplateDropdown()`：缩减为仅调用 `_buildTemplateSelect(#rerun-template-select)`
+- `applyLanguage()`：新增 `#template-browse-btn` / `#template-bar-label` 更新，移除旧 `template-select` 引用，新增 `if (_templateBrowserOpen) renderBrowserPanel()`
+- 删除孤立函数 `onTemplateSelect()`（原由 `<select onchange>` 触发，现已无调用方）
+
+---
+
+### 本次会话杂项提交
+
+- `afa30d7`：`feat: add 10 new prompt templates (study, brainstorm, sales analysis)`（会话开始时提交）
+- `34c050c`：`fix: rerun SSE response placement, template init order, auto-select, and UI polish`（UI 修复）
+- `9f4c6a6`：`docs: add template browser design spec`
+- `f992c0f`：`docs: add template browser implementation plan`
+
+---
+
+### Git 提交记录（本次会话）
+- `afa30d7`：`feat: add 10 new prompt templates (study, brainstorm, sales analysis)`
+- `34c050c`：`fix: rerun SSE response placement, template init order, auto-select, and UI polish`
+- `9f4c6a6`：`docs: add template browser design spec`
+- `f992c0f`：`docs: add template browser implementation plan`
+- `2715c9e`：`feat: consolidate builtin templates into single JSON file, remove .txt files`
+- `d3e0b7e`：`feat: replace template select with compact bar + browser panel HTML skeleton`
+- `0e21cab`：`feat: add template browser panel core — open/close, featured chips, domain filter, card grid`
+- `bbb09f3`：`feat: add template preview state, wire up save/delete/applyLanguage to new browser panel`
+
+
+---
+
+## Conversation 17
+
+### 主题：Delete 按钮位置调整（UX 修复）
+
+**变更**：将 `#delete-template-btn` 从浏览面板外部移入预览操作行，与 Cancel / Use This Template 同层。
+
+---
+
+### 修改详情
+
+**HTML（`static/index.html`）**
+
+修改前：`#delete-template-btn` 在 `#template-browser` div 外，作为独立元素。
+修改后：移入预览操作行 `div`（`display:flex;justify-content:flex-end;margin-top:8px;gap:6px;`），作为第一个子元素，设 `margin-right:auto` 使其靠左，Cancel / Use This Template 靠右。按钮尺寸对齐 `font-size:0.82rem`，`border-radius:6px`。
+
+**JS 逻辑调整（`static/index.html`）**
+
+- `showTemplatePreview(id)`：新增 delete 按钮显隐逻辑——用户模板显示，内置模板隐藏，并更新按钮文本
+- `cancelPreview()`：返回卡片列表时隐藏 delete 按钮
+- `deleteCurrentTemplate()`：
+  - 原先读取 `_selectedTemplateId`（未预览时为 null，会静默失败）
+  - 现改为优先读 `_previewTemplateId`，回退 `_selectedTemplateId`
+  - 成功删除后调用 `closeBrowserPanel()`，清除 `_previewTemplateId`
+  - 仅当删除的是当前已应用模板时才重置 bar label
+- `_applyTemplate(id)`：移除孤立的 delete 按钮显隐代码（面板关闭后按钮不可见，逻辑无意义）
+- `applyLanguage()`：移除对 delete 按钮的文本更新（现由 `showTemplatePreview()` 按需设置）
+
+### Git 提交记录（本次会话）
+- 无独立提交（变更包含在未提交的 `static/index.html` diff 中）
+
+---
+
+## Conversation 18
+
+### 主题：两页拆分 + UX 改进（两次会话跨越上下文压缩）
+
+---
+
+### 架构变更：单文件拆分为两页
+
+**目标**：将 2949 行 `static/index.html` 拆分为两个专注页面，共享 CSS/JS 层。
+
+**新文件**
+
+| 文件 | 说明 |
+|------|------|
+| `static/shared.css` | 公共样式：reset、body、`.topnav`、`.card`、`.form-row`、vendor badge/section 样式 |
+| `static/shared.js` | 公共 globals（`VENDORS`, `currentLang`, `i18n`, `vendorNames`）+ 函数（`t`, `fetchVendors`, `getStoredCreds`, `saveCred`, `isVendorReady`, `showToast`, `escapeHtml`, `renderMarkdown`, `switchLanguage`, `applyLanguage`, `validateVendorCreds` 等） |
+| `static/vendors.html` | 供应商管理页（凭证填写 + 能力表格），路由 `GET /vendors` |
+| `tests/test_two_page.py` | 27 个集成测试，覆盖两个路由、静态文件服务、关键 DOM 元素存在性 |
+| `tests/conftest.py` | 将项目根加入 `sys.path` |
+
+**Hook 模式**
+
+- `window._onCredSaved?(vendor)` — 凭证保存后回调；index.html 注册 `() => populateSelects()`，vendors.html 注册 `updateFilledIndicator + updateCredsSummary`
+- `window._applyPageLanguage?()` — 语言切换后页面级回调；`shared.js applyLanguage()` 末尾调用
+
+**Flask 路由**（`app/routes.py`）
+
+```python
+@bp.route("/vendors")
+def vendors():
+    resp = send_from_directory(os.path.join(BASE_DIR, "static"), "vendors.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+```
+
+---
+
+### index.html 变更
+
+- `<head>` 引入 `shared.css` + `shared.js`
+- `<body>` 顶部替换为 `.topnav`（含 CN/EN banner logo + 语言选择器）
+- 删除 vendor 凭证卡片（`#creds-card`）和能力表格卡片
+- `init()` 改为调用 `fetchVendors()`（共享），移除 `renderVendorKeys/renderVendorTable/updateCredsSummary`
+- `applyLanguage()` 改为 `window._applyPageLanguage`，移除 vendor 专属 DOM 更新，新增 nav label 更新
+- 删除 `scrollToCreds()`、`updateCredsSummary` override block
+- Onboarding CTA 改为 `window.location.href='/vendors'`
+- 新增 `window._onCredSaved = () => populateSelects()`
+
+---
+
+### UX 改进
+
+**Start Processing → 自动跳转 Task Queue**
+
+- `processFiles()` 中：`!queueExpanded` 时始终展开（原仅多文件展开），调用后 `scrollIntoView({behavior:"smooth"})`
+
+**Re-run Notes → 创建 Task Queue 条目并跳转**
+
+- `doRerunLlm()` 重写：立即创建 `taskQueue[qid]`（`status:"running"`, `currentStep:"llm"`），展开并滚动到 queue card，关闭 rerun panel；SSE 流结束后更新状态为 done/error，调用 `showTaskNotification`
+
+**Re-run 模板选择不自动展开提示词编辑器**
+
+- `onRerunTemplateSelect()` 移除 `if (!rerunPromptOpen) toggleRerunPrompt()` 调用；选模板只填充 textarea，不展开面板
+
+---
+
+### i18n 新增 key
+
+`shared.js` zh/en 各新增：
+- `navProcess`（"处理" / "Process"）
+- `navVendors`（"供应商" / "Vendors"）
+
+---
+
+### 删除
+
+- `static/mockup.html`（头脑风暴用临时文件）
+
+---
+
+### Git 提交记录（本次会话）
+- `c097453` feat: split into two pages, add shared layer, UX queue improvements
+
+---
+
+## Conversation 19 (2026-05-10)
+
+### 主题：UI 细化 — SVG 图标系统 + 移动端适配 + 导航栏增大
+
+---
+
+### 变更概览
+
+**触发原因：** 用户要求放大导航栏 logo、用 SVG 替换所有 emoji、保持导航栏无 emoji、并兼顾手机端视图。
+
+---
+
+### 文件变更
+
+#### `static/shared.css`
+- Nav 高度：56px → 64px
+- Logo 高度：36px → 48px
+- `.topnav .nav-links a` 改为 `display: inline-flex; align-items: center; gap: 6px`（支持 SVG + 文字对齐）
+- `.card h2` 增加 `display: flex; align-items: center; gap: 8px`（支持 SVG 图标与标题文字对齐）
+- 新增 `@media (max-width: 600px)` 移动端断点：nav 缩为图标模式（隐藏文字标签）、卡片减少内边距、表单行竖向排列
+
+#### `static/shared.js` — i18n 清理
+- zh + en 两节全部 emoji 字符移除（共涉及约 30+ 条 key）
+- 受影响 key：`uploadTitle`, `queueTitle`, `resultsTitle`, `credsTitle`, `vendorTableTitle`, `startBtn`, `importBtn`, `exportBtn`, `clearBtn`, `statusRunning/Done/Error/Waiting`, `taskDone/taskFailed`, `saved`, `exported`, `copied`, `speakersDetected`, `onboardingBtn`, `fwTitle`, 等
+
+#### `static/index.html`
+- **导航栏**：`📁` → 上传箭头 SVG；`🔑` → 钥匙 SVG；`🌐` 从语言选择器删除
+- **h2 标题重构**：每个 `<h2>` 改为 `<h2 style="display:flex;..."><svg/><span id="*-title-text">文字</span></h2>` 结构
+  - Upload: upload-title-text
+  - Queue: queue-title-text（count/toggle span 保留为兄弟节点）
+  - Results: results-title-text
+  - History: history-title-text（toggle span 保留为兄弟节点）
+- **`_applyPageLanguage` 重构**：不再对 h2 整体 innerHTML 清空再重建，改为仅更新对应 span；消除了每次切换语言时 SVG 被摧毁的问题
+- **按钮 SVG 化**：copy (📋→复制图标), download (⬇️→下载图标), edit (✏️→编辑图标), save (✅→勾选图标), rerun toggle/submit (🔄→刷新图标)
+- **内容区域**：error section ⚠️ → 三角警告 SVG；tip banner 💡 → 圆形信息 SVG；onboarding 按钮 🔑 → 钥匙 SVG；历史删除按钮 🗑️ → 垃圾桶 SVG；队列 viewHint 👁 → 眼睛 SVG
+- **JS 内容**：`_flashBtn` 恢复字符串改用 SVG copy 图标；`extraHtml` 移除 `🔢`；`task.message` 移除 `❌` 前缀；`setStep()` 简化（该函数指向不存在的 DOM 元素，为历史遗留）；`⏳` / `🔄` 状态文字清理
+- **token-usage-section div** 新增 `id="token-usage-title"` 以支持 applyLanguage 定向更新
+- **Folder Watch（隐藏功能）**：移除 `📂` / `📁` 前缀
+
+#### `static/vendors.html`
+- **导航栏**：同 index.html（上传 SVG + 钥匙 SVG，移除 🌐）
+- **h2 标题重构**：
+  - Creds: `<span id="creds-title-text">`
+  - Vendor Table: `<span id="vendor-table-title-text">`
+- **按钮重构**：import/export/clear/import-file 均改为 SVG + `<span id="btn-*-text">` 结构
+- **`_applyPageLanguage` 简化**：不再需要重建文件 input（之前因 `textContent` 覆盖子节点 input 而需 JS 重建），现在只更新文字 span；文件 input 永久保留在 HTML 中
+
+---
+
+### 设计原则（SVG 图标）
+- 所有图标：Feather/Lucide 风格，stroke-based，无 fill
+- h2 图标：15×15px，`flex-shrink:0`
+- 按钮图标：12–13px，`vertical-align:-1px`
+- 导航图标：15px（桌面），18px（移动端）
+- 图标 SVG 直接内联在 HTML 中（无外部依赖、无构建）
+
+---
+
+### 移动端策略（`@media (max-width: 600px)`）
+- 导航文字标签隐藏（`.topnav .nav-links a span { display: none }`）
+- 导航图标放大至 18px（保持点击区域可用）
+- 导航 Logo 降回 36px（适配小屏）
+- Container padding 12px，Card padding 16px
+- Form row 改竖排，min-width 取消
+
+---
+
+### 测试
+- 27 个集成测试全部通过（`python -m pytest tests/test_two_page.py -v`）
+- 全文件 emoji 扫描：index.html、vendors.html、shared.js 均为 0 匹配

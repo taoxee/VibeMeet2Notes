@@ -2,6 +2,45 @@
 
 All notable changes to VibeMeet2Notes are documented here.
 
+## 2026-05-10
+
+### Features
+- Two-page layout: main page (`/`) for Upload & Process + Task History; vendor management page (`/vendors`) for credentials and capabilities table
+- Shared CSS/JS layer: `static/shared.css` and `static/shared.js` extracted from monolithic `index.html`; both pages link to them, no build step needed
+- Top navigation bar on both pages with active-tab highlighting and CN/EN banner logo toggle
+- Banner logos: CN (`Banner-Logo-CN.png`) and EN (`Banner-Logo-EN.png`) shown in nav, toggled by language
+- On Start Processing, page auto-scrolls to Task Queue and queue is always expanded (was only auto-expanded for multi-file batches)
+- Re-run Notes now creates a visible Task Queue entry showing LLM step progress, scrolls to queue, and fires a completion notification
+- Onboarding CTA now navigates to `/vendors` instead of scrolling to removed in-page credentials section
+- 27 integration tests covering both routes, shared file serving, and content assertions (`tests/test_two_page.py`)
+- SVG icon system: all emoji characters replaced with inline SVG icons (Feather/Lucide style) across both pages — nav links, h2 headings, action buttons, status indicators; zero emojis remain in HTML/JS/CSS
+- Mobile responsive layout: nav collapses to icon-only at ≤600px; cards use reduced padding; form rows stack vertically; improved tap targets
+- Nav logo enlarged (36px → 48px) with taller nav bar (56px → 64px) for better visual presence
+
+### Bug Fixes
+- Re-run template select no longer auto-expands the prompt editor on selection
+
+## 2026-05-07
+
+### Features
+- Template browser UX refinement: builtin templates apply instantly on click with browser staying open, enabling frictionless template discovery; user templates still require preview before applying
+
+### Bug Fixes
+- Removed development planning artifacts from git history (superpowers specs/plans, TEMPLATES_ADDED.md); files remain locally in .gitignore
+
+## 2026-05-06
+
+### Features
+- Prompt template system — select from built-in templates or save your own custom templates server-side; user templates persisted to `data/custom-prompts/user-templates.json` with atomic writes and concurrent-access protection
+- Template selector in main form and re-run LLM dialog, with i18n support (EN/CN)
+- Template Browser — compact bar + expandable inline panel replaces flat dropdown; featured one-click pills for common use cases, domain-filtered card grid (Meeting, Sales, HR, Product, Study, Law), preview pane before applying
+- 13 builtin templates consolidated from `.txt` files into single `data/custom-prompts/builtin-templates.json` with stable UUIDs, domain, featured, and description fields
+- 10 new builtin templates added: Study Lecture Note, Product Requirement Review, Brainstorming, Team Meeting, Customer Requirement Analysis, SPIN Selling, BANT/MEDDIC Analysis, GPCT Sales Summary, MEDDIC Sales Report, FAINT Sales Opportunities
+
+### Bug Fixes
+- Fixed pre-existing bug where Re-run LLM always returned 500 due to unreachable SSE response statement
+- Delete template button moved into preview action row (alongside Cancel / Use This Template); delete now operates on the previewed template and closes the panel on success
+
 ## 2026-05-05
 
 ### Features

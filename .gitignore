@@ -16,3 +16,8 @@ static/tmp/
 .vscode/
 .qoder/
 tests/
+data/custom-prompts/user-templates.json
+data/TEMPLATES_ADDED.md
+.superpowers/
+docs/superpowers/
+docs

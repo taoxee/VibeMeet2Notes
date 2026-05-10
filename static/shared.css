@@ -1,0 +1,108 @@
+/* ── Reset & base ── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+
+/* ── Top nav ── */
+.topnav {
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.topnav .nav-brand { display: flex; align-items: center; margin-right: 20px; }
+.topnav .nav-brand img { height: 48px; width: auto; object-fit: contain; }
+.topnav .nav-links { display: flex; gap: 4px; flex: 1; }
+.topnav .nav-links a {
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #666;
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.topnav .nav-links a:hover { background: #f4f6fb; color: #1a1a2e; }
+.topnav .nav-links a.active { background: #4361ee; color: #fff; }
+.topnav .nav-lang { margin-left: auto; }
+.topnav .nav-lang select {
+  padding: 6px 28px 6px 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  background: #fff;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.topnav .nav-lang select:hover { border-color: #4361ee; }
+.topnav .nav-lang select:focus { outline: none; border-color: #4361ee; box-shadow: 0 0 0 3px rgba(67,97,238,0.15); }
+
+/* ── Page container ── */
+.container { max-width: 960px; margin: 0 auto; padding: 24px; }
+h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; color: #1a1a2e; }
+.subtitle { text-align: center; color: #666; margin-bottom: 32px; font-size: 0.95rem; }
+
+/* ── Card ── */
+.card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #1a1a2e; border-left: 4px solid #4361ee; padding-left: 12px; display: flex; align-items: center; gap: 8px; }
+
+/* ── Form layout ── */
+.form-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.form-group { flex: 1; min-width: 200px; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500; color: #555; }
+.form-group select, .form-group input { width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 0.9rem; transition: border-color 0.2s; }
+.form-group select:focus, .form-group input:focus { outline: none; border-color: #4361ee; box-shadow: 0 0 0 3px rgba(67,97,238,0.1); }
+
+/* ── Vendor badges (ASR/LLM/TTS) ── */
+.vendor-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-left: 4px; }
+.badge-asr { background: #e8f5e9; color: #2e7d32; }
+.badge-llm { background: #e3f2fd; color: #1565c0; }
+.badge-tts { background: #fff3e0; color: #e65100; }
+.badge-other { background: #f3e5f5; color: #7b1fa2; }
+
+/* ── Vendor credential form ── */
+.vendor-section { border: 1px solid #e9ecef; border-radius: 8px; padding: 16px; margin-bottom: 12px; transition: border-color 0.2s; }
+.vendor-section:hover { border-color: #4361ee; }
+.vendor-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.vendor-fields { display: flex; gap: 12px; flex-wrap: wrap; }
+.vendor-fields .field-item { flex: 1; min-width: 180px; }
+.vendor-fields .field-item label { font-size: 0.8rem; color: #777; margin-bottom: 4px; display: block; }
+.vendor-fields .field-item input { width: 100%; padding: 8px 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 0.85rem; }
+.vendor-fields .field-item input:focus { outline: none; border-color: #4361ee; box-shadow: 0 0 0 2px rgba(67,97,238,0.1); }
+.optional-tag { font-size: 0.7rem; color: #aaa; margin-left: 2px; }
+.filled-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: auto; }
+.filled-yes { background: #4caf50; }
+.filled-no { background: #e0e0e0; }
+
+/* ── Shared animation ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .topnav { padding: 0 12px; height: 56px; gap: 8px; }
+  .topnav .nav-brand img { height: 36px; }
+  .topnav .nav-brand { margin-right: 8px; }
+  .topnav .nav-links a { padding: 5px 10px; font-size: 0.82rem; gap: 4px; }
+  .topnav .nav-links a span { display: none; }
+  .topnav .nav-links a svg { width: 18px; height: 18px; }
+  .topnav .nav-lang select { font-size: 0.82rem; padding: 5px 22px 5px 8px; }
+  .container { padding: 12px; }
+  .card { padding: 16px; }
+  .card h2 { font-size: 1rem; }
+  .form-row { flex-direction: column; gap: 10px; }
+  .form-group { min-width: unset; }
+}

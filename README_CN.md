@@ -1,5 +1,9 @@
 # [VibeMeet2Notes · 灵感纪要](https://github.com/taoxee/VibeMeet2Notes)
 
+<p align="center">
+  <img src="data/logos/Banner-Logo-CN.png" alt="VibeMeet2Notes 灵感纪要" width="680">
+</p>
+
 **媒体文件转录与会议纪要工具**
 
 [![中文](https://img.shields.io/badge/中文-red?style=for-the-badge)](README_CN.md) [![English](https://img.shields.io/badge/English-blue?style=for-the-badge)](README_EN.md)
@@ -38,6 +42,9 @@
 - 🔁 **重新生成纪要** — 换模型或提示词后无需重新转录，一键重跑 LLM
 - 📋 **复制与下载** — 一键复制或下载转录文本和会议纪要
 - 🗂️ **历史搜索与删除** — 支持搜索历史任务记录，可单条删除
+- **两页布局** — 主页专注上传处理，独立供应商管理页（`/vendors`）；顶部导航栏带高亮标签
+- **SVG 图标系统** — 全面替换 Emoji 为内联 SVG 图标（Feather/Lucide 风格），视觉一致、可缩放
+- **移动端响应式** — 导航栏在 ≤600px 折叠为纯图标；卡片减小内边距；表单行垂直堆叠；更好的触摸区域
 
 ---
 
