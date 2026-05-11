@@ -39,6 +39,7 @@ Upload audio/video → ASR transcription (speaker diarization) → LLM-generated
 - 🔧 **Model Compatibility** — Auto-adapts for models that don't support system role (e.g. qwen-mt-lite)
 - ✏️ **Custom Prompt** — Edit the LLM system prompt from the frontend, auto-saved to browser, one-click reset to default
 - 📝 **Editable Notes** — Modify generated meeting summaries in-place after processing
+- 🗂️ **Template Browser** — Compact bar + inline expansion panel; browse 13 built-in templates by domain (Meeting/Sales/HR/Product/Study/Law); one-click apply for common templates, select after preview; support saving custom templates
 - 🔁 **Re-run Notes** — Re-generate minutes with a different model or prompt without re-transcribing
 - 📋 **Copy & Download** — One-click copy or download of transcript and meeting notes
 - 🗂️ **History Search & Delete** — Search across task history and delete individual entries
