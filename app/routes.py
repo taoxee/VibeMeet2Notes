@@ -12,7 +12,7 @@ import requests
 from flask import Blueprint, request, jsonify, send_from_directory, Response, stream_with_context
 from werkzeug.utils import secure_filename
 
-from app.config import VENDORS, OUTPUT_DIR, UPLOAD_FOLDER, DATA_DIR
+from app.config import VENDORS, OUTPUT_DIR, UPLOAD_FOLDER, DATA_DIR, BUILTIN_TEMPLATES_FILE, USER_TEMPLATES_FILE
 from app.utils import allowed_file, find_cached, transcode_audio
 from app.services import ASR_HANDLERS, LLM_HANDLERS
 
@@ -472,4 +472,78 @@ def delete_task(task_id):
     shutil.rmtree(task_dir, ignore_errors=True)
     return jsonify({"ok": True})
 
-    return Response(stream_with_context(generate()), mimetype="text/event-stream")
+
+# ── Prompt Templates ──────────────────────────────────────────────────
+
+_templates_lock = threading.Lock()
+
+
+def _load_builtin_templates():
+    if not os.path.isfile(BUILTIN_TEMPLATES_FILE):
+        return []
+    try:
+        with open(BUILTIN_TEMPLATES_FILE, "r", encoding="utf-8") as f:
+            templates = json.load(f)
+        if not isinstance(templates, list):
+            return []
+        for t in templates:
+            t["is_builtin"] = True
+        return templates
+    except Exception as e:
+        print(f"[Templates] Failed to load builtin-templates.json: {e}")
+        return []
+
+
+def _load_user_templates():
+    if not os.path.isfile(USER_TEMPLATES_FILE):
+        return []
+    try:
+        with open(USER_TEMPLATES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        print(f"[Templates] Failed to load user templates: {e}")
+        return []
+
+
+def _save_user_templates(templates):
+    tmp_path = USER_TEMPLATES_FILE + ".tmp"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(templates, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, USER_TEMPLATES_FILE)
+    except OSError:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
+
+
+@bp.route("/api/prompt-templates", methods=["GET"])
+def get_prompt_templates():
+    return jsonify(_load_builtin_templates() + _load_user_templates())
+
+
+@bp.route("/api/prompt-templates", methods=["POST"])
+def create_prompt_template():
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    content = (data.get("content") or "").strip()
+    if not name or not content:
+        return jsonify({"error": "Name and content required"}), 400
+    with _templates_lock:
+        templates = _load_user_templates()
+        new_tpl = {"id": str(uuid.uuid4()), "name": name, "content": content, "is_builtin": False}
+        templates.append(new_tpl)
+        _save_user_templates(templates)
+    return jsonify(new_tpl), 201
+
+
+@bp.route("/api/prompt-templates/<template_id>", methods=["DELETE"])
+def delete_prompt_template(template_id):
+    with _templates_lock:
+        templates = _load_user_templates()
+        updated = [t for t in templates if t.get("id") != template_id]
+        if len(updated) == len(templates):
+            return jsonify({"error": "Template not found"}), 404
+        _save_user_templates(updated)
+    return jsonify({"ok": True})
