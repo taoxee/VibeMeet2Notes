@@ -72,6 +72,9 @@ def _load_prompt(filename, fallback=""):
 
 LLM_PROMPT = _load_prompt("custom-prompts/meetingminutes-prompt.txt")
 
+BUILTIN_TEMPLATES_FILE = os.path.join(DATA_DIR, "custom-prompts", "builtin-templates.json")
+USER_TEMPLATES_FILE    = os.path.join(DATA_DIR, "custom-prompts", "user-templates.json")
+
 
 # ── Vendor definitions ───────────────────────────────────────────────
 VENDORS = {
