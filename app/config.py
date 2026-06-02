@@ -177,6 +177,12 @@ VENDORS = {
             {"key": "api_key", "label": "API Key", "placeholder": "sk-xxxxxxxx"},
         ],
     },
+    "DeepSeek": {
+        "types": ["LLM"],
+        "fields": [
+            {"key": "api_key", "label": "API Key", "placeholder": "sk-xxxxxxxx"},
+        ],
+    },
     "FishAudio": {
         "types": ["TTS"],
         "fields": [

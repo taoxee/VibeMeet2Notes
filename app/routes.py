@@ -22,6 +22,7 @@ bp = Blueprint("main", __name__)
 _LLM_BASE_URLS = {
     "OpenAI":         "https://api.openai.com/v1",
     "Groq":           "https://api.groq.com/openai/v1",
+    "DeepSeek":       "https://api.deepseek.com",
     "智谱":           "https://open.bigmodel.cn/api/paas/v4",
     "Minimax-CN":     "https://api.minimax.chat/v1",
     "Minimax-Global": "https://api.minimaxi.chat/v1",
@@ -33,6 +34,7 @@ _LLM_BASE_URLS = {
 LLM_DEFAULT_MODELS = {
     "OpenAI":         "gpt-4o",
     "Groq":           "llama-3.3-70b-versatile",
+    "DeepSeek":       "deepseek-v4-flash",
     "智谱":           "glm-4-flash",
     "Minimax-CN":     "MiniMax-Text-01",
     "Minimax-Global": "MiniMax-Text-01",
