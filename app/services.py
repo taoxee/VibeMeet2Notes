@@ -1329,6 +1329,7 @@ def summarize_aliyun(creds, text, model="", system_prompt=""):
 LLM_HANDLERS = {
     "OpenAI":         lambda c, text, model="", sp="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://api.openai.com/v1", model or "gpt-4o", sp),
     "Groq":           lambda c, text, model="", sp="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://api.groq.com/openai/v1", model or "llama-3.3-70b-versatile", sp),
+    "DeepSeek":       lambda c, text, model="", sp="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://api.deepseek.com", model or "deepseek-v4-flash", sp),
     "智谱":           lambda c, text, model="", sp="": _summarize_with_chunking(summarize_openai_compatible, c, text, "https://open.bigmodel.cn/api/paas/v4", model or "glm-4-flash", sp),
     "Minimax-CN":     lambda c, text, model="", sp="": _summarize_with_chunking(summarize_minimax, c, text, "https://api.minimax.chat/v1", model or "MiniMax-Text-01", sp),
     "Minimax-Global": lambda c, text, model="", sp="": _summarize_with_chunking(summarize_minimax, c, text, "https://api.minimaxi.chat/v1", model or "MiniMax-Text-01", sp),
